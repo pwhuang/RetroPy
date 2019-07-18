@@ -29,16 +29,22 @@ def stokes_lubrication_phase_field(mesh_2d, eps2, phi):
         def inside(self, x, on_boundary):
             return on_boundary and near(x[0], 0, DOLFIN_EPS)
 
+    class top_bottom(SubDomain):
+        def inside(self, x, on_boundary):
+            return on_boundary and (near(x[1], 0, DOLFIN_EPS) or near(x[1], 1.0, DOLFIN_EPS))
+
     def boundary(x, on_boundary):
         return on_boundary
 
     b_left = left()
     b_right = right()
+    b_top_bottom = top_bottom()
 
     boundary_markers = MeshFunction('size_t', mesh_2d, dim=1)
 
     b_left.mark(boundary_markers, 1)
     b_right.mark(boundary_markers, 2)
+    b_top_bottom.mark(boundary_markers, 3)
 
     ds = Measure('ds', domain=mesh_2d, subdomain_data=boundary_markers)
     dx = Measure('dx', domain=mesh_2d, subdomain_data=boundary_markers)
@@ -55,8 +61,10 @@ def stokes_lubrication_phase_field(mesh_2d, eps2, phi):
     bc3 = DirichletBC(W.sub(0).sub(1), zero, b_left)
     bc4 = DirichletBC(W.sub(0).sub(1), zero, b_right)
 
+    bc_noflow = DirichletBC(W.sub(0), (zero, zero), b_top_bottom)
+
     # Collect boundary conditions
-    bcs = [bc2]#, bc3, bc4]
+    bcs = [bc2, bc_noflow]#, bc3, bc4]
 
     # Define variational problem
     (u, p) = TrialFunctions(W)
@@ -71,17 +79,17 @@ def stokes_lubrication_phase_field(mesh_2d, eps2, phi):
     dt_y = Constant(delta_t/eps2/eps2/Re)
     dt = Constant(delta_t)
 
-    grad_phi = project(grad(phi), Vec)
+    #grad_phi = project(grad(phi), Vec)
 
     #u_old = interpolate(Constant((0,0)), W.sub(0).collapse())
     hmin = mesh_2d.hmin()
-    eta = Constant(1e5) #A large enough number
+    eta = Constant(1e6) #A large enough number
 
     F = (u[0].dx(0)*eps2*v[0].dx(0) + u[0].dx(1)*v[0].dx(1) + u[1].dx(0)*v[1].dx(0)*eps2*eps2 + u[1].dx(1)*v[1].dx(1)*eps2)*dx \
-        - inner(div(v), p)*dx + q*div(u)*dx - (one-phi)*v[0]*ds(1) \
+        - inner(div(v), p)*dx + q*div(u)*dx - v[0]*ds(1) \
         + eta*phi*inner(u, v)*dx
         #- (grad_phi[0]*eps2*v[0].dx(0) + grad_phi[1]*v[0].dx(1))*u[0]*dx \
-        #- (grad_phi[0]*eps2*eps2*v[1].dx(0) + grad_phi[1]*eps2*v[1].dx(1))*u[1]*dx \
+        #- (grad_phi[0]*eps2*eps2*v[1].dx(0) + grad_phi[1]*eps2*v[1].dx(1))*u[1]*dx
 
     # I consider the term "-(one-phi)*v[0]*ds(1)" as P=1 on the left boundary.
     # The last line is the implementation of Nietsche's method, looks cool but I do not know what effect it gives

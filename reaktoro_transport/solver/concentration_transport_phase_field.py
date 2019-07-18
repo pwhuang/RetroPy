@@ -77,7 +77,7 @@ def concentration_transport_phase_field(mesh_2d, epsilon, Pe, Da, c_left_bc, u_n
     norm_grad_phi = project(sqrt( eps2*grad_phi[0]*grad_phi[0] + grad_phi[1]*grad_phi[1] ), DG_space)
 
     a = (1-phi)*(C.dx(0)*v.dx(0) + C.dx(1)*v.dx(1)/eps2)*dx + Pe*(u_nd[0]*C.dx(0) + u_nd[1]*C.dx(1))*v*dx\
-    - norm_grad_phi*Da/eps2*(1.0-C)*v*dx + inner(grad_phi, grad(v))*C*dx #Nietche's method
+    - norm_grad_phi*Da/eps2*(1.0-C)*v*dx #+ inner(grad_phi, grad(v))*C*dx #Nietche's method
 
     solve(a==0, C, bcs, solver_parameters={'newton_solver':{'linear_solver': 'mumps', 'preconditioner': 'default'\
                                                          , 'maximum_iterations': 10,'krylov_solver': {'maximum_iterations': 10000}}})
