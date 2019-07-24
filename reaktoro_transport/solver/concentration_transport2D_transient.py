@@ -83,7 +83,7 @@ def concentration_transport2D_transient(mesh_2d, epsilon, Pe_num, Da_num\
     bc_bottom.apply(u.vector())
 
     C = Function(V)
-    C_old = interpolate(Constant(0), V)
+    C_old = interpolate(init_expr, V)
 
     u_nd, p_nd = stokes_lubrication(mesh_2d, epsilon**2, top_bottom)
 
