@@ -28,7 +28,7 @@ ny_nd = 60
 mesh_2d = UnitSquareMesh(nx_nd, ny_nd)
 
 epsilon = 0.1
-Pe = 1
+Pe = 1.0
 Da = 0.01
 C_b = 0  #Concentration boundary condition at the left boundary
 order = 1

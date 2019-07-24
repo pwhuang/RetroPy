@@ -72,8 +72,8 @@ def concentration_transport2D(mesh_nd, epsilon, Pe, Da, order, c_left_bc, coordi
 
     #print(c)
 
-    #C = Function(V)
-    C = interpolate(one, V)
+    C = Function(V)
+    #C = interpolate(one, V)
 
     f = Constant(0.0)
     if coordinates=='Cartesian':
