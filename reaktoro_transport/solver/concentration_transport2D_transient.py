@@ -82,7 +82,6 @@ def concentration_transport2D_transient(mesh_2d, epsilon, Pe_num, Da_num\
     bc_top.apply(u.vector())
     bc_bottom.apply(u.vector())
 
-    C = Function(V)
     C_old = interpolate(init_expr, V)
 
     u_nd, p_nd = stokes_lubrication(mesh_2d, epsilon**2, top_bottom)
@@ -92,17 +91,22 @@ def concentration_transport2D_transient(mesh_2d, epsilon, Pe_num, Da_num\
 
     C_list = [C_old.copy()]
 
-    for i in range(time_steps):
-        a = (C-C_old)/dt*v*dx \
-        + theta*(C.dx(0)*v.dx(0) + C.dx(1)*v.dx(1)/eps2)*dx \
-        + theta*Pe*(u_nd[0]*C.dx(0) + u_nd[1]*C.dx(1))*v*dx \
-        - theta*Da/eps2*(1.0-C)*v*(ds(0) + ds(1)) \
-        + (one-theta)*(C_old.dx(0)*v.dx(0) + C_old.dx(1)*v.dx(1)/eps2)*dx\
-        + (one-theta)*Pe*(u_nd[0]*C_old.dx(0) + u_nd[1]*C_old.dx(1))*v*dx \
-        - (one-theta)*Da/eps2*(1.0-C_old)*v*(ds(0) + ds(1))
+    F = (C-C_old)/dt*v*dx \
+    + theta*((C.dx(0)*v.dx(0) + C.dx(1)*v.dx(1)/eps2)*dx \
+    + Pe*(u_nd[0]*C.dx(0) + u_nd[1]*C.dx(1))*v*dx \
+    - Da/eps2*(1.0-C)*v*(ds(0) + ds(1))) \
+    + (one-theta)*((C_old.dx(0)*v.dx(0) + C_old.dx(1)*v.dx(1)/eps2)*dx\
+    + Pe*(u_nd[0]*C_old.dx(0) + u_nd[1]*C_old.dx(1))*v*dx \
+    - Da/eps2*(1.0-C_old)*v*(ds(0) + ds(1)))
 
-        solve(a==0, C, bcs, solver_parameters={'newton_solver':{'linear_solver': 'mumps', 'preconditioner': 'default'\
-                                                                , 'maximum_iterations': 10,'krylov_solver': {'maximum_iterations': 10000}}})
+    a, L = lhs(F), rhs(F)
+    C = Function(V)
+
+    for i in range(time_steps):
+        solve(a==L, C, bcs, solver_parameters={'linear_solver': 'gmres',\
+                         'preconditioner': 'ilu'})
+        #, solver_parameters={'newton_solver':{'linear_solver': 'mumps', 'preconditioner': 'default'\
+        #                                        , 'maximum_iterations': 10,'krylov_solver': {'maximum_iterations': 10000}}})
         C_old.assign(C)
         # Add the solution to the list
         C_list.append(C_old.copy())

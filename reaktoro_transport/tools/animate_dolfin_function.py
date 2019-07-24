@@ -25,11 +25,11 @@ def animate_dolfin_function(mesh_2d, func, fig, ax):
 
     def update(t):
         ax.set_title('timesteps = ' + str(t))
-        ax.tricontourf(triang, func[t].vector()[v_to_d], levels=level)
+        cb = ax.tricontourf(triang, func[t].vector()[v_to_d], levels=level)
         #ln.set_data(x_space, adv_diff_reac_transient_sol_fracture(Pe, Da, epsilon, 0, x_space, t))
         return cb,
 
-    ani = FuncAnimation(fig, update, frames=np.arange(1,100,1), init_func=init\
+    ani = FuncAnimation(fig, update, frames=np.arange(1,len(func),1), init_func=init\
                         , blit=True, interval=300, cache_frame_data=False)
 
     return ani
