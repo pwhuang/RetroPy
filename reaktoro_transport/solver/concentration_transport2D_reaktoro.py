@@ -1,9 +1,9 @@
 #from . import np, rkt
 from . import *
 
-def concentration_transport2D_transient(mesh_2d, epsilon, Pe_num, Da_num\
-                                       , c_left_bc, init_expr\
-                                       , dt_num, time_steps, theta_num):
+def concentration_transport2D_reaktoro(mesh_2d, epsilon, Pe_num\
+                                       , c_left_bc, init_expr, t_scale\
+                                       , dt_num, time_steps, theta_num, reaktoro_init):
     # This function solves the transient advection diffusion reaction equation of a certain concentration
     # using theta family of methods.
     # Solves the problem in the Cartesian coordinates
@@ -12,12 +12,12 @@ def concentration_transport2D_transient(mesh_2d, epsilon, Pe_num, Da_num\
     # mesh_2d:        dolfin generated mesh
     # epsilon:        epsilon = Ly/Lx, the aspect ratio of the fracture
     # Pe_num:         The Peclet number
-    # Da_num:         The Damkoehler number
     # c_left_bc:      The Dirichlet Boundary condition for the concentration on the left boundary
     # init_expr:      The initial condition of C. Defined using the Expression function.
     # dt_num:         The nondimensional delta t
     # time_steps:     Integer. How many steps of time marching
     # theta_num:      theta=1: implict scheme, theta=0: explicit scheme, theta=0.5: the Crank-Nicolson scheme
+    # reaktoro_init:  ... explain in the tutorial
 
     # Outputs
     # C:          the concentration field, dolfin function
@@ -67,7 +67,6 @@ def concentration_transport2D_transient(mesh_2d, epsilon, Pe_num, Da_num\
     eps2 = Constant(epsilon**2)
     one = Constant(1)
     Pe = Constant(Pe_num)
-    Da = Constant(Da_num)
 
     bc0 = DirichletBC(V, c_left_bc, b_left)
     #bc1 = DirichletBC(V, one, right)
@@ -77,10 +76,10 @@ def concentration_transport2D_transient(mesh_2d, epsilon, Pe_num, Da_num\
     #The boundary conditions set here is to get boundary values
     bc_top = DirichletBC(V, 1, b_top)
     bc_bottom = DirichletBC(V, 2, b_bottom)
-    u = Function(V) #Dummy Function
+    boundary_indicator = Function(V) #Dummy Function
 
-    bc_top.apply(u.vector())
-    bc_bottom.apply(u.vector())
+    bc_top.apply(boundary_indicator.vector())
+    bc_bottom.apply(boundary_indicator.vector())
 
     C_old = interpolate(init_expr, V)
 
@@ -91,24 +90,37 @@ def concentration_transport2D_transient(mesh_2d, epsilon, Pe_num, Da_num\
 
     C_list = [C_old.copy()]
 
-    F = (C-C_old)/dt*v*dx \
-    + theta*((C.dx(0)*v.dx(0) + C.dx(1)*v.dx(1)/eps2)*dx \
-    + Pe*(u_nd[0]*C.dx(0) + u_nd[1]*C.dx(1))*v*dx \
-    - Da/eps2*(1.0-C)*v*(ds(0) + ds(1))) \
-    + (one-theta)*((C_old.dx(0)*v.dx(0) + C_old.dx(1)*v.dx(1)/eps2)*dx\
-    + Pe*(u_nd[0]*C_old.dx(0) + u_nd[1]*C_old.dx(1))*v*dx \
-    - Da/eps2*(1.0-C_old)*v*(ds(0) + ds(1)))
+    theta = Constant(theta_num)
 
-    a, L = lhs(F), rhs(F)
-    C = Function(V)
+    # Use the reaktoro_init function to generate the states that reaktoro_solve_rates function
+    state0, path, reactions, C_scale = reaktoro_init()
+
+    # initiate a reaktoro_flux function
+    reactoro_flux = interpolate(Expression('0', degree=1), V)
 
     for i in range(time_steps):
-        solve(a==L, C, bcs, solver_parameters={'linear_solver': 'gmres',\
-                         'preconditioner': 'ilu'})
-        #, solver_parameters={'newton_solver':{'linear_solver': 'mumps', 'preconditioner': 'default'\
-        #                                        , 'maximum_iterations': 10,'krylov_solver': {'maximum_iterations': 10000}}})
+        reactoro_flux.vector()[np.where(boundary_indicator.vector()[:]==1)[0]] = tools.reaktoro_solve_rates(C_old.vector()[boundary_indicator.vector()[:] == 1], C_scale, t_scale, reactions, state0)
+        reactoro_flux.vector()[np.where(boundary_indicator.vector()[:]==2)[0]] = tools.reaktoro_solve_rates(C_old.vector()[boundary_indicator.vector()[:] == 2], C_scale, t_scale, reactions, state0)
+
+        # This should be rewritten to avoid assembly of system of equations
+        C = TrialFunction(V)
+
+        F = (C-C_old)/dt*v*dx \
+        + theta*(C.dx(0)*v.dx(0) + C.dx(1)*v.dx(1)/eps2)*dx \
+        + theta*Pe*(u_nd[0]*C.dx(0) + u_nd[1]*C.dx(1))*v*dx \
+        - reactoro_flux*v*(ds(0) + ds(1)) \
+        + (one-theta)*(C_old.dx(0)*v.dx(0) + C_old.dx(1)*v.dx(1)/eps2)*dx \
+        + (one-theta)*Pe*(u_nd[0]*C_old.dx(0) + u_nd[1]*C_old.dx(1))*v*dx
+        #- (one-theta)*Constant(reactoro_flux)*v*(ds(0) + ds(1))
+
+        a, L = lhs(F), rhs(F)
+
+        C = Function(V)
+
+        solve(a==L, C, bcs, solver_parameters={'linear_solver': 'gmres', 'preconditioner': 'ilu'})
+
         C_old.assign(C)
-        # Add the solution to the list
+
         C_list.append(C_old.copy())
 
     return C_list
