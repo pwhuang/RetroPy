@@ -27,15 +27,13 @@ def animate_dolfin_function(mesh_2d, func_list, fig, ax_list, level, plot_colorb
     CG_space = FunctionSpace(mesh_2d, 'CG', 1)
     v_to_d = vertex_to_dof_map(CG_space)
 
-    #level = np.linspace(0, 1, 41)
-
-    for i, ax in enumerate(ax_list):
-        cb = ax.tricontourf(triang, func_list[i][0].vector()[v_to_d], levels=level)
-
-    if plot_colorbar==True:
-        fig.colorbar(cb)
 
     def init():
+        for i, ax in enumerate(ax_list):
+            cb = ax.tricontourf(triang, func_list[i][0].vector()[v_to_d], levels=level)
+
+        if plot_colorbar==True:
+            fig.colorbar(cb)
         #ax.set_ylim(0,1)
         #ax.set_xlim(0,1)
         return cb,

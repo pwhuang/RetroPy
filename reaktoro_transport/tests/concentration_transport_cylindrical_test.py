@@ -31,7 +31,7 @@ Da = 0.01
 C_b = 0  #Concentration boundary condition at the left boundary
 order = 1
 
-C = solver.concentration_transport2D(mesh_2d, epsilon, Pe, Da, order, C_b, 'Cylindrical')
+C, u_nd = solver.concentration_transport2D(mesh_2d, epsilon, Pe, Da, order, C_b, 'Cylindrical')
 C_vertex = C.compute_vertex_values(mesh_2d).reshape(nx_nd+1, ny_nd+1)
 
 x_space = np.linspace(0,1,nx_nd+1)

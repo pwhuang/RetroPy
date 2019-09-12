@@ -92,7 +92,7 @@ def concentration_transport2D_reaktoro(mesh_2d, epsilon, Pe_num\
 
     theta = Constant(theta_num)
 
-    # Use the reaktoro_init function to generate the states that reaktoro_solve_rates function
+    # Use the reaktoro_init function to generate the states that reaktoro_solve_rates function uses
     state0, path, reactions, C_scale = reaktoro_init()
 
     # initiate a reaktoro_flux function

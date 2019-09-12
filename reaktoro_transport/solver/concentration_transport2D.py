@@ -99,4 +99,4 @@ def concentration_transport2D(mesh_nd, epsilon, Pe, Da, order, c_left_bc, coordi
 
     solve(a==0, C, bcs, solver_parameters={'newton_solver':{'linear_solver': 'mumps', 'preconditioner': 'default'\
                                                             , 'maximum_iterations': 10,'krylov_solver': {'maximum_iterations': 10000}}})
-    return C
+    return C, u_nd
