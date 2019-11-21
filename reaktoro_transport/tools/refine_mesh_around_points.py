@@ -9,12 +9,22 @@ def refine_mesh_around_points(mesh_nd, points, depth):
     for i in range(depth):
         bbt = mesh_nd.bounding_box_tree()
         collisions = []
-        for P in points:
-            Px = P[0]
-            Py = P[1]
+        if (mesh_nd.geometric_dimension() == 2):
+            for P in points:
+                Px = P[0]
+                Py = P[1]
 
-            collisions1st = bbt.compute_first_entity_collision(Point(Px, Py))
-            collisions.append(collisions1st)
+                collisions1st = bbt.compute_first_entity_collision(Point(Px, Py))
+                collisions.append(collisions1st)
+
+        if (mesh_nd.geometric_dimension() == 3):
+            for P in points:
+                Px = P[0]
+                Py = P[1]
+                Pz = P[2]
+
+                collisions1st = bbt.compute_first_entity_collision(Point(Px, Py, Pz))
+                collisions.append(collisions1st)
 
         MF = MeshFunction('bool', mesh_nd, mesh_nd.geometric_dimension())
 
