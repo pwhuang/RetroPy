@@ -5,8 +5,8 @@ def stokes_lubrication_cylindrical(mesh_2d, eps2, top):
     # This function solves the Stokes problem defined by the lubrication theory in the cylindrical coordinates
     # Inputs
     # mesh_2d:        dolfin generated mesh
-    # eps2:           epsilon squared, epsilon = Ly/Lx, the aspect ratio of the fracture
-    # top:            A subdomain class that defines the top and bottom boundary of the fracture
+    # eps2:           epsilon squared, epsilon = R/Lz, the aspect ratio of the cylinder
+    # top:            A subdomain class that defines the top boundary of the cylinder
 
     # Outputs
     # u_nd:          the velocity field, dolfin function
