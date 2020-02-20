@@ -6,6 +6,16 @@ def refine_mesh_around_points(mesh_nd, points, depth):
     # points: A list of points to refine. [ [x1, y1], [x2, y2], ... ]
     # depth: how many times of refinement
 
+    # Outputs:
+    # mesh_nd: refined dolfin_generated_mesh
+    # report: integer, 1 for successfully performed refinement.
+    #                  0 for failure.
+
+    if len(points)==0:
+        print('No points to refine with!')
+        report = 0
+        return mesh_nd, report
+
     for i in range(depth):
         bbt = mesh_nd.bounding_box_tree()
         collisions = []
@@ -33,4 +43,5 @@ def refine_mesh_around_points(mesh_nd, points, depth):
         #MF.vector()[np.unique(collisions)] = True
         mesh_nd = refine(mesh_nd, MF)
 
-    return mesh_nd
+    report = 1
+    return mesh_nd, report

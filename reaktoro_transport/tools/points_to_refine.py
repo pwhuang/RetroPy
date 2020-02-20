@@ -1,6 +1,6 @@
 from . import *
 
-def points_to_refine(mesh_nd, f_of_phi, threshold = 5):
+def points_to_refine(mesh_nd, f_of_phi, threshold=1.0, min_cell_size=0.0):
     # This function returns the points of mesh cells to refine
     # and the phase field dolfin function
 
@@ -17,6 +17,7 @@ def points_to_refine(mesh_nd, f_of_phi, threshold = 5):
     DG_space = FunctionSpace(mesh_nd, 'DG', 0)
 
     phi = Function(CG_space)
+    cell_size = project(CellDiameter(mesh_nd), DG_space)
 
     dof_coordinates = CG_space.tabulate_dof_coordinates()
     dof_coordinates_dg = DG_space.tabulate_dof_coordinates()
@@ -37,7 +38,7 @@ def points_to_refine(mesh_nd, f_of_phi, threshold = 5):
 
         #File("norm_grad_phi.pvd") << norm_grad_phi
 
-        point_index = np.where(norm_grad_phi.vector()>threshold)[0]
+        point_index = np.logical_and(norm_grad_phi.vector()>threshold, cell_size.vector() > min_cell_size)
 
         point_x = dof_x_dg[point_index]
         point_y = dof_y_dg[point_index]
@@ -58,8 +59,8 @@ def points_to_refine(mesh_nd, f_of_phi, threshold = 5):
         norm_grad_phi = project( inner(grad(phi), grad(phi)), DG_space)
 
         #File("norm_grad_phi.pvd") << norm_grad_phi
-
-        point_index = np.where(norm_grad_phi.vector()>threshold)[0]
+        
+        point_index = np.logical_and(norm_grad_phi.vector()>threshold, cell_size.vector() > min_cell_size)
 
         point_x = dof_x_dg[point_index]
         point_y = dof_y_dg[point_index]

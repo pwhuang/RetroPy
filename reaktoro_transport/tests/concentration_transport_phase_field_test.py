@@ -83,6 +83,8 @@ for x_point in x_space:
 C_nd = np.array(C_nd)
 reference_solution = adv_diff_reac_sol_fracture(Pe, Da, epsilon, c_left_bc, x_space)
 
+print(np.linalg.norm(reference_solution - C_nd.T))
+
 # Try to improve this.
 def test_answer():
     assert np.linalg.norm(reference_solution - C_nd.T) < 0.1
