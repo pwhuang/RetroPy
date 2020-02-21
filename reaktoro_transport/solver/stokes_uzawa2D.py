@@ -100,8 +100,10 @@ def stokes_uzawa2D(mesh, phi, boundary_markers, steps, omega_num=1.0, r_num=0.0,
     prm['monitor_convergence'] = True
     prm['nonzero_initial_guess'] = True
 
-    pout = File("Box_p_iter.pvd")
-    vout = File("Box_v_iter.pvd")
+    #pout = File("Box_p_iter.pvd")
+    #vout = File("Box_v_iter.pvd")
+
+    xdmf_obj = XDMFFile(MPI.comm_world, 'pv_output.xdmf')
 
     div_u = 1.0
     i = 0
@@ -133,6 +135,8 @@ def stokes_uzawa2D(mesh, phi, boundary_markers, steps, omega_num=1.0, r_num=0.0,
             div_u_list.append(div_u)
 
         i+=1
+        xdmf_obj.write(u0, i)
+        xdmf_obj.write(p0, i)
 
         if (i>=steps):
             if MPI.rank(MPI.comm_world)==0:
@@ -140,8 +144,9 @@ def stokes_uzawa2D(mesh, phi, boundary_markers, steps, omega_num=1.0, r_num=0.0,
             break
 
     # Only saving the last time step
-    pout << (p0, i)
-    vout << (u0, i)
+    #pout << (p0, i)
+    #vout << (u0, i)
+    xdmf_obj.close()
 
     if MPI.rank(MPI.comm_world)==0:
         u_list.append(u0.copy())
