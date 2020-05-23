@@ -1,7 +1,7 @@
 .ipynb_checkpoints/
 __pycache__/
 .pytest_cache/
-.pvd
-.vtu
-.h5
-.xdmf
+*.pvd
+*.vtu
+*.h5
+*.xdmf

@@ -12,7 +12,7 @@ def stokes_lubrication(mesh_2d, eps2, top_bottom):
     # p_nd:          the pressure field, dolfin function
 
     # Define function spaces
-    P2 = VectorElement('Lagrange', triangle, 1) #VectorElement("P",mesh.ufl_cell(),2)
+    P2 = VectorElement('Lagrange', triangle, 2) #VectorElement("P",mesh.ufl_cell(),2)
     P1 = FiniteElement('Lagrange', triangle, 1) #FiniteElement("P",mesh.ufl_cell(),1)
     #TH = P2 * P1
     TH = MixedElement([P2, P1])

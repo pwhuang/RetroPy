@@ -1,11 +1,12 @@
 from . import *
 
-def refine_mesh_dg(mesh_nd, f_of_phi, threshold=1e-4, min_cell_size=1.0):
+def refine_mesh_dg(mesh_nd, f_of_phi, threshold=1e-4, min_cell_size=1.0, where='b'):
     # Inputs
     # mesh_nd:   dolfin_generated_mesh
     # f_of_phi:  a scipy RegularGridInterpolator using nearest interpolation
     # threshold: a threshold value for finding the f/s boundaries
     # min_cell_size: the minimum_cell_size of the refined mesh
+    # where: Where to refine. Supports 'b' for boundary and 'bf' for boundary and fluid
 
     # Outputs:
     # mesh_nd: refined dolfin_generated_mesh
@@ -40,11 +41,24 @@ def refine_mesh_dg(mesh_nd, f_of_phi, threshold=1e-4, min_cell_size=1.0):
         phi_DG_diff = Function(DG_space)
 
         # This tells you where to refine
-        for i, phi_val in enumerate(phi_DG.vector()[:]):
-            if phi_val > threshold and phi_val < (1.0 - threshold) and cell_size.vector()[i] > min_cell_size:
-                phi_DG_diff.vector()[i] = 1 # True
-            else:
-                phi_DG_diff.vector()[i] = 0 # False
+#         for i, phi_val in enumerate(phi_DG.vector()[:]):
+#             if phi_val > threshold and phi_val < (1.0 - threshold) and cell_size.vector()[i] > min_cell_size:
+#                 phi_DG_diff.vector()[i] = 1 # True
+#             else:
+#                 phi_DG_diff.vector()[i] = 0 # False
+
+        if where=='b':
+            phi_DG_diff.vector()[:] = np.array(\
+                                      np.logical_and(np.logical_and(phi_DG.vector()[:] > threshold,\
+                                                        phi_DG.vector()[:] < (1.0 - threshold)),\
+                                                        cell_size.vector()[:] > min_cell_size),\
+                                      dtype=int)
+
+        elif where=='bf':
+            phi_DG_diff.vector()[:] = np.array(\
+                                      np.logical_and(phi_DG.vector()[:] < (1.0 - threshold),\
+                                                     cell_size.vector()[:] > min_cell_size),\
+                                      dtype=int)
 
         #plt.figure()
         #plot(phi_DG_diff)
