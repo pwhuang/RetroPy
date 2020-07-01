@@ -29,6 +29,7 @@ class reactive_transport_problem_base:
         self.chem_state = rkt.ChemicalState(system)
         self.chem_state.setPressure(pressure, 'atm')
         self.chem_state.setTemperature(temperature, 'K')
+        self.chem_quant = rkt.ChemicalQuantity(self.chem_state)
 
     def set_mesh(self, mesh, boundary_markers):
         # Setup FeNiCs mesh and boundary markers

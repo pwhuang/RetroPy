@@ -22,6 +22,9 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
     def __init__(self):
         super().__init__()
         self.xdmf_obj = dolfin.XDMFFile(MPI.comm_world, 'solution_output_primal.xdmf')
+        self.xdmf_obj.parameters['flush_output'] = True
+        self.xdmf_obj.parameters['rewrite_function_mesh'] = False
+        #self.xdmf_obj = dolfin.HDF5File(MPI.comm_world, 'solution_output_primal.h5', 'w')
         # Placeholder for dt
         self.dt = dolfin.Constant(1.0)
 
@@ -236,23 +239,23 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
                 break
 
             self.chem_state.setSpeciesMass(self.num_components-1, solvent_mass, 'kg')
+
             self.chem_equi_solver.solve(self.chem_state)
 
-            chem_prop = self.chem_state.properties()
+            self.chem_quant.update(self.chem_state)
 
-            self.rho_temp[i] = chem_prop.phaseDensities().val[0]*1e-6
+            self.rho_temp[i] = self.chem_quant('phaseMass(Aqueous)')/self.chem_quant('fluidVolume(units==m3)')*1e-6
 
             for j in range(self.num_transport_components):
-                self.mu_list_temp[j][i] = chem_prop.chemicalPotentials().val[j]
+                self.mu_list_temp[j][i] = self.chem_quant('chemicalPotential(' + self.component_list[j] + ')')
                 self.X_list_temp[j][i] = self.chem_state.speciesAmount(j, 'mol')*self.M_list[j]
 
-#             self.rho.vector()[i] = chem_prop.phaseDensities().val[0]*1e-6
+            # self.rho.vector()[i] = chem_prop.phaseDensities().val[0]*1e-6
 
 #             for j in range(self.num_transport_components):
 #                 self.mu_list[j].vector()[i] = chem_prop.chemicalPotentials().val[j]
 #                 self.X_list[j].vector()[i] = self.chem_state.speciesAmount(j, 'mol')*self.M_list[j]
 
-            del chem_prop
 
         # Concurrent function assignment
         self.rho.vector()[:] = self.rho_temp
@@ -305,10 +308,10 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 
                 self.dt.assign(dt_num)
 
-                self.xdmf_obj.write(self.rho, current_time)
                 self.xdmf_obj.write(self.adv, current_time)
+                self.xdmf_obj.write(self.rho, current_time)
                 #self.xdmf_obj.write(self.p0, i*dt_num)
-
+                #
                 # When there are no violations, overwrite X_list_old
                 for j in range(self.num_transport_components):
                     self.X_list_old[j].assign(self.X_list[j])
@@ -316,6 +319,10 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 
                 i+=1
                 dt_num = dt_num*1.1
+
+                # if i%3==0:
+                #     #self.xdmf_obj.close()
+                #     #self.xdmf_obj = dolfin.XDMFFile(MPI.comm_world, 'solution_output_primal.xdmf')
 
             # When violations exist, lower dt_num then solve again!
             elif sum_violation > 0:
@@ -332,6 +339,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 
             U0sub = interpolate(self.U0.sub(0), self.BDM_space)
             self.adv.assign(U0sub)
+            del U0sub
 
             for j in range(self.num_transport_components):
                 self.solver_list[j].solve()
@@ -348,7 +356,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
         #     self.xdmf_obj.write(self.X_list[j], current_time)
 
 
-        self.xdmf_obj.close()
+        #self.xdmf_obj.close()
 
         return out_list, u_list, p_list
 
@@ -414,7 +422,7 @@ b_top.mark(boundary_markers, 2)
 b_left.mark(boundary_markers, 3)
 b_bottom.mark(boundary_markers, 4)
 
-set_log_active(20)
+#set_log_active(20)
 
 problem = multicomponent_transport_problem()
 
@@ -440,7 +448,7 @@ init_expr_list = [Expression('x[1]<=15 ? 0.040/(1.0+M) : 1e-12'\
                       , degree=1, M=molar_mass[0]/molar_mass[3])]
 
 dt_num = 0.5
-dt_end = 10.0
+dt_end = 30.0
 
 problem.set_transport_species(4, init_expr_list)
 problem.set_boundary_conditions()
