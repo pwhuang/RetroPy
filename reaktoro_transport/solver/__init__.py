@@ -3,7 +3,8 @@ import numpy as np
 import reaktoro as rkt
 from dolfin import *
 import dolfin
-from dolfin import inner, grad, Constant
+from dolfin import inner, grad, Constant, sqrt, jump, avg, dot
+from ufl.algebra import Abs
 
 import sys
 sys.path.insert(0, '../..')
@@ -22,3 +23,4 @@ from .concentration_transport2D_transient import concentration_transport2D_trans
 from .concentration_transport2D_reaktoro import concentration_transport2D_reaktoro
 from .reactive_transport_problem_base import reactive_transport_problem_base
 from .multicomponent_diffusion_problem import multicomponent_diffusion_problem
+from .multicomponent_transport_problem import multicomponent_transport_problem
