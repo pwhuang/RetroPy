@@ -16,7 +16,9 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
         self.p_list = []
         self.bc_list = []
 
-    def set_flow_equations(self, r_num=0.0):
+    def set_flow_equations(self, r_num=10.0):
+
+        self.p_ref = 101550  #Pa
 
         V = FunctionSpace(self.mesh, "BDM", 1)
         Q = FunctionSpace(self.mesh, "DG", 0)
@@ -49,8 +51,7 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
         for bc in self.bcu:
             bc.apply(self.v0.vector())
 
-        #self.p0 = project(Expression('9.81*(50.0-x[1])-240.0', degree=1), Q)
-        self.p0 = project(Expression('0.0', degree=1), Q)
+        self.p0 = project(Expression('9.81*(25.0-x[1]) + pref', degree=1, pref = self.p_ref), Q)
         self.p0.rename('pressure', 'fluid pressure')
         self.p1 = Function(Q)
 
@@ -130,7 +131,7 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
         prm['krylov_solver']['maximum_iterations'] = 2000
         prm['krylov_solver']['error_on_nonconvergence'] = True
         #prm['krylov_solver']['monitor_convergence'] = True
-        prm['krylov_solver']['nonzero_initial_guess'] = True
+        prm['krylov_solver']['nonzero_initial_guess'] = False
         prm['linear_solver'] = 'gmres'
         prm['preconditioner'] = 'amg'
 
@@ -204,6 +205,8 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
 
                 i+=1
                 dt_num = dt_num*1.1
+                if dt_num > 1.0:
+                    dt_num = 1.0
 
             # When violations exist, lower dt_num then solve again!
             elif sum_violation > 0:
@@ -222,13 +225,13 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
                 self.solver_list[j].solve()
 
 
-mesh_2d = RectangleMesh.create(MPI.comm_world, [Point(0.0, 0.0), Point(30.0, 30.0)], [30, 30], CellType.Type.triangle, 'right/left')
+mesh_2d = RectangleMesh.create(MPI.comm_world, [Point(0.0, 0.0), Point(31.0, 50.0)], [20, 20], CellType.Type.triangle, 'right/left')
 #mesh_2d = RectangleMesh.create(MPI.comm_world, [Point(0.0, 0.0), Point(31.0, 50.0)], [31, 60], CellType.Type.quadrilateral)
 cell_markers = MeshFunction('bool', mesh_2d, dim=2)
 
 class middle(SubDomain):
     def inside(self, x, on_boundary):
-        return x[1]<17.5 and x[1]>12.5
+        return x[1]<28.0 and x[1]>22.0
 
 # Refine middle part of the mesh
 c_middle = middle()
@@ -250,7 +253,7 @@ class left(SubDomain):
 
 class right(SubDomain):
     def inside(self, x, on_boundary):
-        return on_boundary and near(x[0], 30.0, DOLFIN_EPS)
+        return on_boundary and near(x[0], 31.0, DOLFIN_EPS)
 
 class bottom(SubDomain):
     def inside(self, x, on_boundary):
@@ -258,7 +261,7 @@ class bottom(SubDomain):
 
 class top(SubDomain):
     def inside(self, x, on_boundary):
-        return on_boundary and near(x[1], 30.0, DOLFIN_EPS)
+        return on_boundary and near(x[1], 50.0, DOLFIN_EPS)
 
 class boundary(SubDomain):
     def inside(self, x, on_boundary):
@@ -285,7 +288,7 @@ problem = multicomponent_transport_problem_uzawa('solution_output_primal.xdmf')
 
 pressure = 1.0 #atm
 temperature = 273.15+25 #K
-molar_mass  = [22.99e-3, 35.453e-3, 1e-3, 17e-3]
+molar_mass  = [22.99e-3, 35.453e-3, 1.0e-3, 17.0e-3]
 diffusivity = [1.33e-3, 2.03e-3, 9.31e-3, 5.28e-3]
 charge      = [1.0, -1.0, 1.0, -1.0]
 
@@ -295,17 +298,17 @@ problem.set_chemical_system(['Na+', 'Cl-', 'H+', 'OH-', 'H2O(l)'],\
 
 problem.set_mesh(mesh_2d, boundary_markers)
 
-init_expr_list = [Expression('x[1]<=15 ? 0.040/(1.0+M) : 1e-12'\
+init_expr_list = [Expression('x[1]<=25.0 ? 0.040/(1.0+M) : 1e-12'\
                       , degree=1, M=molar_mass[3]/molar_mass[0]),\
-                  Expression('x[1]>15 ? 0.03646/(1.0+M) : 1e-12'\
+                  Expression('x[1]>25.0 ? 0.03646/(1.0+M) : 1e-12'\
                       , degree=1, M=molar_mass[2]/molar_mass[1]),\
-                  Expression('x[1]>15 ? 0.03646/(1.0+M) : 1e-12'\
+                  Expression('x[1]>25.0 ? 0.03646/(1.0+M) : 1e-12'\
                       , degree=1, M=molar_mass[1]/molar_mass[2]),\
-                  Expression('x[1]<=15 ? 0.040/(1.0+M) : 1e-12'\
+                  Expression('x[1]<=25.0 ? 0.040/(1.0+M) : 1e-12'\
                       , degree=1, M=molar_mass[0]/molar_mass[3])]
 
-dt_num = 1.0
-timesteps = 20.0
+dt_num = 0.2
+timesteps = 200.0
 
 problem.set_transport_species(4, init_expr_list)
 problem.set_boundary_conditions()

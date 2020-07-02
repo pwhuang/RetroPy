@@ -221,6 +221,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
                 break
 
             self.chem_state.setSpeciesMass(self.num_components-1, solvent_mass, 'kg')
+            self.chem_state.setPressure(self.p0.vector()[i], 'Pa')
 
             self.chem_equi_solver.solve(self.chem_state)
 
