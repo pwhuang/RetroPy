@@ -25,9 +25,11 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
         self.rho = dolfin.Function(self.function_space)
         self.rho_old = dolfin.Function(self.function_space)
         self.charge_func = dolfin.Function(self.function_space)
+        self.pH_func = dolfin.Function(self.function_space)
 
         self.rho.rename('density', 'density of fluid')
         self.charge_func.rename('charge', 'charge of fluid')
+        self.pH_func.rename('pH', 'pH of fluid')
 
         self.X_list = []      # Xn
         self.X_list_old = []  # Xn-1
@@ -52,6 +54,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 
         self.rho_temp = np.zeros(self.num_dof)
         self.charge_func_temp = np.zeros(self.num_dof)
+        self.pH_func_temp = np.zeros(self.num_dof)
 
         #print('max dof = ', MPI.max(MPI.comm_world, self.num_dof))
         #print('num_dof = ', self.num_dof, MPI.rank(MPI.comm_world))
@@ -196,7 +199,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
             L = v*self.X_list_old[i]/self.dt*dx\
                 - Constant(self.D_list[i]/(R*self.T))\
                  *avg(self.X_list_old[i])\
-                 *dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0) 
+                 *dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0)
                  #- 0.5*dot(jump(v), adv_np('+')*self.X_list_old[i]('+') - adv_np('-')*self.X_list_old[i]('-') )*dS(0)
                  #*dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0)
 
@@ -234,6 +237,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
             #self.chem_quant = rkt.ChemicalQuantity(self.chem_state)
 
             self.rho_temp[i] = self.chem_quant('phaseMass(Aqueous)')/self.chem_quant('fluidVolume(units==m3)')*1e-6
+            self.pH_func_temp[i] = self.chem_quant('pH')
             #self.rho_temp[i] = chem_prop.phaseDensities().val[0]*1e-6
 
             self.charge_func_temp[i] = 0.0
@@ -254,6 +258,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
         #
         # Concurrent function assignment
         self.rho.vector()[:] = self.rho_temp
+        self.pH_func.vector()[:] = self.pH_func_temp
         self.charge_func.vector()[:] = self.charge_func_temp
 
         for j in range(self.num_transport_components):

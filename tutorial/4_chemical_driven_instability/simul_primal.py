@@ -223,6 +223,7 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
             self.xdmf_obj.write(self.charge_func, current_time)
             self.xdmf_obj.write(self.adv, current_time)
             self.xdmf_obj.write(self.p0, current_time)
+            self.xdmf_obj.write(self.pH_func, current_time)
 
             for j in range(self.num_transport_components):
                 #self.X_list_old[j].assign(self.X_list[j])
