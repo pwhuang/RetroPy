@@ -8,3 +8,4 @@ from .refine_mesh_around_points import refine_mesh_around_points
 from .refine_mesh_dg import refine_mesh_dg
 from .animate_dolfin_function import animate_dolfin_function
 from .reaktoro_solve_rates import reaktoro_solve_rates
+from .get_mass_fraction import get_mass_fraction

@@ -21,12 +21,13 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 
         self.Delta_h = sqrt(jump(self.x_)**2 + jump(self.y_)**2)
 
-        self.par_test = dolfin.Function(self.function_space)
+        #self.par_test = dolfin.Function(self.function_space)
         self.rho = dolfin.Function(self.function_space)
         self.rho_old = dolfin.Function(self.function_space)
-        self.K = dolfin.project(Constant(1.0/48), self.function_space)
+        self.charge_func = dolfin.Function(self.function_space)
 
         self.rho.rename('density', 'density of fluid')
+        self.charge_func.rename('charge', 'charge of fluid')
 
         self.X_list = []      # Xn
         self.X_list_old = []  # Xn-1
@@ -39,7 +40,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
             self.X_list_old.append(dolfin.interpolate(initial_expr[i], self.function_space))
         #for i in range(self.num_components):
             self.mu_list.append(dolfin.Function(self.function_space))
-            self.X_list[i].rename(self.component_list[i], 'mass fraction of species')
+            #self.X_list[i].rename(self.component_list[i], 'mass fraction of species')
             self.X_list_old[i].rename(self.component_list[i], 'mass fraction of species')
 
         self.num_dof = len(self.X_list[0].vector())
@@ -50,41 +51,43 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
             self.mu_list_temp.append(np.zeros(self.num_dof))
 
         self.rho_temp = np.zeros(self.num_dof)
+        self.charge_func_temp = np.zeros(self.num_dof)
 
         #print('max dof = ', MPI.max(MPI.comm_world, self.num_dof))
         #print('num_dof = ', self.num_dof, MPI.rank(MPI.comm_world))
 
-        return self.X_list_old
+        #return self.X_list_old
 
-    def set_transport_species_mixed(self, num_transport_components, initial_expr):
-        self.num_transport_components = num_transport_components
-
-        self.function_space = dolfin.FunctionSpace(self.mesh, 'DG', 0)
-
-        self.x_ = dolfin.interpolate(dolfin.Expression("x[0]", degree=1), self.function_space)
-        self.y_ = dolfin.interpolate(dolfin.Expression("x[1]",degree=1), self.function_space)
-
-        self.Delta_h = sqrt(jump(self.x_)**2 + jump(self.y_)**2)
-
-        self.par_test = dolfin.Function(self.function_space)
-        self.rho = dolfin.Function(self.function_space)
-        self.rho_old = dolfin.Function(self.function_space)
-
-        self.X_list = []      # Xn
-        self.X_list_old = []  # Xn-1
-        self.X_list_temp = [] # Temporary storage
-        self.mu_list = []     # Chemical potential
-        self.mu_list_temp = []
-
-        # Implement the mixed version here?
-        mix_element_list = []
-        for i in range(self.num_transport_components):
-            mix_element_list.append(FiniteElement('DG', self.mesh.cell_name(), 0))
-
-        self.mixed_func_space = FunctionSpace(self.mesh, MixedElement(mix_element_list))
-
-        self.num_dof = len(self.x_.vector())
-        self.max_dof = int(MPI.max(MPI.comm_world, self.num_dof))
+    # def set_transport_species_mixed(self, num_transport_components, initial_expr):
+    #     self.num_transport_components = num_transport_components
+    #
+    #     self.function_space = dolfin.FunctionSpace(self.mesh, 'DG', 0)
+    #
+    #     self.x_ = dolfin.interpolate(dolfin.Expression("x[0]", degree=1), self.function_space)
+    #     self.y_ = dolfin.interpolate(dolfin.Expression("x[1]",degree=1), self.function_space)
+    #
+    #     self.Delta_h = sqrt(jump(self.x_)**2 + jump(self.y_)**2)
+    #
+    #     self.par_test = dolfin.Function(self.function_space)
+    #     self.rho = dolfin.Function(self.function_space)
+    #     self.rho_old = dolfin.Function(self.function_space)
+    #     self.charge_func = dolfin.Function(self.function_space)
+    #
+    #     self.X_list = []      # Xn
+    #     self.X_list_old = []  # Xn-1
+    #     self.X_list_temp = [] # Temporary storage
+    #     self.mu_list = []     # Chemical potential
+    #     self.mu_list_temp = []
+    #
+    #     # Implement the mixed version here?
+    #     mix_element_list = []
+    #     for i in range(self.num_transport_components):
+    #         mix_element_list.append(FiniteElement('DG', self.mesh.cell_name(), 0))
+    #
+    #     self.mixed_func_space = FunctionSpace(self.mesh, MixedElement(mix_element_list))
+    #
+    #     self.num_dof = len(self.x_.vector())
+    #     self.max_dof = int(MPI.max(MPI.comm_world, self.num_dof))
 
     def set_boundary_conditions(self):
         # The user should override this function to define boundary conditions!
@@ -126,7 +129,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
                    dolfin.DirichletBC(W.sub(0), zero, self.boundary_markers, 4),
                    dolfin.DirichletBC(W.sub(0), zero, self.boundary_markers, 2)]
 
-        self.drho_dt = (self.rho - self.rho_old)/self.dt
+        #self.drho_dt = (self.rho - self.rho_old)/self.dt
 
         F = mu/K*inner(v, u)*dx - inner(div(v), p)*dx - inner(v, self.rho*g)*dx \
             + q*div(self.rho*u)*dx # + q*self.drho_dt*dx
@@ -188,19 +191,20 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
         grad_psi = -grad_psi/denom
 
         a = v*u/self.dt*dx \
-            + 0.5*dot(jump(v), adv_np('+')*u('+') - adv_np('-')*u('-') )*dS(0)
+            + dot(jump(v), adv_np('+')*u('+') - adv_np('-')*u('-') )*dS(0)
         for i in range(self.num_transport_components):
             L = v*self.X_list_old[i]/self.dt*dx\
                 - Constant(self.D_list[i]/(R*self.T))\
                  *avg(self.X_list_old[i])\
-                 *dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0) \
-                 - 0.5*dot(jump(v), adv_np('+')*self.X_list_old[i]('+') - adv_np('-')*self.X_list_old[i]('-') )*dS(0)
-                 #*dot(jump(self.mu_list[i], n) + Constant(self.z_list[i])*grad_psi, jump(v, n))/self.Delta_h*dS(0)
+                 *dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0) 
+                 #- 0.5*dot(jump(v), adv_np('+')*self.X_list_old[i]('+') - adv_np('-')*self.X_list_old[i]('-') )*dS(0)
+                 #*dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0)
 
             linear_problem = dolfin.LinearVariationalProblem(a, L, self.X_list[i], bcs=self.bc_list)
             self.solver_list.append(dolfin.LinearVariationalSolver(linear_problem))
 
     def solve_chemical_equilibrium(self):
+        # Takes in X_list
         # Another method that needs to be overridden
         self.mass_bal_violation = 0
 
@@ -211,7 +215,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
             for j in range(self.num_transport_components):
                 if self.X_list[j].vector()[i] < 0.0:
                     self.mass_bal_violation += 1
-                    self.chem_state.setSpeciesMass(j, 1e-16, 'kg')
+                    self.chem_state.setSpeciesMass(j, 1e-12, 'kg')
                 else:
                     solvent_mass -= self.X_list[j].vector()[i]
                     self.chem_state.setSpeciesMass(j, self.X_list[j].vector()[i], 'kg')
@@ -225,13 +229,21 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 
             self.chem_equi_solver.solve(self.chem_state)
 
-            self.chem_quant.update(self.chem_state)
+            #chem_prop = self.chem_state.properties()
+            self.chem_quant = self.chem_quant.update(self.chem_state)
+            #self.chem_quant = rkt.ChemicalQuantity(self.chem_state)
 
             self.rho_temp[i] = self.chem_quant('phaseMass(Aqueous)')/self.chem_quant('fluidVolume(units==m3)')*1e-6
+            #self.rho_temp[i] = chem_prop.phaseDensities().val[0]*1e-6
+
+            self.charge_func_temp[i] = 0.0
 
             for j in range(self.num_transport_components):
                 self.mu_list_temp[j][i] = self.chem_quant('chemicalPotential(' + self.component_list[j] + ')')
-                self.X_list_temp[j][i] = self.chem_state.speciesAmount(j, 'mol')*self.M_list[j]
+                #self.mu_list_temp[j][i] = chem_prop.chemicalPotentials().val[j]
+                #self.X_list_temp[j][i] = self.chem_state.speciesAmount(j, 'mol')*self.M_list[j]
+                self.X_list_temp[j][i] = self.chem_quant('speciesMass(' + self.component_list[j] + ' units=kg)')
+                self.charge_func_temp[i] += self.chem_state.speciesAmount(j, 'mol')*self.z_list[j]
 
             # self.rho.vector()[i] = chem_prop.phaseDensities().val[0]*1e-6
 
@@ -239,13 +251,14 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 #                 self.mu_list[j].vector()[i] = chem_prop.chemicalPotentials().val[j]
 #                 self.X_list[j].vector()[i] = self.chem_state.speciesAmount(j, 'mol')*self.M_list[j]
 
-
+        #
         # Concurrent function assignment
         self.rho.vector()[:] = self.rho_temp
+        self.charge_func.vector()[:] = self.charge_func_temp
 
         for j in range(self.num_transport_components):
             self.mu_list[j].vector()[:] = self.mu_list_temp[j]
-            self.X_list[j].vector()[:] = self.X_list_temp[j]
+            self.X_list_old[j].vector()[:] = self.X_list_temp[j]
 
 
     def test_parallel(self):
@@ -258,17 +271,12 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 
     #def solve_velocity(self):
 
-
     def solve(self, dt_num, dt_end):
         out_list = []
-        rho_list = []
-        p_list = []
-        u_list = []
+        for i in range(self.num_transport_components):
+            out_list.append([self.X_list_old[i].copy()])
 
-        #for i in range(self.num_transport_components):
-        #    out_list.append([self.X_list_old[i].copy()])
-
-        self.dt.assign(dt_num)
+        self.dt.assign(Constant(dt_num))
 
         i = 0
         current_time = -dt_num # logic flowing everywhere! bad!
@@ -277,71 +285,48 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
             begin('timestep = ' + str(i) + '  dt_num = ' + str(np.round(dt_num, 5))\
                    + '  current_time = ' + str(np.round(current_time + dt_num, 5)))
 
-            self.solve_chemical_equilibrium()
-
-            sum_violation = int(MPI.sum(MPI.comm_world, self.mass_bal_violation))
-            begin('violation count = ' + str(sum_violation))
-            end()
-            if sum_violation == 0:
-
-                current_time += dt_num
-
-                if i==0:
-                    self.rho_old.assign(self.rho)
-
-                self.dt.assign(dt_num)
-
-                self.xdmf_obj.write(self.adv, current_time)
-                self.xdmf_obj.write(self.rho, current_time)
-                #self.xdmf_obj.write(self.p0, i*dt_num)
-                #
-                # When there are no violations, overwrite X_list_old
-                for j in range(self.num_transport_components):
-                    self.X_list_old[j].assign(self.X_list[j])
-                    self.xdmf_obj.write(self.X_list[j], current_time)
-
-                i+=1
-                dt_num = dt_num*1.1
-
-                # if i%3==0:
-                #     #self.xdmf_obj.close()
-                #     #self.xdmf_obj = dolfin.XDMFFile(MPI.comm_world, 'solution_output_primal.xdmf')
-
-            # When violations exist, lower dt_num then solve again!
-            elif sum_violation > 0:
-                dt_num = dt_num*0.33
-                self.dt.assign(dt_num)
-
-            end()
+            # Solve transport and flow, assuming the input is already in chemical equilibrium
 
             # solve_flow takes rho
             self.solve_flow()
 
             self.rho_old.assign(self.rho)
-            #self.adv.assign(self.u0)
+            self.adv.assign(self.u0)
+            mass_bal_violation = 0
 
-            U0sub = dolfin.interpolate(self.U0.sub(0), self.BDM_space)
-            self.adv.assign(U0sub)
-            del U0sub
-
+            # Performing mass balance check
             for j in range(self.num_transport_components):
                 self.solver_list[j].solve()
 
-            #MPI.barrier(MPI.comm_world)
+                mass_bal_violation += int(MPI.sum(MPI.comm_world, np.sum(self.X_list[j].vector()[:] < 0.0)))
 
-        # Saving the last result
-        # self.xdmf_obj.write(self.rho, current_time)
-        # self.xdmf_obj.write(self.adv, current_time)
-        # #self.xdmf_obj.write(self.p0, i*dt_num)
-        #
-        # for j in range(self.num_transport_components):
-        #     self.X_list_old[j].assign(self.X_list[j])
-        #     self.xdmf_obj.write(self.X_list[j], current_time)
+            begin('violation count = ' + str(mass_bal_violation))
+            end()
 
+            if mass_bal_violation > 0:
+                dt_num = dt_num*0.33
+                self.dt.assign(Constant(dt_num))
+                continue
 
-        #self.xdmf_obj.close()
+            current_time += dt_num
 
-        return out_list, u_list, p_list
+            i+=1
+            dt_num = dt_num*1.1
+            if dt_num > 2.0:
+                dt_num = 2.0
+
+            self.dt.assign(Constant(dt_num))
+
+            self.solve_chemical_equilibrium()
+            self.xdmf_obj.write(self.charge_func, current_time)
+            self.xdmf_obj.write(self.adv, current_time)
+
+            for j in range(self.num_transport_components):
+                #self.X_list_old[j].assign(self.X_list[j])
+                self.xdmf_obj.write(self.X_list_old[j], current_time)
+                #out_list[j].append(self.X_list_old[j].copy())
+
+            end()
 
     def output(self):
         xdmf_obj = dolfin.XDMFFile(MPI.comm_world, 'solution_output_primal.xdmf')

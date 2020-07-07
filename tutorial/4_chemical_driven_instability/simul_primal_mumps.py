@@ -17,6 +17,9 @@ class multicomponent_transport_problem_mumps(multicomponent_transport_problem):
 
         DG_space = dolfin.FunctionSpace(self.mesh, 'DG', 0)
 
+        self.p_ref = 101450  #Pa
+        self.p0 = project(Expression('9.81*(25.0-x[1]) + pref', degree=1, pref = self.p_ref), DG_space)
+
         W = dolfin.FunctionSpace(self.mesh, MixedElement([RT, DG]))
         self.U0 = dolfin.Function(W)
 
@@ -129,7 +132,7 @@ b_bottom.mark(boundary_markers, 4)
 
 #set_log_active(20)
 
-problem = multicomponent_transport_problem_mumps('solution_output_primal.xdmf')
+problem = multicomponent_transport_problem_mumps('solution_output_primal_mumps.xdmf')
 
 pressure = 1.0 #atm
 temperature = 273.15+25 #K

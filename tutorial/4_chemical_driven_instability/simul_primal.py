@@ -1,13 +1,14 @@
 import numpy as np
 import reaktoro as rkt
-from dolfin import *
 import dolfin
+from dolfin import *
 
 parameters["ghost_mode"] = "shared_vertex"
 
 import sys
 sys.path.insert(0, '../../../Reaktoro-Transport')
 from reaktoro_transport.solver import multicomponent_transport_problem
+from reaktoro_transport.tools import get_mass_fraction
 
 class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
     def set_boundary_conditions(self):
@@ -17,8 +18,6 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
         self.bc_list = []
 
     def set_flow_equations(self, r_num=10.0):
-
-        self.p_ref = 101550  #Pa
 
         V = FunctionSpace(self.mesh, "BDM", 1)
         Q = FunctionSpace(self.mesh, "DG", 0)
@@ -51,15 +50,17 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
         for bc in self.bcu:
             bc.apply(self.v0.vector())
 
+        self.p_ref = 101550
         self.p0 = project(Expression('9.81*(25.0-x[1]) + pref', degree=1, pref = self.p_ref), Q)
         self.p0.rename('pressure', 'fluid pressure')
         self.p1 = Function(Q)
 
-        g = as_vector([0.0, -9806.65])
+        self.K = dolfin.project(Constant(0.5**2/12.0), self.function_space)
+        self.g = as_vector([0.0, -9806.65])
 
         # Define coefficients
         f = Constant((0, 0))
-        mu = Constant(8.9e-4)
+        self.mu = Constant(8.9e-4)
 
         one = Constant(1.0)
         r = Constant(r_num)
@@ -67,9 +68,11 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
 
         self.nn = FacetNormal(self.mesh)
 
+        self.drho_dt = (self.rho - self.rho_old)/self.dt
+
         # AL2 prediction-correction scheme
-        F0 = mu/self.K*inner(v, u)*dx - inner(self.p0, div(v))*dx \
-             - inner(v, self.rho*g)*dx \
+        F0 = self.mu/self.K*inner(v, u)*dx - inner(self.p0, div(v))*dx \
+             - inner(v, self.rho*self.g)*dx \
 
         for i, p_dirichlet in enumerate(self.p_list):
              F0 += Constant(p_dirichlet)*inner(self.nn, v)*ds(boundary_dict['inlet'][i])
@@ -80,8 +83,8 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
         self.solver_v0 = LinearVariationalSolver(LinearVariationalProblem(a0, L0, self.u0, bcs=self.bcu))
 
         # Tentative velocity step
-        F1 = mu/self.K*inner(v, u)*dx + r*inner(div(v), div(u))*dx \
-             + r*inner(div(v), div(self.u0))*dx
+        F1 = self.mu/self.K*inner(v, u)*dx + r*inner(div(v), div(u))*dx \
+             + r*inner(div(v), div(self.u0))*dx #- r*inner(div(v), self.drho_dt)*dx
 
         for i, p_dirichlet in enumerate(self.p_list):
              F1 += Constant(p_dirichlet)*inner(self.nn, v)*ds(boundary_dict['inlet'][i])
@@ -93,7 +96,7 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
 
         # Pressure update
         a2 = q*p*dx
-        L2 = q*self.p0*dx - r*q*div(self.u1)*dx
+        L2 = q*self.p0*dx - r*q*(div(self.u1))*dx
 
         self.solver_p = LinearVariationalSolver(LinearVariationalProblem(a2, L2, self.p1, bcs=[]))
 
@@ -135,7 +138,7 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
         prm['linear_solver'] = 'gmres'
         prm['preconditioner'] = 'amg'
 
-    def solve_flow(self, max_steps=50, res_target=1e-11):
+    def solve_flow(self, max_steps=50, res_target=1e-10):
         residual = 1.0
         i = 0
 
@@ -151,8 +154,9 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
             begin("Computing pressure correction, residual = " + str(residual))
             self.solver_p.solve()
 
-            div_u = assemble(self.q0*div(self.u1)*dx).norm('l2')
-            residual_form = (inner(self.v0, self.u1) - self.p1*div(self.v0))*dx
+            div_u = assemble(self.q0*div(self.rho*self.u1)*dx ).norm('l2')
+            residual_form = (self.mu/self.K*inner(self.v0, self.u1) - self.p1*div(self.v0) \
+                             - inner(self.v0, self.rho*self.g) )*dx
             for i, p_dirichlet in enumerate(self.p_list):
                  residual_form += Constant(p_dirichlet)*inner(self.nn, self.v0)*ds(self.boundary_dict['inlet'][i])
 
@@ -170,68 +174,71 @@ class multicomponent_transport_problem_uzawa(multicomponent_transport_problem):
                 break
 
     def solve(self, dt_num, dt_end):
+        out_list = []
+        #for i in range(self.num_transport_components):
+        #    out_list.append([self.X_list_old[i].copy()])
 
-        self.dt.assign(dt_num)
+        self.dt.assign(Constant(dt_num))
 
         i = 0
-        current_time = -dt_num # logic flowing everywhere! bad!
+        current_time = 0.0 # logic flowing everywhere! bad!
 
         while(current_time < dt_end):
             begin('timestep = ' + str(i) + '  dt_num = ' + str(np.round(dt_num, 5))\
                    + '  current_time = ' + str(np.round(current_time + dt_num, 5)))
 
-            self.solve_chemical_equilibrium()
+            # Solve transport and flow, assuming the input is already in chemical equilibrium
+            mass_bal_violation = 0
 
-            sum_violation = int(MPI.sum(MPI.comm_world, self.mass_bal_violation))
-            begin('violation count = ' + str(sum_violation))
-            end()
-            if sum_violation == 0:
-
-                current_time += dt_num
-
-                if i==0:
-                    self.rho_old.assign(self.rho)
-
-                self.dt.assign(dt_num)
-
-                self.xdmf_obj.write(self.adv, current_time)
-                self.xdmf_obj.write(self.rho, current_time)
-                self.xdmf_obj.write(self.p0, current_time)
-
-                # When there are no violations, overwrite X_list_old
-                for j in range(self.num_transport_components):
-                    self.X_list_old[j].assign(self.X_list[j])
-                    self.xdmf_obj.write(self.X_list[j], current_time)
-
-                i+=1
-                dt_num = dt_num*1.1
-                if dt_num > 1.0:
-                    dt_num = 1.0
-
-            # When violations exist, lower dt_num then solve again!
-            elif sum_violation > 0:
-                dt_num = dt_num*0.33
-                self.dt.assign(dt_num)
-
-            end()
-
-            # solve_flow takes rho
-            self.solve_flow()
-
-            self.rho_old.assign(self.rho)
-            self.adv.assign(self.u0)
-
+            # Performing mass balance check
             for j in range(self.num_transport_components):
                 self.solver_list[j].solve()
 
+                mass_bal_violation += int(MPI.sum(MPI.comm_world, np.sum(self.X_list[j].vector()[:] < 0.0)))
 
-mesh_2d = RectangleMesh.create(MPI.comm_world, [Point(0.0, 0.0), Point(31.0, 50.0)], [20, 20], CellType.Type.triangle, 'right/left')
+            begin('violation count = ' + str(mass_bal_violation))
+            end()
+
+            if mass_bal_violation > 0:
+                dt_num = dt_num*0.33
+                self.dt.assign(Constant(dt_num))
+                continue
+
+            current_time += dt_num
+
+            i+=1
+            dt_num = dt_num*1.2
+            if dt_num > 2.0:
+                dt_num = 2.0
+
+            self.dt.assign(Constant(dt_num))
+
+            self.solve_chemical_equilibrium()
+
+            # solve_flow takes rho
+            self.solve_flow()
+            #self.rho_old.assign(self.rho)
+            self.adv.assign(self.u0)
+
+            self.xdmf_obj.write(self.charge_func, current_time)
+            self.xdmf_obj.write(self.adv, current_time)
+            self.xdmf_obj.write(self.p0, current_time)
+
+            for j in range(self.num_transport_components):
+                #self.X_list_old[j].assign(self.X_list[j])
+                self.xdmf_obj.write(self.X_list_old[j], current_time)
+                #out_list[j].append(self.X_list_old[j].copy())
+
+            end()
+
+
+mesh_2d = RectangleMesh.create(MPI.comm_world, [Point(0.0, 0.0), Point(31.0, 50.0)], [30, 40], CellType.Type.triangle, 'right/left')
 #mesh_2d = RectangleMesh.create(MPI.comm_world, [Point(0.0, 0.0), Point(31.0, 50.0)], [31, 60], CellType.Type.quadrilateral)
 cell_markers = MeshFunction('bool', mesh_2d, dim=2)
 
 class middle(SubDomain):
     def inside(self, x, on_boundary):
-        return x[1]<28.0 and x[1]>22.0
+        return x[1]<35.0 and x[1]>22.0
 
 # Refine middle part of the mesh
 c_middle = middle()
@@ -241,11 +248,9 @@ c_middle.mark(cell_markers, 1)
 
 mesh_2d = refine(mesh_2d, cell_markers)
 
-boundary_markers = MeshFunction('size_t', mesh_2d, dim=1)
+boundary_markers = MeshFunction('size_t', mesh_2d, mesh_2d.topology().dim() - 1)
 
 boundary_markers.set_all(0)
-
-#print('process started!')
 
 class left(SubDomain):
     def inside(self, x, on_boundary):
@@ -263,18 +268,10 @@ class top(SubDomain):
     def inside(self, x, on_boundary):
         return on_boundary and near(x[1], 50.0, DOLFIN_EPS)
 
-class boundary(SubDomain):
-    def inside(self, x, on_boundary):
-        return on_boundary
-
 b_left = left()
 b_right = right()
 b_bottom = bottom()
 b_top = top()
-b_boundary = boundary()
-
-# Boundary on the fluid domain is marked as 0
-boundary_markers.set_all(0)
 
 # Then Mark boundaries
 b_right.mark(boundary_markers, 1)
@@ -288,34 +285,38 @@ problem = multicomponent_transport_problem_uzawa('solution_output_primal.xdmf')
 
 pressure = 1.0 #atm
 temperature = 273.15+25 #K
-molar_mass  = [22.99e-3, 35.453e-3, 1.0e-3, 17.0e-3]
+component_list = ['Na+', 'Cl-', 'H+', 'OH-', 'H2O(l)']
+molar_mass  = [22.99e-3, 35.453e-3, 1.0e-3, 17.0e-3, 18.0e-3]
 diffusivity = [1.33e-3, 2.03e-3, 9.31e-3, 5.28e-3]
 charge      = [1.0, -1.0, 1.0, -1.0]
 
-problem.set_chemical_system(['Na+', 'Cl-', 'H+', 'OH-', 'H2O(l)'],\
+HCl_species_amounts = [1e-13, 1.0, 1.0, 1e-13, 54.17]
+mass_frac_HCl = get_mass_fraction(component_list, pressure, temperature, molar_mass, HCl_species_amounts)
+
+NaOH_species_amounts = [1.0, 1e-13, 1e-13, 1.0, 55.36]
+mass_frac_NaOH = get_mass_fraction(component_list, pressure, temperature, molar_mass, NaOH_species_amounts)
+
+problem.set_chemical_system(component_list,\
                             pressure, temperature,\
                             molar_mass, diffusivity, charge)
 
 problem.set_mesh(mesh_2d, boundary_markers)
 
-init_expr_list = [Expression('x[1]<=25.0 ? 0.040/(1.0+M) : 1e-12'\
-                      , degree=1, M=molar_mass[3]/molar_mass[0]),\
-                  Expression('x[1]>25.0 ? 0.03646/(1.0+M) : 1e-12'\
-                      , degree=1, M=molar_mass[2]/molar_mass[1]),\
-                  Expression('x[1]>25.0 ? 0.03646/(1.0+M) : 1e-12'\
-                      , degree=1, M=molar_mass[1]/molar_mass[2]),\
-                  Expression('x[1]<=25.0 ? 0.040/(1.0+M) : 1e-12'\
-                      , degree=1, M=molar_mass[0]/molar_mass[3])]
+init_expr_list = [Expression('x[1]<=25.0 ?' + str(mass_frac_NaOH[0]) + ':' + str(mass_frac_HCl[0]) , degree=1),\
+                  Expression('x[1]<=25.0 ?' + str(mass_frac_NaOH[1]) + ':' + str(mass_frac_HCl[1]) , degree=1),\
+                  Expression('x[1]<=25.0 ?' + str(mass_frac_NaOH[2]) + ':' + str(mass_frac_HCl[2]) , degree=1),\
+                  Expression('x[1]<=25.0 ?' + str(mass_frac_NaOH[3]) + ':' + str(mass_frac_HCl[3]) , degree=1),\
+                 ]
 
-dt_num = 0.2
-timesteps = 200.0
+dt_num = 0.5
+endtime = 300.0
 
 problem.set_transport_species(4, init_expr_list)
 problem.set_boundary_conditions()
-problem.set_flow_equations(r_num=1000.0)
+problem.set_flow_equations(r_num=100.0)
 problem.set_transport_equations()
 
-problem.solve(dt_num, timesteps)
+problem.solve(dt_num, endtime)
 
 #problem.output()
 
