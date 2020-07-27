@@ -39,7 +39,7 @@ def transient_adv_diff_DG(mesh, boundary_markers, adv, source, D_num, init_cond,
 
     def L(w, u):
         return Constant(D_num)*dot(jump(w), jump(u))/Delta_h*dS(0) \
-               + dot(jump(w), adv_np('+')*u('+') + adv_nm('+')*u('-') )*dS(0) \
+               + dot(jump(w), adv_np('+')*u('+') - adv_np('-')*u('-') )*dS(0) \
                + w*u/x_*ds(2)
 
         #return dot(jump(w), adv_np('+')*u('+') - adv_np('-')*u('-') )
