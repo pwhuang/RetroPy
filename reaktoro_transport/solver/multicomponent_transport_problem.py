@@ -7,7 +7,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
         self.xdmf_obj = dolfin.XDMFFile(MPI.comm_world, output_file)
         self.xdmf_obj.parameters['flush_output'] = True
         self.xdmf_obj.parameters['rewrite_function_mesh'] = False
-        #self.xdmf_obj = dolfin.HDF5File(MPI.comm_world, 'solution_output_primal.h5', 'w')
+        # self.xdmf_obj = dolfin.HDF5File(MPI.comm_world, 'solution_output_primal.h5', 'w')
         # Placeholder for dt
         self.dt = dolfin.Constant(1.0)
 

@@ -14,12 +14,14 @@ def refine_mesh_dg(mesh_nd, f_of_phi, threshold=1e-4, min_cell_size=1.0, where='
 
     iteration = 0
     report = 1
+    
     while(report==1):
         CG_space = FunctionSpace(mesh_nd, 'CG', 1)
         DG_space = FunctionSpace(mesh_nd, 'DG', 0)
 
         phi = Function(CG_space)
-        cell_size = project(CellDiameter(mesh_nd), DG_space)
+        cell_size = project(CellDiameter(mesh_nd), DG_space, solver_type='gmres', preconditioner_type='amg')
+        #cell_size = interpolate(CellDiameter(mesh_nd), DG_space)
 
         dof_coordinates_cg = CG_space.tabulate_dof_coordinates()
 
@@ -37,7 +39,7 @@ def refine_mesh_dg(mesh_nd, f_of_phi, threshold=1e-4, min_cell_size=1.0, where='
             phi.vector()[:] = f_of_phi(np.array([dof_x, dof_y, dof_z]).T)
 
         # Need to elaborate and understand more on this concept
-        phi_DG = project(phi, DG_space)
+        phi_DG = project(phi, DG_space, solver_type='gmres', preconditioner_type='amg')
         phi_DG_diff = Function(DG_space)
 
         # This tells you where to refine
