@@ -1,12 +1,14 @@
 from . import *
 
-def stokes_uzawa(mesh, boundary_markers, boundary_dict, p_list=[1.0]\
+def stokes_uzawa(mesh, boundary_markers, boundary_dict\
+                 , p_list=[1.0], init_p=Expression('0.0', degree=1)\
                  , max_steps=500, res_target=1e-12, omega_num=1.0, r_num=0.0):
     # The Augmented Lagrangian method is implemented.
     # When r_num=0, converges for omega_num < 2. (Try 1.5 first)
     # For 0 < omega < 2r, the augmented system converges. r>>1
 
     V = VectorFunctionSpace(mesh, "Crouzeix-Raviart", 1)
+    CG1 = VectorFunctionSpace(mesh, "CG", 1)
     Q = FunctionSpace(mesh, "DG", 0)
 
     # Define trial and test functions
@@ -39,7 +41,7 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict, p_list=[1.0]\
     p0 = Function(Q)
     p1 = Function(Q)
 
-    p0 = project(Expression('0.0', degree=0), Q)
+    p0 = project(init_p, Q)
 
     # Define coefficients
     f = Constant((0, 0))
@@ -96,7 +98,7 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict, p_list=[1.0]\
     prm['absolute_tolerance'] = 1e-14
     #prm['ksp_converged_reason'] = True
     prm['relative_tolerance'] = 1e-12
-    prm['maximum_iterations'] = 2000
+    prm['maximum_iterations'] = 5000
     prm['error_on_nonconvergence'] = True
     prm['monitor_convergence'] = True
     prm['nonzero_initial_guess'] = True
@@ -163,9 +165,10 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict, p_list=[1.0]\
             break
 
     # Only saving the last time step
-    xdmf_obj.write(u0, i)
-    xdmf_obj.write(p0, i)
-
+    uCG = project(u0, CG1)
+    xdmf_obj.write_checkpoint(uCG, 'velocity_CG1', 0, append=False)
+    xdmf_obj.write_checkpoint(u0, 'velocity', 0, append=True)
+    xdmf_obj.write_checkpoint(p0, 'pressure', 0, append=True)
 
     xdmf_obj.close()
 
