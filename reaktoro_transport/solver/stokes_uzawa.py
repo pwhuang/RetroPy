@@ -1,7 +1,7 @@
 from . import *
 
 def stokes_uzawa(mesh, boundary_markers, boundary_dict\
-                 , p_list=[1.0], init_p=Expression('0.0', degree=1)\
+                 , p_list=[1.0], init_p=Constant(0.0)\
                  , max_steps=500, res_target=1e-12, omega_num=1.0, r_num=0.0):
     # The Augmented Lagrangian method is implemented.
     # When r_num=0, converges for omega_num < 2. (Try 1.5 first)
@@ -127,7 +127,7 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
             if MPI.rank(MPI.comm_world)==0:
                 print('Reached maximum steps! Saving progress...')
             break
-        
+
         # Compute tentative velocity step
         #begin("Computing tentative velocity")
         b1 = assemble(L1)
@@ -161,6 +161,9 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
             res_list.append(residual)
 
         i+=1
+
+        begin('Step ' + str(i) + ', residual = ' + str(residual))
+        end()
 
     # Only saving the last time step
     uCG = project(u0, CG1, solver_type='gmres', preconditioner_type='amg')
