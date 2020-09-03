@@ -38,10 +38,8 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
     for bc in bcu:
         bc.apply(v0.vector())
 
-    p0 = Function(Q)
-    p1 = Function(Q)
-
     p0 = project(init_p, Q)
+    p1 = Function(Q)
 
     # Define coefficients
     f = Constant((0, 0))
@@ -119,10 +117,17 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
     xdmf_obj = XDMFFile(MPI.comm_world, 'pv_output.xdmf')
 
     residual = 1.0
+    div_u = 666
+    p_diff = 111
     i = 0
 
     #for i in range(steps):
     while(np.abs(residual) > res_target):
+        if (i>=max_steps):
+            if MPI.rank(MPI.comm_world)==0:
+                print('Reached maximum steps! Saving progress...')
+            break
+        
         # Compute tentative velocity step
         #begin("Computing tentative velocity")
         b1 = assemble(L1)
@@ -156,16 +161,9 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
             res_list.append(residual)
 
         i+=1
-        #xdmf_obj.write(u0, i)
-        #xdmf_obj.write(p0, i)
-
-        if (i>=max_steps):
-            if MPI.rank(MPI.comm_world)==0:
-                print('Reached maximum steps! Saving progress...')
-            break
 
     # Only saving the last time step
-    uCG = project(u0, CG1)
+    uCG = project(u0, CG1, solver_type='gmres', preconditioner_type='amg')
     xdmf_obj.write_checkpoint(uCG, 'velocity_CG1', 0, append=False)
     xdmf_obj.write_checkpoint(u0, 'velocity', 0, append=True)
     xdmf_obj.write_checkpoint(p0, 'pressure', 0, append=True)
