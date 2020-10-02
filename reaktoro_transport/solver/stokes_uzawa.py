@@ -38,7 +38,8 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
     for bc in bcu:
         bc.apply(v0.vector())
 
-    p0 = project(init_p, Q)
+    #p0 = project(init_p, Q, solver_type='gmres', preconditioner_type='amg')
+    p0 = interpolate(init_p, Q)
     p1 = Function(Q)
 
     # Define coefficients
@@ -88,18 +89,19 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
     p_list = []
     res_list = []
 
-    solver1 = PETScKrylovSolver('gmres', 'amg')
+    #solver1 = PETScKrylovSolver('gmres', 'hypre_amg')
+    solver1 = PETScLUSolver('mumps')
     solver2 = PETScKrylovSolver('gmres', 'amg')
 
     prm = solver1.parameters
 
-    prm['absolute_tolerance'] = 1e-14
+    #prm['absolute_tolerance'] = 1e-14
     #prm['ksp_converged_reason'] = True
-    prm['relative_tolerance'] = 1e-12
-    prm['maximum_iterations'] = 5000
-    prm['error_on_nonconvergence'] = True
-    prm['monitor_convergence'] = True
-    prm['nonzero_initial_guess'] = True
+    #prm['relative_tolerance'] = 1e-12
+    #prm['maximum_iterations'] = 20000
+    #prm['error_on_nonconvergence'] = True
+    #prm['monitor_convergence'] = True
+    #prm['nonzero_initial_guess'] = True
 
     prm = solver2.parameters
 
@@ -129,11 +131,11 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
             break
 
         # Compute tentative velocity step
-        #begin("Computing tentative velocity")
+        begin("Computing tentative velocity")
         b1 = assemble(L1)
         [bc.apply(A1, b1) for bc in bcu]
         solver1.solve(A1, u1.vector(), b1)
-        #end()
+        end()
 
         # Pressure correction
         #begin("Computing pressure correction")

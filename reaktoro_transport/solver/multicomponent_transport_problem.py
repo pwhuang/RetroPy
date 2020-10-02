@@ -160,7 +160,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
         self.flow_solver.solve()
         #self.u0, self.p0 = self.U0.split(True)
 
-    def set_transport_equations(self):
+    def set_transport_equations(self, charge_balance=True):
         v = dolfin.TestFunction(self.function_space)
         u = dolfin.TrialFunction(self.function_space)
 
@@ -182,29 +182,42 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
 
         self.solver_list = []
 
-        # The form of grad_psi/F, assuming the solvent has no charge, e.g. H2O(l).
-        grad_psi = dolfin.Constant(0.0)*jump(self.mu_list[0])
-        denom = dolfin.Constant(0.0)
-        for i in range(self.num_transport_components):
-            grad_psi += Constant(self.D_list[i]*self.z_list[i]/self.M_list[i])\
-                         *avg(self.X_list_old[i])*jump(self.mu_list[i])
+        if charge_balance==True:
+            # The form of grad_psi/F, assuming the solvent has no charge, e.g. H2O(l).
+            grad_psi = dolfin.Constant(0.0)*jump(self.mu_list[0])
+            denom = dolfin.Constant(0.0)
+            for i in range(self.num_transport_components):
+                grad_psi += Constant(self.D_list[i]*self.z_list[i]/self.M_list[i])\
+                             *avg(self.X_list_old[i])*jump(self.mu_list[i])
 
-            denom += Constant(self.D_list[i]*self.z_list[i]**2/self.M_list[i])*avg(self.X_list_old[i])
+                denom += Constant(self.D_list[i]*self.z_list[i]**2/self.M_list[i])*avg(self.X_list_old[i])
 
-        grad_psi = -grad_psi/denom
+            grad_psi = -grad_psi/denom
 
-        a = v*u/self.dt*dx \
-            + dot(jump(v), adv_np('+')*u('+') - adv_np('-')*u('-') )*dS(0)
-        for i in range(self.num_transport_components):
-            L = v*self.X_list_old[i]/self.dt*dx\
-                - Constant(self.D_list[i]/(R*self.T))\
-                 *avg(self.X_list_old[i])\
-                 *dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0)
-                 #- 0.5*dot(jump(v), adv_np('+')*self.X_list_old[i]('+') - adv_np('-')*self.X_list_old[i]('-') )*dS(0)
-                 #*dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0)
+            a = v*u/self.dt*dx \
+                + dot(jump(v), adv_np('+')*u('+') - adv_np('-')*u('-') )*dS(0)
+            for i in range(self.num_transport_components):
+                L = v*self.X_list_old[i]/self.dt*dx\
+                    - Constant(self.D_list[i]/(R*self.T))\
+                     *avg(self.X_list_old[i])\
+                     *dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0)
+                     #- 0.5*dot(jump(v), adv_np('+')*self.X_list_old[i]('+') - adv_np('-')*self.X_list_old[i]('-') )*dS(0)
+                     #*dot(jump(self.mu_list[i]) + Constant(self.z_list[i])*grad_psi, jump(v))/self.Delta_h*dS(0)
 
-            linear_problem = dolfin.LinearVariationalProblem(a, L, self.X_list[i], bcs=self.bc_list)
-            self.solver_list.append(dolfin.LinearVariationalSolver(linear_problem))
+                linear_problem = dolfin.LinearVariationalProblem(a, L, self.X_list[i], bcs=self.bc_list)
+                self.solver_list.append(dolfin.LinearVariationalSolver(linear_problem))
+
+        if charge_balance==False:
+            a = v*u/self.dt*dx \
+                + dot(jump(v), adv_np('+')*u('+') - adv_np('-')*u('-') )*dS(0)
+            for i in range(self.num_transport_components):
+                L = v*self.X_list_old[i]/self.dt*dx\
+                    - Constant(self.D_list[i]/(R*self.T))\
+                     *avg(self.X_list_old[i])\
+                     *dot(jump(self.mu_list[i]), jump(v))/self.Delta_h*dS(0)
+        
+                linear_problem = dolfin.LinearVariationalProblem(a, L, self.X_list[i], bcs=self.bc_list)
+                self.solver_list.append(dolfin.LinearVariationalSolver(linear_problem))
 
     def solve_chemical_equilibrium(self):
         # Takes in X_list
