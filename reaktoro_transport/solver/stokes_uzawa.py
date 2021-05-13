@@ -1,11 +1,15 @@
 from . import *
 
-def stokes_uzawa(mesh, boundary_markers, boundary_dict\
-                 , p_list=[1.0], init_p=Constant(0.0)\
-                 , max_steps=500, res_target=1e-12, omega_num=1.0, r_num=0.0):
-    # The Augmented Lagrangian method is implemented.
-    # When r_num=0, converges for omega_num < 2. (Try 1.5 first)
-    # For 0 < omega < 2r, the augmented system converges. r>>1
+def stokes_uzawa(mesh, boundary_markers, domain_markers, boundary_dict
+                 , p_list=[1.0], init_p=Constant(0.0)
+                 , max_steps=500, res_target=1e-12, omega_num=1.0, r_num=0.0
+                 , output_name='pv_output'):
+    """The Augmented Lagrangian method for solving the pressure and velocity
+    of the Stokes equation.
+
+    When r_num=0, it converges for omega_num < 2. Try 1.5 first.
+    For 0 < omega < 2r, the augmented system converges. r >> 1.
+    """
 
     V = VectorFunctionSpace(mesh, "Crouzeix-Raviart", 1)
     CG1 = VectorFunctionSpace(mesh, "CG", 1)
@@ -19,14 +23,15 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
 
     ds = Measure('ds', domain=mesh, subdomain_data=boundary_markers)
     dS = Measure('dS', domain=mesh, subdomain_data=boundary_markers)
+    dx = Measure('dx', domain=mesh, subdomain_data=domain_markers)
 
     bcu = []
     bcp = []
 
     if mesh.geometric_dimension()==2:
-        noslip = (0.0, 0.0)
+        noslip = Constant((0.0, 0.0))
     elif mesh.geometric_dimension()==3:
-        noslip = (0.0, 0.0, 0.0)
+        noslip = Constant((0.0, 0.0, 0.0))
 
     for idx in boundary_dict['noslip']:
         bcu.append(DirichletBC(V, noslip, boundary_markers, idx))
@@ -71,6 +76,7 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
 
     # Assemble matrices
     A1 = assemble(a1)
+    b1 = PETScVector()
 
     # Pressure update
     #a2 = q*p*dx  + omega*(2.0 - (phi('+') + phi('-')))*h_avg**2*dot(jump(q), jump(p))*dS
@@ -84,6 +90,7 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
 #     L2 = phi_DG*omega*inner(grad(q), u1)*dx
 
     A2 = assemble(a2)
+    b2 = PETScVector()
 
     u_list = []
     p_list = []
@@ -116,7 +123,7 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
     #pout = File("Box_p_iter.pvd")
     #vout = File("Box_v_iter.pvd")
 
-    xdmf_obj = XDMFFile(MPI.comm_world, 'pv_output.xdmf')
+    xdmf_obj = XDMFFile(MPI.comm_world, output_name + '.xdmf')
 
     residual = 1.0
     div_u = 666
@@ -132,14 +139,16 @@ def stokes_uzawa(mesh, boundary_markers, boundary_dict\
 
         # Compute tentative velocity step
         begin("Computing tentative velocity")
-        b1 = assemble(L1)
+        #A1, b1 = assemble_system(a1, L1, bcu)
+        assemble(L1, tensor=b1)
         [bc.apply(A1, b1) for bc in bcu]
         solver1.solve(A1, u1.vector(), b1)
         end()
 
         # Pressure correction
         #begin("Computing pressure correction")
-        b2 = assemble(L2)
+        #A2, b2 = assemble_system(a2, L2, bcp)
+        assemble(L2, tensor=b2)
         #[bc.apply(A2, b2) for bc in bcp]
         solver2.solve(A2, p1.vector(), b2)
         #end()
