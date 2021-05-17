@@ -1,1 +1,2 @@
-from .DgKernel import DgKernel
+from dolfin import *
+from ufl.algebra import Abs
