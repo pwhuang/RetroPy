@@ -1,8 +1,7 @@
-#from . import np, rkt
 from . import *
 
 class reactive_transport_problem_base:
-    # Suitable for single phase reactive transport problems
+    """Base class for single-phase-reactive transport problems."""
 
     def __init__(self):
         self.bc_list = [] # When initialized, assume no boundary conditions.

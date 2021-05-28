@@ -38,7 +38,7 @@ class TransportProblemBase():
 
     def set_velocity_fe_space(self, fe_space: str, fe_degree: int):
         self.velocity_finite_element = VectorElement(fe_space,
-                                                     self.mesh.ufl_cell(),
+                                                     self.mesh.cell_name(),
                                                      fe_degree)
 
         self.velocity_func_space = FunctionSpace(self.mesh,
@@ -48,13 +48,19 @@ class TransportProblemBase():
 
     def set_pressure_fe_space(self, fe_space: str, fe_degree: int):
         self.pressure_finite_element = FiniteElement(fe_space,
-                                                     self.mesh.ufl_cell(),
+                                                     self.mesh.cell_name(),
                                                      fe_degree)
 
         self.pressure_func_space = FunctionSpace(self.mesh,
                                                  self.pressure_finite_element)
 
         self.fluid_pressure = Function(self.pressure_func_space)
+
+    def get_fluid_velocity(self):
+        return self.fluid_velocity.copy()
+
+    def get_fluid_pressure(self):
+        return self.fluid_pressure.copy()
 
     def quick_save(self, file_name: str):
         """"""

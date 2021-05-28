@@ -137,7 +137,7 @@ class TracerTransportProblem(TransportProblemBase):
 
     def save_to_file(self, time: float):
         """"""
-        
+
         for key, i in self.component_dict.items():
             self.xdmf_obj.write_checkpoint(self.__u0.sub(i), key,
                                            time_step=time,

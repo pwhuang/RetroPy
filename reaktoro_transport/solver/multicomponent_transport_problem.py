@@ -215,7 +215,7 @@ class multicomponent_transport_problem(multicomponent_diffusion_problem):
                     - Constant(self.D_list[i]/(R*self.T))\
                      *avg(self.X_list_old[i])\
                      *dot(jump(self.mu_list[i]), jump(v))/self.Delta_h*dS(0)
-        
+
                 linear_problem = dolfin.LinearVariationalProblem(a, L, self.X_list[i], bcs=self.bc_list)
                 self.solver_list.append(dolfin.LinearVariationalSolver(linear_problem))
 

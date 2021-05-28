@@ -1,6 +1,7 @@
-#All the necessities in your life
 import numpy as np
 import reaktoro as rkt
+from mpi4py import MPI
+
 from dolfin import *
 import dolfin
 from dolfin import inner, grad, Constant, sqrt, jump, avg, dot

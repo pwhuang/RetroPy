@@ -1,18 +1,19 @@
 from . import *
 
 class StokesFlowUzawa(TransportProblemBase):
-    """The Augmented Lagrangian Uzawa method for solving the pressure
-    and velocity of the Stokes equation.
+    """This class utilizes the Augmented Lagrangian Uzawa method to solve
+    the pressure and velocity of the Stokes equation.
     """
 
     def set_pressure_ic(self, init_cond_pressure: Expression):
+        """Sets up the initial condition of pressure."""
         self.init_cond_pressure = init_cond_pressure
 
     def mark_flow_boundary(self, **kwargs):
         """This method gives boundary markers physical meaning.
 
         Keywords
-        ---------
+        --------
         inlet : Sets the boundary flow rate.
         noslip : Sets the boundary to no-slip boundary condition.
         velocity_bc : User defined velocity boundary condition.
@@ -59,13 +60,13 @@ class StokesFlowUzawa(TransportProblemBase):
         self.residual_mass_form = q*div(u0)*dx
 
         for i, marker in enumerate(self.__boundary_dict['inlet']):
-             self.form_update_velocity += \
-             Constant(pressure_bc_val[i])*inner(n, v)*ds(marker) \
-             - dot(n, dot(grad(u), v))*ds(marker)
+            self.form_update_velocity += \
+            Constant(pressure_bc_val[i])*inner(n, v)*ds(marker) \
+            - dot(n, dot(grad(u), v))*ds(marker)
 
-             self.residual_momentum_form += \
-             Constant(pressure_bc_val[i])*inner(n, v)*ds(marker) \
-             - dot(n, dot(grad(u0), v))*ds(marker)
+            self.residual_momentum_form += \
+            Constant(pressure_bc_val[i])*inner(n, v)*ds(marker) \
+            - dot(n, dot(grad(u0), v))*ds(marker)
 
     def set_uzawa_parameters(self, r_val: float, omega_val: float):
         """When r = 0, it converges for omega < 2. Try 1.5 first.
@@ -76,7 +77,7 @@ class StokesFlowUzawa(TransportProblemBase):
         self.r.assign(r_val)
         self.omega.assign(omega_val)
 
-    def set_velocity_bc(self, velocity_bc_val=[]):
+    def set_velocity_bc(self, velocity_bc_val: list):
         """
         Arguments
         ---------
@@ -114,7 +115,7 @@ class StokesFlowUzawa(TransportProblemBase):
         self.b_v, self.b_p = PETScVector(), PETScVector()
 
     def set_solver(self):
-        # The user can override this method.
+        # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
         self.solver_v = PETScLUSolver('mumps')
@@ -141,7 +142,10 @@ class StokesFlowUzawa(TransportProblemBase):
 
         while(self.get_residual() > target_residual or steps < max_steps):
             assemble(self.L_v, tensor=self.b_v)
-            [bc.apply(self.A_v, self.b_v) for bc in self.velocity_bc]
+
+            for bc in self.velocity_bc:
+                bc.apply(self.A_v, self.b_v)
+                
             self.solver_v.solve(self.A_v, self.__u1.vector(), self.b_v)
 
             assemble(self.L_p, tensor=self.b_p)
