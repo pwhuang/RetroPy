@@ -36,8 +36,18 @@ class TransportProblemBase():
         self.dx = Measure('dx', domain=self.mesh,
                           subdomain_data=self.domain_markers)
 
-    def set_velocity_fe_space(self, fe_space: str, fe_degree: int):
+    def set_velocity_vector_fe_space(self, fe_space: str, fe_degree: int):
         self.velocity_finite_element = VectorElement(fe_space,
+                                                     self.mesh.cell_name(),
+                                                     fe_degree)
+
+        self.velocity_func_space = FunctionSpace(self.mesh,
+                                                 self.velocity_finite_element)
+
+        self.fluid_velocity = Function(self.velocity_func_space)
+
+    def set_velocity_fe_space(self, fe_space: str, fe_degree: int):
+        self.velocity_finite_element = FiniteElement(fe_space,
                                                      self.mesh.cell_name(),
                                                      fe_degree)
 

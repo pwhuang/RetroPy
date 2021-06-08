@@ -15,16 +15,6 @@ class DarcyFlowMixedPoisson(TransportProblemBase):
 
         self.velocity_bc = []
 
-    def set_velocity_fe_space(self, fe_space: str, fe_degree: int):
-        self.velocity_finite_element = FiniteElement(fe_space,
-                                                     self.mesh.cell_name(),
-                                                     fe_degree)
-
-        self.velocity_func_space = FunctionSpace(self.mesh,
-                                                 self.velocity_finite_element)
-
-        self.fluid_velocity = Function(self.velocity_func_space)
-
     def mark_flow_boundary(self, **kwargs):
         """This method gives boundary markers physical meaning.
 
