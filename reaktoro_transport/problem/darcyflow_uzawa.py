@@ -1,9 +1,16 @@
 from . import *
 
-class DarcyFlowUzawa(TransportProblemBase):
+class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
     """This class utilizes the Augmented Lagrangian Uzawa method to solve
-    the pressure and velocity of Darcy's flow.
+    the pressure and velocity of Darcy flow.
     """
+
+    def __init__(self, mesh, boundary_markers, domain_markers):
+        self.set_mesh(mesh)
+        self.set_boundary_markers(boundary_markers)
+        self.set_domain_markers(domain_markers)
+
+        self.velocity_bc = []
 
     def set_pressure_ic(self, init_cond_pressure: Expression):
         """Sets up the initial condition of pressure."""
@@ -14,161 +21,158 @@ class DarcyFlowUzawa(TransportProblemBase):
 
         Keywords
         --------
-        inlet : Sets the boundary flow rate.
-        noflow: Sets the boundary flow rate to zero.
+        velocity: Sets the boundary flow rate.
+        pressure: Sets the DirichletBC of pressure.
         """
 
         self.__boundary_dict = kwargs
 
-    def set_boundary_conditions(self):
+    def set_form_and_pressure_bc(self, pressure_bc_val: list):
+        """Sets up the FeNiCs form of Darcy flow."""
+
+        V = self.velocity_func_space
+        Q = self.pressure_func_space
+
+        self.__u, self.__p = TrialFunction(V), TrialFunction(Q)
+        self.__v, self.__q = TestFunction(V), TestFunction(Q)
+
+        u, p = self.__u, self.__p
+        v, q = self.__v, self.__q
+
+        #self.v0 = Function(V) # Test function used for residual calculations
+        #self.v0.vector()[:] = 1.0
+        #v0 = self.v0
+
+        self.__u0, self.__u1 = Function(V), Function(V)
+        self.__p0 = interpolate(self.init_cond_pressure, Q)
+        self.__p1 = Function(Q)
+
+        u0, u1, p0, p1 = self.__u0, self.__u1, self.__p0, self.__p1
+
+        u0.rename('velocity', 'fluid velocity')
+        p0.rename('pressure', 'fluid pressure')
+
+        mu, k, rho, g = self._mu, self._k, self._rho, self._g
+
+        self.r = Constant(0.0)
+        self.omega = Constant(1.0)
+        r, omega = self.r, self.omega
+
+        n = self.n
+        dx, ds, dS = self.dx, self.ds, self.dS
+
+        self.form_update_velocity = mu/k*inner(v, u)*dx \
+                                    + r*inner(div(v), div(u))*dx \
+                                    - inner(p0, div(v))*dx \
+                                    - inner(v, rho*g)*dx
+
+        self.form_update_pressure = q*p*dx - q*p0*dx + omega*q*(div(u1))*dx
+
+        self.residual_momentum_form = mu/k*inner(v, u0)*dx \
+                                      - inner(div(v), p0)*dx \
+                                      - inner(v, rho*g)*dx
+        self.residual_mass_form = q*div(u0)*dx
+
+        for i, marker in enumerate(self.__boundary_dict['pressure']):
+            self.form_update_velocity += pressure_bc_val[i]*inner(n, v) \
+                                         *ds(marker)
+
+            self.residual_momentum_form += pressure_bc_val[i]*inner(n, v) \
+                                           *ds(marker)
+
+    def set_uzawa_parameters(self, r_val: float, omega_val: float):
+        """When r = 0, it converges for omega < 2. Try 1.5 first.
+        For 0 < omega < 2r, the augmented system converges.
+        One can choose r >> 1.
+        """
+
+        self.r.assign(r_val)
+        self.omega.assign(omega_val)
+
+    def set_velocity_bc(self, velocity_bc_val: list):
+        """
+        Arguments
+        ---------
+        velocity_bc_val : list of Constants,
+                          e.g., [Constant((1.0, -1.0)), Constant((0.0, -2.0))]
+        """
+
+        self.velocity_bc = []
+
+        for i, marker in enumerate(self.__boundary_dict['velocity']):
+            self.velocity_bc.append(DirichletBC(self.velocity_func_space,
+                                                velocity_bc_val[i],
+                                                self.boundary_markers, marker))
+
+    def get_residual(self):
         """"""
-        self.b_dict = {'inlet': [], 'noflow': [1, 2, 3, 4], }
 
-    def set_flow_equations(self, r_num=10.0):
+        #TODO: Fix this method.
+        residual_momentum = assemble(self.residual_momentum_form)
+        residual_mass = assemble(self.residual_mass_form)
 
-        V = FunctionSpace(self.mesh, "BDM", 1)
-        Q = FunctionSpace(self.mesh, "DG", 0)
+        for bc in self.velocity_bc:
+            bc.apply(self.__u0.vector())
 
-        # Define trial and test functions
-        u = TrialFunction(V)
-        p = TrialFunction(Q)
-        v = TestFunction(V)
-        q = TestFunction(Q)
-        self.q0 = TestFunction(Q)
+        residual = residual_momentum.norm('l2')
+        residual += residual_mass.norm('l2')
 
-        ds = Measure('ds', domain=self.mesh, subdomain_data=self.boundary_markers)
-        dS = Measure('dS', domain=self.mesh, subdomain_data=self.boundary_markers)
+        return residual
 
-        self.bcu = []
+    def get_relative_error(self):
+        """"""
 
-        if self.mesh.geometric_dimension()==2:
-            noslip = (0.0, 0.0)
-        elif self.mesh.geometric_dimension()==3:
-            noslip = (0.0, 0.0, 0.0)
+        relative_error = assemble((self.__u1 - self.__u0)**2*self.dx) \
+                         /(assemble(self.__u0**2*self.dx) + DOLFIN_EPS)
+        relative_error += assemble((self.__p1 - self.__p0)**2*self.dx) \
+                          /(assemble(self.__p0**2*self.dx) + DOLFIN_EPS)
 
-        for idx in self.b_dict['noslip']:
-            self.bcu.append(DirichletBC(V, noslip, self.boundary_markers, idx))
+        return relative_error
 
-        # Create functions
-        self.u0 = Function(V)
-        self.u1 = Function(V)
-        self.v0 = Function(V) # Test function used for residual calculations
 
-        for bc in self.bcu:
-            bc.apply(self.v0.vector())
+    def assemble_matrix(self):
+        F_velocity = self.form_update_velocity
+        F_pressure = self.form_update_pressure
 
-        self.p_ref = 101550
-        self.p0 = project(Expression('9.81*(25.0-x[1]) + pref', degree=1, pref = self.p_ref), Q)
-        self.p0.rename('pressure', 'fluid pressure')
-        self.p1 = Function(Q)
+        a_v, self.L_v = lhs(F_velocity), rhs(F_velocity)
+        a_p, self.L_p = lhs(F_pressure), rhs(F_pressure)
 
-        self.K = dolfin.project(Constant(0.5**2/12.0), self.function_space)
-        self.g = as_vector([0.0, -9806.65])
+        self.A_v = assemble(a_v)
+        self.A_p = assemble(a_p)
+        self.b_v, self.b_p = PETScVector(), PETScVector()
 
-        # Define coefficients
-        f = Constant((0, 0))
-        self.mu = Constant(8.9e-4)
+    def set_solver(self):
+        # Users can override this method.
+        # Or, TODO: make this method more user friendly.
 
-        one = Constant(1.0)
-        r = Constant(r_num)
-        #omega = Constant(omega_num)
+        self.solver_v = PETScKrylovSolver('gmres', 'ilu')
+        self.solver_p = PETScKrylovSolver('gmres', 'amg')
 
-        self.nn = FacetNormal(self.mesh)
+        prm_v = self.solver_v.parameters
+        prm_p = self.solver_p.parameters
 
-        self.drho_dt = (self.rho - self.rho_old)/self.dt
+        TransportProblemBase.set_default_solver_parameters(prm_v)
+        TransportProblemBase.set_default_solver_parameters(prm_p)
 
-        # AL2 prediction-correction scheme
-        F0 = self.mu/self.K*inner(v, u)*dx - inner(self.p0, div(v))*dx \
-             - inner(v, self.rho*self.g)*dx \
+    def solve_flow(self, target_error: float, max_steps: int):
+        steps = 0
+        relative_error = target_error + 1
 
-        for i, p_dirichlet in enumerate(self.p_list):
-             F0 += Constant(p_dirichlet)*inner(self.nn, v)*ds(boundary_dict['inlet'][i])
+        while relative_error > target_error and steps < max_steps:
+            assemble(self.L_v, tensor=self.b_v)
+            for bc in self.velocity_bc:
+                bc.apply(self.A_v, self.b_v)
 
-        a0 = lhs(F0)
-        L0 = rhs(F0)
+            self.solver_v.solve(self.A_v, self.__u1.vector(), self.b_v)
 
-        self.solver_v0 = LinearVariationalSolver(LinearVariationalProblem(a0, L0, self.u0, bcs=self.bcu))
+            assemble(self.L_p, tensor=self.b_p)
+            self.solver_p.solve(self.A_p, self.__p1.vector(), self.b_p)
 
-        # Tentative velocity step
-        F1 = self.mu/self.K*inner(v, u)*dx + r*inner(div(v), div(u))*dx \
-             + r*inner(div(v), div(self.u0))*dx #- r*inner(div(v), self.drho_dt)*dx
+            relative_error = self.get_relative_error()
+            steps+=1
 
-        for i, p_dirichlet in enumerate(self.p_list):
-             F1 += Constant(p_dirichlet)*inner(self.nn, v)*ds(boundary_dict['inlet'][i])
+            self.__u0.assign(self.__u1)
+            self.__p0.assign(self.__p1)
 
-        a1 = lhs(F1)
-        L1 = rhs(F1)
-
-        self.solver_v1 = LinearVariationalSolver(LinearVariationalProblem(a1, L1, self.u1, bcs=self.bcu))
-
-        # Pressure update
-        a2 = q*p*dx
-        L2 = q*self.p0*dx - r*q*(div(self.u1))*dx
-
-        self.solver_p = LinearVariationalSolver(LinearVariationalProblem(a2, L2, self.p1, bcs=[]))
-
-        res_list = []
-
-        prm = self.solver_v0.parameters
-
-        prm['krylov_solver']['absolute_tolerance'] = 1e-15
-        #prm['ksp_converged_reason'] = True
-        prm['krylov_solver']['relative_tolerance'] = 1e-13
-        prm['krylov_solver']['maximum_iterations'] = 2000
-        prm['krylov_solver']['error_on_nonconvergence'] = True
-        #prm['krylov_solver']['monitor_convergence'] = True
-        prm['krylov_solver']['nonzero_initial_guess'] = False
-        prm['linear_solver'] = 'gmres'
-        prm['preconditioner'] = 'amg'
-
-        prm = self.solver_v1.parameters
-
-        prm['krylov_solver']['absolute_tolerance'] = 1e-14
-        #prm['ksp_converged_reason'] = True
-        prm['krylov_solver']['relative_tolerance'] = 1e-12
-        prm['krylov_solver']['maximum_iterations'] = 50000
-        prm['krylov_solver']['error_on_nonconvergence'] = True
-        #prm['krylov_solver']['monitor_convergence'] = True
-        prm['krylov_solver']['nonzero_initial_guess'] = False
-        prm['linear_solver'] = 'minres'
-        prm['preconditioner'] = 'jacobi'
-
-        prm = self.solver_p.parameters
-
-        prm['krylov_solver']['absolute_tolerance'] = 1e-15
-        #prm['ksp_converged_reason'] = True
-        prm['krylov_solver']['relative_tolerance'] = 1e-13
-        prm['krylov_solver']['maximum_iterations'] = 2000
-        prm['krylov_solver']['error_on_nonconvergence'] = True
-        #prm['krylov_solver']['monitor_convergence'] = True
-        prm['krylov_solver']['nonzero_initial_guess'] = False
-        prm['linear_solver'] = 'gmres'
-        prm['preconditioner'] = 'amg'
-
-    def solve_flow(self, max_steps=50, res_target=1e-10):
-        residual = 1.0
-        i = 0
-
-        #for i in range(steps):
-        while(np.abs(residual) > res_target):
-            #begin("Computing tentative velocity")
-            self.solver_v0.solve()
-            self.solver_v1.solve()
-            self.u1.assign(self.u1 + self.u0)
-            #end()
-
-            # Pressure correction
-            begin("Computing pressure correction, residual = " + str(residual))
-            self.solver_p.solve()
-
-            div_u = assemble(self.q0*div(self.rho*self.u1)*dx ).norm('l2')
-            residual_form = (self.mu/self.K*inner(self.v0, self.u1) - self.p1*div(self.v0) \
-                             - inner(self.v0, self.rho*self.g) )*dx
-            for i, p_dirichlet in enumerate(self.p_list):
-                 residual_form += Constant(p_dirichlet)*inner(self.nn, self.v0)*ds(self.boundary_dict['inlet'][i])
-
-            residual = assemble(residual_form) + div_u
-            end()
-
-            self.u0.assign(self.u1)
-            self.p0.assign(self.p1)
+        self.fluid_velocity.assign(self.__u0)
+        self.fluid_pressure.assign(self.__p0)

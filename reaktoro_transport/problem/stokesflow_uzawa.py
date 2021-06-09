@@ -22,7 +22,7 @@ class StokesFlowUzawa(TransportProblemBase):
         self.__boundary_dict = kwargs
 
     def set_form_and_pressure_bc(self, pressure_bc_val: list):
-        """Sets up the FeNiCs Form of Stokes flow"""
+        """Sets up the FeNiCs Form of Stokes flow."""
 
         V = self.velocity_func_space
         Q = self.pressure_func_space
@@ -134,18 +134,21 @@ class StokesFlowUzawa(TransportProblemBase):
         for bc in self.velocity_bc:
             bc.apply(residual_momentum, self.__u0.vector())
 
-        return residual_momentum.norm('l2') + residual_mass.norm('l2')
+        residual = residual_momentum.norm('l2')
+        residual += residual_mass.norm('l2')
+
+        return residual
 
     def solve_flow(self, target_residual: float, max_steps: int):
         """"""
         steps = 0
 
-        while(self.get_residual() > target_residual or steps < max_steps):
+        while(self.get_residual() > target_residual and steps < max_steps):
             assemble(self.L_v, tensor=self.b_v)
 
             for bc in self.velocity_bc:
                 bc.apply(self.A_v, self.b_v)
-                
+
             self.solver_v.solve(self.A_v, self.__u1.vector(), self.b_v)
 
             assemble(self.L_p, tensor=self.b_p)

@@ -1,7 +1,7 @@
 from . import *
 
-class DarcyFlowMixedPoisson(TransportProblemBase):
-    """This class utilizes the Augmented Lagrangian Uzawa method to solve
+class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
+    """This class utilizes the mixed Poisson method to solve
     the pressure and velocity of Darcy's flow.
     """
 
@@ -9,9 +9,6 @@ class DarcyFlowMixedPoisson(TransportProblemBase):
         self.set_mesh(mesh)
         self.set_boundary_markers(boundary_markers)
         self.set_domain_markers(domain_markers)
-
-        self.set_pressure_fe_space('DG', 0)
-        self.set_velocity_fe_space('BDM', 1)
 
         self.velocity_bc = []
 
@@ -25,31 +22,6 @@ class DarcyFlowMixedPoisson(TransportProblemBase):
         """
 
         self.__boundary_dict = kwargs
-
-    def set_permeability(self, permeability: Expression):
-        """Sets the permeability in the unit of length squared."""
-
-        self.__k = interpolate(permeability, self.pressure_func_space)
-
-    def set_porosity(self, porosity: Expression):
-        """Sets the porosity in dimensionless unit."""
-
-        self.__phi = interpolate(porosity, self.pressure_func_space)
-
-    def set_fluid_density(self, density: float):
-        """Sets the fluid density in the unit of mass over volume."""
-
-        self.__rho = Constant(density)
-
-    def set_fluid_viscosity(self, viscosity: float):
-        """Sets fluid dynamic viscosity in the unit of pressure*time."""
-
-        self.__mu = Constant(viscosity)
-
-    def set_gravity(self, gravity: tuple):
-        """Sets up the gravity in the body force term of Darcy's law."""
-
-        self.__g = Constant(gravity)
 
     def set_form_and_pressure_bc(self, pressure_bc_val: list):
         """Sets up the FeNiCs form of Darcy flow"""
@@ -78,11 +50,12 @@ class DarcyFlowMixedPoisson(TransportProblemBase):
 
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
-        mu, k, rho, g = self.__mu, self.__k, self.__rho, self.__g
+
+        mu, k, rho, g = self._mu, self._k, self._rho, self._g
         dx, ds = self.dx, self.ds
         n = self.n
 
-        self.mixed_form = mu/k*inner(v, u)*dx(0) - inner(div(v), p)*dx \
+        self.mixed_form = mu/k*inner(v, u)*dx - inner(div(v), p)*dx \
                           - inner(v, rho*g)*dx \
                           + q*div(rho*u)*dx
 
