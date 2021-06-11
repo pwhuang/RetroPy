@@ -39,9 +39,9 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
 
-        #self.v0 = Function(V) # Test function used for residual calculations
-        #self.v0.vector()[:] = 1.0
-        #v0 = self.v0
+        self.v0 = Function(V) # Test function used for residual calculations
+        self.v0.vector()[:] = 1.0
+        v0 = self.v0
 
         self.__u0, self.__u1 = Function(V), Function(V)
         self.__p0 = interpolate(self.init_cond_pressure, Q)
@@ -68,23 +68,25 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
 
         self.form_update_pressure = q*p*dx - q*p0*dx + omega*q*(div(u1))*dx
 
-        self.residual_momentum_form = mu/k*inner(v, u0)*dx \
-                                      - inner(div(v), p0)*dx \
-                                      - inner(v, rho*g)*dx
+        self.residual_momentum_form = mu/k*inner(v0, u0)*dx \
+                                      - inner(div(v0), p0)*dx \
+                                      - inner(v0, rho*g)*dx
         self.residual_mass_form = q*div(u0)*dx
 
         for i, marker in enumerate(self.__boundary_dict['pressure']):
             self.form_update_velocity += pressure_bc_val[i]*inner(n, v) \
                                          *ds(marker)
 
-            self.residual_momentum_form += pressure_bc_val[i]*inner(n, v) \
+            self.residual_momentum_form += pressure_bc_val[i]*inner(n, v0) \
                                            *ds(marker)
 
     def add_momentum_source(self, sources: list):
-        v  = self.__v
+        v = self.__v
+        v0 = self.v0
 
         for source in sources:
             self.form_update_velocity -= inner(v, source)*self.dx
+            self.residual_momentum_form -= inner(v0, source)*self.dx
 
     def set_uzawa_parameters(self, r_val: float, omega_val: float):
         """When r = 0, it converges for omega < 2. Try 1.5 first.
@@ -120,7 +122,7 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
         for bc in self.velocity_bc:
             bc.apply(self.__u0.vector())
 
-        residual = residual_momentum.norm('l2')
+        residual = residual_momentum#.norm('l2')
         residual += residual_mass.norm('l2')
 
         return residual
