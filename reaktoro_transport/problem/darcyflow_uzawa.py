@@ -12,10 +12,6 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
 
         self.velocity_bc = []
 
-    def set_pressure_ic(self, init_cond_pressure: Expression):
-        """Sets up the initial condition of pressure."""
-        self.init_cond_pressure = init_cond_pressure
-
     def mark_flow_boundary(self, **kwargs):
         """This method gives boundary markers physical meaning.
 
@@ -26,6 +22,10 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
         """
 
         self.__boundary_dict = kwargs
+
+    def set_pressure_ic(self, init_cond_pressure: Expression):
+        """Sets up the initial condition of pressure."""
+        self.init_cond_pressure = init_cond_pressure
 
     def set_form_and_pressure_bc(self, pressure_bc_val: list):
         """Sets up the FeNiCs form of Darcy flow."""
@@ -79,6 +79,12 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
 
             self.residual_momentum_form += pressure_bc_val[i]*inner(n, v) \
                                            *ds(marker)
+
+    def add_momentum_source(self, sources: list):
+        v  = self.__v
+
+        for source in sources:
+            self.form_update_velocity -= inner(v, source)*self.dx
 
     def set_uzawa_parameters(self, r_val: float, omega_val: float):
         """When r = 0, it converges for omega < 2. Try 1.5 first.
