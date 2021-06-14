@@ -29,3 +29,6 @@ class FluidProperty:
         """Sets up the gravity in the body force term of Darcy's law."""
 
         self._g = Constant(gravity)
+
+    def get_permeability(self):
+        return self._k
