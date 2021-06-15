@@ -50,6 +50,11 @@ class DG0Kernel:
 
         return # TODO: Add this method.
 
+    def diffusion_flux_bc(self, w, value, marker: int):
+        """"""
+
+        return
+
     def advection_flux_bc(self, w, value, marker: int):
         """"""
 

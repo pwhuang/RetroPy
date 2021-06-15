@@ -38,7 +38,7 @@ mesh_factory.set_top_right_coordinates(coord_x = 1.0, coord_y = 1.0)
 mesh_factory.set_number_of_elements(10, 10)
 mesh_factory.set_mesh_type('triangle')
 mesh = mesh_factory.generate_mesh()
-boundary_markers, marker_dict = mesh_factory.set_boundary_markers()
+boundary_markers, marker_dict = mesh_factory.generate_boundary_markers()
 
 left, bottom, right, top = mesh_factory.get_boundary_markers_values()
 

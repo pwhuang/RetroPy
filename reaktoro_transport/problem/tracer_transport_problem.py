@@ -77,7 +77,7 @@ class TracerTransportProblem(TransportProblemBase):
         idx = self.component_dict[component_name]
         self.__u0[idx].assign(interpolate(expression, self.func_space_list[i]))
 
-    def add_component_bc(self, component_name: str, values):
+    def add_component_advection_bc(self, component_name: str, values):
         """"""
 
         if len(values)!=len(self.__boundary_dict[component_name]):

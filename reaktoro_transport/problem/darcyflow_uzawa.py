@@ -54,7 +54,7 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
 
         mu, k, rho, g = self._mu, self._k, self._rho, self._g
 
-        self.r = Constant(0.0)
+        self.r = Constant(1.0)
         self.omega = Constant(1.0)
         r, omega = self.r, self.omega
 

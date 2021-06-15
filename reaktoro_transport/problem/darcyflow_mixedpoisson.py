@@ -23,6 +23,9 @@ class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
 
         self.__boundary_dict = kwargs
 
+    def set_pressure_ic(self):
+        return
+
     def set_form_and_pressure_bc(self, pressure_bc_val: list):
         """Sets up the FeNiCs form of Darcy flow"""
 
@@ -83,7 +86,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
         self.__b = PETScVector()
 
     def set_solver(self):
-        self.__solver = LUSolver()
+        self.__solver = PETScLUSolver()
         prm = self.__solver.parameters
 
     def solve_flow(self):

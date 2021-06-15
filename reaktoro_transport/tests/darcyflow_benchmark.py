@@ -19,8 +19,8 @@ class DarcyFlowBenchmark:
         mesh_factory.set_mesh_type('triangle')
 
         mesh = mesh_factory.generate_mesh()
-        boundary_markers, self.marker_dict = mesh_factory.set_boundary_markers()
-        domain_markers = mesh_factory.set_domain_markers()
+        boundary_markers, self.marker_dict = mesh_factory.generate_boundary_markers()
+        domain_markers = mesh_factory.generate_domain_markers()
 
         self.mesh_characteristic_length = 2.0/nx
 
