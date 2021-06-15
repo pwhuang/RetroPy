@@ -49,7 +49,7 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
 
         u0, u1, p0, p1 = self.__u0, self.__u1, self.__p0, self.__p1
 
-        mu, k, rho, g = self._mu, self._k, self._rho, self._g
+        mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
 
         self.r = Constant(1.0)
         self.omega = Constant(1.0)
@@ -59,16 +59,16 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
         dx, ds, dS = self.dx, self.ds, self.dS
 
         self.form_update_velocity = mu/k*inner(v, u)*dx \
-                                    + r*inner(div(v), div(u))*dx \
+                                    + r*inner(div(v), div(rho*phi*u))*dx \
                                     - inner(p0, div(v))*dx \
                                     - inner(v, rho*g)*dx
 
-        self.form_update_pressure = q*p*dx - q*p0*dx + omega*q*(div(u1))*dx
+        self.form_update_pressure = q*p*dx - q*p0*dx + omega*q*(div(rho*phi*u1))*dx
 
         self.residual_momentum_form = mu/k*inner(v0, u0)*dx \
                                       - inner(div(v0), p0)*dx \
                                       - inner(v0, rho*g)*dx
-        self.residual_mass_form = q*div(u0)*dx
+        self.residual_mass_form = q*div(phi*rho*u0)*dx
 
         for i, marker in enumerate(self.__boundary_dict['pressure']):
             self.form_update_velocity += pressure_bc_val[i]*inner(n, v) \

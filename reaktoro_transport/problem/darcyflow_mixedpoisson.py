@@ -54,13 +54,13 @@ class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
 
-        mu, k, rho, g = self._mu, self._k, self._rho, self._g
+        mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
         dx, ds = self.dx, self.ds
         n = self.n
 
         self.mixed_form = mu/k*inner(v, u)*dx - inner(div(v), p)*dx \
                           - inner(v, rho*g)*dx \
-                          + q*div(rho*u)*dx
+                          + q*div(phi*rho*u)*dx
 
         for i, marker in enumerate(self.__boundary_dict['pressure']):
             self.mixed_form += pressure_bc_val[i]*inner(n, v)*ds(marker)

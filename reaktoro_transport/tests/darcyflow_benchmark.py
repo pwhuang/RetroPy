@@ -30,6 +30,7 @@ class DarcyFlowBenchmark:
         return self.mesh_characteristic_length
 
     def set_material_properties(self):
+        self.set_porosity(Constant(1.0))
         self.set_permeability(Constant(1.0))
         self.set_fluid_density(1.0)
         self.set_fluid_viscosity(1.0)
