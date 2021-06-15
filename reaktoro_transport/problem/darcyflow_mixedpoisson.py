@@ -88,7 +88,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
         self.__b = PETScVector()
 
     def set_solver(self):
-        self.__solver = PETScLUSolver()
+        self.__solver = PETScLUSolver('mumps')
         prm = self.__solver.parameters
 
     def solve_flow(self):
