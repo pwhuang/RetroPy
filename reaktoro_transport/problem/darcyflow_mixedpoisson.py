@@ -65,6 +65,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
         for i, marker in enumerate(self.__boundary_dict['pressure']):
             self.mixed_form += pressure_bc_val[i]*inner(n, v)*ds(marker)
 
+        self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
+
     def add_momentum_source(self, sources: list):
         v  = self.__v
 

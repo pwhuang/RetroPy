@@ -49,9 +49,6 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
 
         u0, u1, p0, p1 = self.__u0, self.__u1, self.__p0, self.__p1
 
-        u0.rename('velocity', 'fluid velocity')
-        p0.rename('pressure', 'fluid pressure')
-
         mu, k, rho, g = self._mu, self._k, self._rho, self._g
 
         self.r = Constant(1.0)
@@ -79,6 +76,8 @@ class DarcyFlowUzawa(TransportProblemBase, FluidProperty):
 
             self.residual_momentum_form += pressure_bc_val[i]*inner(n, v0) \
                                            *ds(marker)
+
+        self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
 
     def add_momentum_source(self, sources: list):
         v = self.__v
