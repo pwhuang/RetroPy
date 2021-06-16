@@ -10,7 +10,7 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
     def __init__(self, mesh, boundary_markers, domain_markers):
         DarcyFlowBase.__init__(self, mesh, boundary_markers, domain_markers)
 
-    def set_form_and_pressure_bc(self, pressure_bc_val: list):
+    def generate_form(self):
         """Sets up the FeNiCs form of Darcy flow."""
 
         V = self.velocity_func_space
@@ -22,20 +22,13 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
 
-        self.v0 = Function(V) # Test function used for residual calculations
-        self.v0.vector()[:] = 1.0
-        v0 = self.v0
-
         self.__u0, self.__u1 = Function(V), Function(V)
-        self.__p0 = interpolate(self.init_cond_pressure, Q)
+        self.__p0 = Function(Q)
         self.__p1 = Function(Q)
 
         u0, u1, p0, p1 = self.__u0, self.__u1, self.__p0, self.__p1
 
-        u0.rename('velocity', 'fluid velocity')
-        p0.rename('pressure', 'fluid pressure')
-
-        mu, k, rho, g = self._mu, self._k, self._rho, self._g
+        mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
 
         self.r = Constant(0.0)
         r = self.r
@@ -46,24 +39,30 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
         # AL2 prediction-correction scheme
         self.form_update_velocity_1 = mu/k*inner(v, u)*dx \
                                       - inner(v, rho*g)*dx
-                                      #- inner(p0, div(v))*dx \
+                                      #- inner(p0, div(v))*dx
 
         #self.drho_dt = (self.rho - self.rho_old)/self.dt
         self.form_update_velocity_2 = mu/k*inner(v, u)*dx \
-                                      + r*inner(div(v), div(u))*dx \
-                                      + r*inner(div(v), div(u0))*dx
+                                      + r*inner(div(v), div(rho*phi*u))*dx \
+                                      + r*inner(div(v), div(rho*phi*u0))*dx
                                       #- r*inner(div(v), self.drho_dt)*dx
 
         # Pressure update
-        #self.form_update_pressure = q*p*dx - q*p0*dx + r*q*(div(u1))*dx
-        self.form_update_pressure = q*p*dx + r*q*div(u1)*dx
+        #self.form_update_pressure = q*p*dx - q*p0*dx + r*q*(div(rho*phi*u1))*dx
+        self.form_update_pressure = q*p*dx + r*q*div(rho*phi*u1)*dx
 
-        for i, marker in enumerate(self.__boundary_dict['pressure']):
-            self.form_update_velocity_1 += pressure_bc_val[i]*inner(n, v) \
+        for i, marker in enumerate(self.darcyflow_boundary_dict['pressure']):
+            self.form_update_velocity_1 += self.pressure_bc[i]*inner(n, v) \
                                            *ds(marker)
 
-            #self.form_update_velocity_2 += pressure_bc_val[i]*inner(n, v) \
+            #self.form_update_velocity_2 += self.pressure_bc[i]*inner(n, v) \
             #                               *ds(marker)
+
+    def add_momentum_source(self, sources: list):
+        v = self.__v
+
+        for source in sources:
+            self.form_update_velocity_1 -= inner(v, source)*self.dx
 
     def set_angot_parameters(self, r_val: float):
         """r is 1/epsilon in the literature. r >> 1."""
@@ -89,7 +88,8 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
-        self.solver_v1 = PETScKrylovSolver('gmres', 'amg')
+        #self.solver_v1 = PETScKrylovSolver('gmres', 'amg')
+        self.solver_v1 = PETScLUSolver()
         self.solver_v2 = PETScLUSolver('mumps')
         self.solver_p = PETScKrylovSolver('gmres', 'amg')
 
@@ -97,33 +97,35 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
         prm_v2 = self.solver_v2.parameters
         prm_p = self.solver_p.parameters
 
-        TransportProblemBase.set_default_solver_parameters(prm_v1)
-        TransportProblemBase.set_default_solver_parameters(prm_p)
+        #TransportProblemBase.set_default_solver_parameters(prm_v1)
+        #TransportProblemBase.set_default_solver_parameters(prm_p)
 
     def solve_flow(self, target_residual: float, max_steps: int):
+    #def solve_flow(self):
         steps = 0
 
-        #while(self.get_residual() > target_residual and steps < max_steps):
-        assemble(self.L_v1, tensor=self.b_v1)
-        for bc in self.velocity_bc:
-            bc.apply(self.A_v1, self.b_v1)
+        while(self.get_residual() > target_residual and steps < max_steps):
+            assemble(self.L_v1, tensor=self.b_v1)
+            for bc in self.velocity_bc:
+                bc.apply(self.A_v1, self.b_v1)
 
-        self.solver_v1.solve(self.A_v1, self.__u0.vector(), self.b_v1)
+            self.solver_v1.solve(self.A_v1, self.__u0.vector(), self.b_v1)
 
-        assemble(self.L_v2, tensor=self.b_v2)
-        for bc in self.velocity_bc:
-            bc.apply(self.A_v2, self.b_v2)
+            assemble(self.L_v2, tensor=self.b_v2)
+            for bc in self.velocity_bc:
+                bc.apply(self.A_v2, self.b_v2)
 
-        self.solver_v2.solve(self.A_v2, self.__u1.vector(), self.b_v2)
-        self.__u1.assign( (self.__u1 + self.__u0)/2 )
+            self.solver_v2.solve(self.A_v2, self.__u1.vector(), self.b_v2)
+            self.__u1.assign( (self.__u1 + self.__u0)/2 )
 
-        assemble(self.L_p, tensor=self.b_p)
-        self.solver_p.solve(self.A_p, self.__p1.vector(), self.b_p)
+            assemble(self.L_p, tensor=self.b_p)
+            self.__p1.vector()[:] = self.b_p.get_local()
+            #self.solver_p.solve(self.A_p, self.__p1.vector(), self.b_p)
 
-        self.__u0.assign(self.__u1)
-        self.__p0.assign(self.__p1)
+            self.__u0.assign(self.__u1)
+            self.__p0.assign(self.__p1)
 
-        steps+=1
+            steps+=1
 
         self.fluid_velocity.assign(self.__u0)
         self.fluid_pressure.assign(self.__p0)
