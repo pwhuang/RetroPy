@@ -1,36 +1,18 @@
 from . import *
 
-class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
+class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
     """This class utilizes the mixed Poisson method to solve
     the pressure and velocity of Darcy's flow.
     """
 
     def __init__(self, mesh, boundary_markers, domain_markers):
-        self.set_mesh(mesh)
-        self.set_boundary_markers(boundary_markers)
-        self.set_domain_markers(domain_markers)
+        DarcyFlowBase.__init__(self, mesh, boundary_markers, domain_markers)
 
-        self.velocity_bc = []
-
-    def mark_flow_boundary(self, **kwargs):
-        """This method gives boundary markers physical meaning.
-
-        Keywords
-        --------
-        velocity: Sets the boundary flow rate.
-        pressure: Sets the DirichletBC of pressure.
-        """
-
-        self.__boundary_dict = kwargs
-
-    def set_pressure_ic(self):
-        return
-
-    def set_form_and_pressure_bc(self, pressure_bc_val: list):
+    def generate_form(self):
         """Sets up the FeNiCs form of Darcy flow"""
 
-        if len(pressure_bc_val)!=len(self.__boundary_dict['pressure']):
-            raise Exception("length of pressure_bc_val != length of boundary_dict")
+        if len(self.pressure_bc)!=len(self.darcyflow_boundary_dict['pressure']):
+            raise Exception("length of pressure_bc != length of boundary_dict")
 
         self.func_space_list = [self.velocity_finite_element,
                                 self.pressure_finite_element]
@@ -62,8 +44,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
                           - inner(v, rho*g)*dx \
                           + q*div(phi*rho*u)*dx
 
-        for i, marker in enumerate(self.__boundary_dict['pressure']):
-            self.mixed_form += pressure_bc_val[i]*inner(n, v)*ds(marker)
+        for i, marker in enumerate(self.darcyflow_boundary_dict['pressure']):
+            self.mixed_form += self.pressure_bc[i]*inner(n, v)*ds(marker)
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
 
@@ -73,11 +55,13 @@ class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
         for source in sources:
             self.mixed_form -= inner(v, source)*self.dx
 
-    def set_velocity_bc(self, velocity_bc_val: list):
+    def set_mixed_velocity_bc(self, velocity_bc_val: list):
         """"""
 
-        for i, marker in enumerate(self.__boundary_dict['velocity']):
-            self.velocity_bc.append(DirichletBC(self.mixed_func_space.sub(0),
+        self.mixed_velocity_bc = []
+
+        for i, marker in enumerate(self.darcyflow_boundary_dict['velocity']):
+            self.mixed_velocity_bc.append(DirichletBC(self.mixed_func_space.sub(0),
                                                 velocity_bc_val[i],
                                                 self.boundary_markers, marker))
 
@@ -94,7 +78,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, FluidProperty):
     def solve_flow(self):
         assemble(self.__L, tensor=self.__b)
 
-        for bc in self.velocity_bc:
+        for bc in self.mixed_velocity_bc:
             bc.apply(self.__A, self.__b)
         self.__solver.solve(self.__A, self.__U1.vector(), self.__b)
 

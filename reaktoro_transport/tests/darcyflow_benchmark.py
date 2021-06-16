@@ -40,7 +40,9 @@ class DarcyFlowBenchmark:
         self.mark_flow_boundary(pressure = [self.marker_dict['left'], self.marker_dict['right']],
                                 velocity = [self.marker_dict['top'], self.marker_dict['bottom']])
 
-        self.set_form_and_pressure_bc([Expression(('exp(x[1])*sin(M_PI*x[0])'), degree=1)]*2)
+        self.set_pressure_bc([Expression(('exp(x[1])*sin(M_PI*x[0])'), degree=1)]*2)
+        self.generate_form()
+        self.generate_residual_form()
         self.set_velocity_bc([Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1)]*2)
 
     def set_momentum_sources(self):
@@ -49,9 +51,11 @@ class DarcyFlowBenchmark:
                                         'sin(M_PI*x[0])*exp(x[1])'), degree=1)]
 
         self.add_momentum_source(momentum_sources)
+        self.add_momentum_source_to_residual_form(momentum_sources)
 
     def get_solution(self):
-        self.sol_pressure = interpolate(Expression('exp(x[1])*sin(M_PI*x[0])', degree=1), self.pressure_func_space)
+        self.sol_pressure = interpolate(Expression('exp(x[1])*sin(M_PI*x[0])', degree=1),
+                                        self.pressure_func_space)
         self.sol_velocity = interpolate(Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1),
                                         self.velocity_func_space)
 

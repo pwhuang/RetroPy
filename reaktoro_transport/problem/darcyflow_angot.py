@@ -1,6 +1,6 @@
 from . import *
 
-class DarcyFlowAngot(TransportProblemBase, FluidProperty):
+class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
     """This class utilizes the Augmented Lagrangian Uzawa method to solve
     the pressure and velocity of Darcy flow. For details, see the following:
     A new fast method to compute saddle-points in contrained optimizaiton and
@@ -8,26 +8,7 @@ class DarcyFlowAngot(TransportProblemBase, FluidProperty):
     """
 
     def __init__(self, mesh, boundary_markers, domain_markers):
-        self.set_mesh(mesh)
-        self.set_boundary_markers(boundary_markers)
-        self.set_domain_markers(domain_markers)
-
-        self.velocity_bc = []
-
-    def set_pressure_ic(self, init_cond_pressure: Expression):
-        """Sets up the initial condition of pressure."""
-        self.init_cond_pressure = init_cond_pressure
-
-    def mark_flow_boundary(self, **kwargs):
-        """This method gives boundary markers physical meaning.
-
-        Keywords
-        --------
-        velocity: Sets the boundary flow rate.
-        pressure: Sets the DirichletBC of pressure.
-        """
-
-        self.__boundary_dict = kwargs
+        DarcyFlowBase.__init__(self, mesh, boundary_markers, domain_markers)
 
     def set_form_and_pressure_bc(self, pressure_bc_val: list):
         """Sets up the FeNiCs form of Darcy flow."""
@@ -77,11 +58,6 @@ class DarcyFlowAngot(TransportProblemBase, FluidProperty):
         #self.form_update_pressure = q*p*dx - q*p0*dx + r*q*(div(u1))*dx
         self.form_update_pressure = q*p*dx + r*q*div(u1)*dx
 
-        self.residual_momentum_form = mu/k*inner(v0, u0)*dx \
-                                      - inner(div(v0), p0)*dx \
-                                      - inner(v0, rho*g)*dx
-        self.residual_mass_form = q*div(u0)*dx
-
         for i, marker in enumerate(self.__boundary_dict['pressure']):
             self.form_update_velocity_1 += pressure_bc_val[i]*inner(n, v) \
                                            *ds(marker)
@@ -89,42 +65,10 @@ class DarcyFlowAngot(TransportProblemBase, FluidProperty):
             #self.form_update_velocity_2 += pressure_bc_val[i]*inner(n, v) \
             #                               *ds(marker)
 
-            self.residual_momentum_form += pressure_bc_val[i]*inner(n, v0) \
-                                           *ds(marker)
-
     def set_angot_parameters(self, r_val: float):
         """r is 1/epsilon in the literature. r >> 1."""
 
         self.r.assign(Constant(r_val))
-
-    def set_velocity_bc(self, velocity_bc_val: list):
-        """
-        Arguments
-        ---------
-        velocity_bc_val : list of Constants,
-                          e.g., [Constant((1.0, -1.0)), Constant((0.0, -2.0))]
-        """
-
-        self.velocity_bc = []
-
-        for i, marker in enumerate(self.__boundary_dict['velocity']):
-            self.velocity_bc.append(DirichletBC(self.velocity_func_space,
-                                                velocity_bc_val[i],
-                                                self.boundary_markers, marker))
-
-    def get_residual(self):
-        """"""
-        residual_momentum = assemble(self.residual_momentum_form)
-        residual_mass = assemble(self.residual_mass_form)
-
-        for bc in self.velocity_bc:
-            bc.apply(self.__u0.vector())
-            bc.apply(self.v0.vector())
-
-        residual = abs(residual_momentum)
-        residual += residual_mass.norm('l2')
-
-        return residual
 
     def assemble_matrix(self):
         F_velocity_1 = self.form_update_velocity_1

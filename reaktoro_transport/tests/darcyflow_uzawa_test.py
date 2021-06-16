@@ -36,12 +36,14 @@ v_err_norms = []
 
 for nx in list_of_nx:
     problem = DarcyFlowUzawaTest(nx)
-    problem.solve_flow(target_error=1e-8, max_steps=20)
+    problem.solve_flow(target_error=1e-10, max_steps=50)
     pressure_error_norm, velocity_error_norm = problem.get_error_norm()
 
     p_err_norms.append(pressure_error_norm)
     v_err_norms.append(velocity_error_norm)
     element_diameters.append(problem.get_mesh_characterisitic_length())
+
+    print(problem.get_residual())
 
 convergence_rate_p = (log(p_err_norms[1]) - log(p_err_norms[0])) \
                     /(log(element_diameters[1]) - log(element_diameters[0]))
