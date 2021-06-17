@@ -94,7 +94,7 @@ class TransportProblemBase():
     def set_default_solver_parameters(prm):
         prm['absolute_tolerance'] = 1e-14
         prm['relative_tolerance'] = 1e-12
-        prm['maximum_iterations'] = 2000
+        prm['maximum_iterations'] = 5000
         prm['error_on_nonconvergence'] = True
         prm['monitor_convergence'] = True
         prm['nonzero_initial_guess'] = True

@@ -48,21 +48,22 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
                                       #- r*inner(div(v), self.drho_dt)*dx
 
         # Pressure update
-        #self.form_update_pressure = q*p*dx - q*p0*dx + r*q*(div(rho*phi*u1))*dx
+        #self.form_update_pressure = q*(p-p0)*dx+ r*q*(div(rho*phi*u1))*dx
         self.form_update_pressure = q*p*dx + r*q*div(rho*phi*u1)*dx
 
         for i, marker in enumerate(self.darcyflow_boundary_dict['pressure']):
             self.form_update_velocity_1 += self.pressure_bc[i]*inner(n, v) \
                                            *ds(marker)
 
-            #self.form_update_velocity_2 += self.pressure_bc[i]*inner(n, v) \
-            #                               *ds(marker)
+            self.form_update_velocity_2 += self.pressure_bc[i]*inner(n, v) \
+                                           *ds(marker)
 
     def add_momentum_source(self, sources: list):
         v = self.__v
 
         for source in sources:
             self.form_update_velocity_1 -= inner(v, source)*self.dx
+            self.form_update_velocity_2 -= inner(v, source)*self.dx
 
     def set_angot_parameters(self, r_val: float):
         """r is 1/epsilon in the literature. r >> 1."""
@@ -88,44 +89,47 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
-        #self.solver_v1 = PETScKrylovSolver('gmres', 'amg')
-        self.solver_v1 = PETScLUSolver()
+        self.solver_v1 = PETScLUSolver('mumps')
         self.solver_v2 = PETScLUSolver('mumps')
-        self.solver_p = PETScKrylovSolver('gmres', 'amg')
+        self.solver_p = PETScLUSolver('mumps')
+        #self.solver_v1 = PETScKrylovSolver('gmres', 'ilu')
+        #self.solver_v2 = PETScKrylovSolver('gmres', 'ilu')
+        #self.solver_p = PETScKrylovSolver('gmres', 'amg')
 
         prm_v1 = self.solver_v1.parameters
         prm_v2 = self.solver_v2.parameters
         prm_p = self.solver_p.parameters
 
         #TransportProblemBase.set_default_solver_parameters(prm_v1)
+        #TransportProblemBase.set_default_solver_parameters(prm_v2)
         #TransportProblemBase.set_default_solver_parameters(prm_p)
 
-    def solve_flow(self, target_residual: float, max_steps: int):
-    #def solve_flow(self):
+    #def solve_flow(self, target_residual: float, max_steps: int):
+    def solve_flow(self, *args):
         steps = 0
 
-        while(self.get_residual() > target_residual and steps < max_steps):
-            assemble(self.L_v1, tensor=self.b_v1)
-            for bc in self.velocity_bc:
-                bc.apply(self.A_v1, self.b_v1)
+        #while(self.get_residual() > target_residual and steps < max_steps):
+        assemble(self.L_v1, tensor=self.b_v1)
+        for bc in self.velocity_bc:
+            bc.apply(self.A_v1, self.b_v1)
 
-            self.solver_v1.solve(self.A_v1, self.__u0.vector(), self.b_v1)
+        self.solver_v1.solve(self.A_v1, self.__u0.vector(), self.b_v1)
 
-            assemble(self.L_v2, tensor=self.b_v2)
-            for bc in self.velocity_bc:
-                bc.apply(self.A_v2, self.b_v2)
+        assemble(self.L_v2, tensor=self.b_v2)
+        for bc in self.velocity_bc:
+            bc.apply(self.A_v2, self.b_v2)
 
-            self.solver_v2.solve(self.A_v2, self.__u1.vector(), self.b_v2)
-            self.__u1.assign( (self.__u1 + self.__u0)/2 )
+        self.solver_v2.solve(self.A_v2, self.__u1.vector(), self.b_v2)
+        self.__u1.assign( (self.__u1 + self.__u0)/2 )
 
-            assemble(self.L_p, tensor=self.b_p)
-            self.__p1.vector()[:] = self.b_p.get_local()
-            #self.solver_p.solve(self.A_p, self.__p1.vector(), self.b_p)
+        assemble(self.L_p, tensor=self.b_p)
+        #self.__p1.vector()[:] = self.b_p.get_local()
+        self.solver_p.solve(self.A_p, self.__p1.vector(), self.b_p)
 
-            self.__u0.assign(self.__u1)
-            self.__p0.assign(self.__p1)
+        self.__u0.assign(self.__u1)
+        self.__p0.assign(self.__p1)
 
-            steps+=1
+        steps+=1
 
         self.fluid_velocity.assign(self.__u0)
         self.fluid_pressure.assign(self.__p0)

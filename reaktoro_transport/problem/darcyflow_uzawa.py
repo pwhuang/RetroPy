@@ -21,9 +21,10 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
 
-        self.__u0, self.__u1 = Function(V), Function(V)
-        self.__p0 = interpolate(self.init_cond_pressure, Q)
-        self.__p1 = Function(Q)
+        self.__u0 = self.fluid_velocity
+        self.fluid_pressure.assign(interpolate(self.init_cond_pressure, Q))
+        self.__p0 = self.fluid_pressure
+        self.__u1, self.__p1 = Function(V), Function(Q)
 
         u0, u1, p0, p1 = self.__u0, self.__u1, self.__p0, self.__p1
 
@@ -41,7 +42,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
                                     - inner(p0, div(v))*dx \
                                     - inner(v, rho*g)*dx
 
-        self.form_update_pressure = q*p*dx - q*p0*dx + omega*q*(div(rho*phi*u1))*dx
+        self.form_update_pressure = q*(p-p0)*dx + omega*q*(div(rho*phi*u1))*dx
 
         for i, marker in enumerate(self.darcyflow_boundary_dict['pressure']):
             self.form_update_velocity += self.pressure_bc[i]*inner(n, v) \
@@ -55,14 +56,11 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         for source in sources:
             self.form_update_velocity -= inner(v, source)*self.dx
 
-    def set_uzawa_parameters(self, r_val: float, omega_val: float):
-        """When r = 0, it converges for omega < 2. Try 1.5 first.
-        For 0 < omega < 2r, the augmented system converges.
-        One can choose r >> 1.
-        """
+    def set_uzawa_parameters(self, r_val: float, omega_by_r: float):
+        """For 0 < omega/r < 2, the augmented system converges."""
 
         self.r.assign(r_val)
-        self.omega.assign(omega_val)
+        self.omega.assign(r_val*omega_by_r)
 
     def set_velocity_bc(self, velocity_bc_val: list):
         """
@@ -78,21 +76,6 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             self.velocity_bc.append(DirichletBC(self.velocity_func_space,
                                                 velocity_bc_val[i],
                                                 self.boundary_markers, marker))
-
-    def get_residual(self):
-        """"""
-
-        #TODO: Fix this method.
-        residual_momentum = assemble(self.residual_momentum_form)
-        residual_mass = assemble(self.residual_mass_form)
-
-        for bc in self.velocity_bc:
-            bc.apply(residual_momentum, self.__u0.vector())
-
-        residual = residual_momentum.norm('l2')
-        residual += residual_mass.norm('l2')
-
-        return residual
 
     def get_relative_error(self):
         """"""
@@ -129,11 +112,10 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         TransportProblemBase.set_default_solver_parameters(prm_v)
         TransportProblemBase.set_default_solver_parameters(prm_p)
 
-    def solve_flow(self, target_error: float, max_steps: int):
+    def solve_flow(self, target_residual: float, max_steps: int):
         steps = 0
-        relative_error = target_error + 1
 
-        while relative_error > target_error and steps < max_steps:
+        while self.get_residual() > target_residual and steps < max_steps:
             assemble(self.L_v, tensor=self.b_v)
             for bc in self.velocity_bc:
                 bc.apply(self.A_v, self.b_v)
@@ -149,5 +131,4 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             self.__u0.assign(self.__u1)
             self.__p0.assign(self.__p1)
 
-        self.fluid_velocity.assign(self.__u0)
-        self.fluid_pressure.assign(self.__p0)
+        print('Steps used: ', steps)

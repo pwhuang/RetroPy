@@ -24,7 +24,7 @@ class DarcyFlowUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_boundary_conditions(self)
         DarcyFlowBenchmark.set_momentum_sources(self)
 
-        self.set_uzawa_parameters(r_val=2e2, omega_val=1e2)
+        self.set_uzawa_parameters(r_val=2e2, omega_by_r=1.0)
         self.set_solver()
         self.assemble_matrix()
 
@@ -36,7 +36,7 @@ v_err_norms = []
 
 for nx in list_of_nx:
     problem = DarcyFlowUzawaTest(nx)
-    problem.solve_flow(target_error=1e-10, max_steps=50)
+    problem.solve_flow(target_residual=1e-10, max_steps=50)
     pressure_error_norm, velocity_error_norm = problem.get_error_norm()
 
     p_err_norms.append(pressure_error_norm)
