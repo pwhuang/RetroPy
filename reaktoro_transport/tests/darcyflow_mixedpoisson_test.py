@@ -22,7 +22,7 @@ class DarcyFlowMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_boundary_conditions(self)
         DarcyFlowBenchmark.set_momentum_sources(self)
 
-        self.set_mixed_velocity_bc([Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1)]*2)
+        self.set_velocity_bc([Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1)]*2)
         self.set_solver()
         self.assemble_matrix()
 

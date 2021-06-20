@@ -56,26 +56,11 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         for source in sources:
             self.form_update_velocity -= inner(v, source)*self.dx
 
-    def set_uzawa_parameters(self, r_val: float, omega_by_r: float):
+    def set_additional_parameters(self, r_val: float, omega_by_r: float):
         """For 0 < omega/r < 2, the augmented system converges."""
 
         self.r.assign(r_val)
         self.omega.assign(r_val*omega_by_r)
-
-    def set_velocity_bc(self, velocity_bc_val: list):
-        """
-        Arguments
-        ---------
-        velocity_bc_val : list of Constants,
-                          e.g., [Constant((1.0, -1.0)), Constant((0.0, -2.0))]
-        """
-
-        self.velocity_bc = []
-
-        for i, marker in enumerate(self.darcyflow_boundary_dict['velocity']):
-            self.velocity_bc.append(DirichletBC(self.velocity_func_space,
-                                                velocity_bc_val[i],
-                                                self.boundary_markers, marker))
 
     def get_relative_error(self):
         """"""

@@ -24,7 +24,7 @@ class DarcyFlowUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_boundary_conditions(self)
         DarcyFlowBenchmark.set_momentum_sources(self)
 
-        self.set_uzawa_parameters(r_val=2e2, omega_by_r=1.0)
+        self.set_additional_parameters(r_val=2e2, omega_by_r=1.0)
         self.set_solver()
         self.assemble_matrix()
 

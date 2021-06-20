@@ -55,15 +55,19 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         for source in sources:
             self.mixed_form -= inner(v, source)*self.dx
 
-    def set_mixed_velocity_bc(self, velocity_bc_val: list):
+    def set_velocity_bc(self, velocity_bc_val: list):
         """"""
 
+        DarcyFlowBase.set_velocity_bc(self, velocity_bc_val)
         self.mixed_velocity_bc = []
 
         for i, marker in enumerate(self.darcyflow_boundary_dict['velocity']):
             self.mixed_velocity_bc.append(DirichletBC(self.mixed_func_space.sub(0),
                                                 velocity_bc_val[i],
                                                 self.boundary_markers, marker))
+
+    def set_additional_parameters(self, **kwargs):
+        pass
 
     def assemble_matrix(self):
         a, self.__L = lhs(self.mixed_form), rhs(self.mixed_form)
@@ -75,7 +79,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         self.__solver = PETScLUSolver('mumps')
         prm = self.__solver.parameters
 
-    def solve_flow(self):
+    def solve_flow(self, **kwargs):
         assemble(self.__L, tensor=self.__b)
 
         for bc in self.mixed_velocity_bc:

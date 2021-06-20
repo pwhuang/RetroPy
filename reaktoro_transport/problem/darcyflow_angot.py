@@ -65,7 +65,7 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
             self.form_update_velocity_1 -= inner(v, source)*self.dx
             self.form_update_velocity_2 -= inner(v, source)*self.dx
 
-    def set_angot_parameters(self, r_val: float):
+    def set_additional_parameters(self, r_val: float):
         """r is 1/epsilon in the literature. r >> 1."""
 
         self.r.assign(Constant(r_val))
@@ -92,19 +92,11 @@ class DarcyFlowAngot(TransportProblemBase, DarcyFlowBase):
         self.solver_v1 = PETScLUSolver('mumps')
         self.solver_v2 = PETScLUSolver('mumps')
         self.solver_p = PETScLUSolver('mumps')
-        #self.solver_v1 = PETScKrylovSolver('gmres', 'ilu')
-        #self.solver_v2 = PETScKrylovSolver('gmres', 'ilu')
-        #self.solver_p = PETScKrylovSolver('gmres', 'amg')
 
         prm_v1 = self.solver_v1.parameters
         prm_v2 = self.solver_v2.parameters
         prm_p = self.solver_p.parameters
 
-        #TransportProblemBase.set_default_solver_parameters(prm_v1)
-        #TransportProblemBase.set_default_solver_parameters(prm_v2)
-        #TransportProblemBase.set_default_solver_parameters(prm_p)
-
-    #def solve_flow(self, target_residual: float, max_steps: int):
     def solve_flow(self, *args):
         steps = 0
 
