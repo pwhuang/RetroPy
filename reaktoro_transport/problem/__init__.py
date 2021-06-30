@@ -11,3 +11,4 @@ from .darcyflow_base import DarcyFlowBase
 from .darcyflow_uzawa import DarcyFlowUzawa
 from .darcyflow_mixedpoisson import DarcyFlowMixedPoisson
 from .darcyflow_angot import DarcyFlowAngot
+from .darcyflow_TPFA import DarcyFlowTPFA

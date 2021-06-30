@@ -72,7 +72,6 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         return relative_error
 
-
     def assemble_matrix(self):
         F_velocity = self.form_update_velocity
         F_pressure = self.form_update_pressure

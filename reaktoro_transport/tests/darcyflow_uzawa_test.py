@@ -2,8 +2,7 @@ import sys
 sys.path.insert(0, '../../')
 
 from reaktoro_transport.problem import DarcyFlowUzawa
-from reaktoro_transport.tests import DarcyFlowBenchmark
-from numpy import log
+from reaktoro_transport.tests import DarcyFlowBenchmark, convergence_rate
 from math import isclose
 from dolfin import Constant
 
@@ -24,7 +23,7 @@ class DarcyFlowUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_boundary_conditions(self)
         DarcyFlowBenchmark.set_momentum_sources(self)
 
-        self.set_additional_parameters(r_val=2e2, omega_by_r=1.0)
+        self.set_additional_parameters(r_val=1.0, omega_by_r=1.2)
         self.set_solver()
         self.assemble_matrix()
 
@@ -45,11 +44,8 @@ for nx in list_of_nx:
 
     print(problem.get_residual())
 
-convergence_rate_p = (log(p_err_norms[1]) - log(p_err_norms[0])) \
-                    /(log(element_diameters[1]) - log(element_diameters[0]))
-
-convergence_rate_v = (log(v_err_norms[1]) - log(v_err_norms[0])) \
-                    /(log(element_diameters[1]) - log(element_diameters[0]))
+convergence_rate_p = convergence_rate(p_err_norms, element_diameters)
+convergence_rate_v = convergence_rate(v_err_norms, element_diameters)
 
 print(convergence_rate_p, convergence_rate_v)
 

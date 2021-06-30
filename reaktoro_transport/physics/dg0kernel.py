@@ -50,10 +50,14 @@ class DG0Kernel:
 
         return # TODO: Add this method.
 
-    def diffusion_flux_bc(self, w, value, marker: int):
+    def diffusion_flux_bc(self, w, u, D, value, marker: int):
         """"""
 
-        return
+        # Note, this is only a (not good enough) approximation of the flux.
+        dh = sqrt(dot(self.boundary_cell_coord - self.cell_coord,
+                      self.boundary_cell_coord - self.cell_coord))
+
+        return w*D*(u - value)/dh*self.ds(marker)
 
     def advection_flux_bc(self, w, value, marker: int):
         """"""

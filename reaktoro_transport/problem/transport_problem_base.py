@@ -1,4 +1,5 @@
 from . import *
+from ..mesh import MarkerCollection
 
 class TransportProblemBase():
     """Base class for all problems that use FeNiCs."""
@@ -13,14 +14,37 @@ class TransportProblemBase():
 
         self.n = FacetNormal(self.mesh)
 
-        DG0_space = FunctionSpace(mesh, 'DG', 0)
+        self.DG0_space = FunctionSpace(self.mesh, 'DG', 0)
+        self.Vec_DG0_space = VectorFunctionSpace(self.mesh, 'DG', 0)
+        self.Vec_CG1_space = VectorFunctionSpace(self.mesh, 'CG', 1)
 
-        self.space_dim = []
+        space_list = []
+
         for i in range(self.mesh.geometric_dimension()):
-            self.space_dim.append(
-            interpolate(Expression('x[' + str(i) + ']', degree=0), DG0_space))
+            space_list.append('x[' + str(i) + ']')
 
-        self.delta_h = sqrt(sum([jump(x)**2 for x in self.space_dim]))
+        # Consider move this part of code to other class method?
+        # TODO: Yeah, we should move it!
+        # The implementation of boundary_vertex_coord potentially leads to a
+        # erroneous boundary diffusion flux approximation (only for triangles).
+        # TODO: Please address this.
+
+        self.vertex_coord = interpolate(Expression(space_list, degree=1), self.Vec_CG1_space)
+        self.cell_coord = interpolate(Expression(space_list, degree=0), self.Vec_DG0_space)
+
+        #self.delta_h = sqrt(sum([jump(x)**2 for x in self.cell_coord]))
+        self.delta_h = sqrt(dot(jump(self.cell_coord), jump(self.cell_coord)))
+
+        bc = DirichletBC(self.Vec_CG1_space, [1]*self.mesh.geometric_dimension(),
+                         MarkerCollection.AllBoundary())
+        boundary_mask = Function(self.Vec_CG1_space)
+        self.boundary_vertex_coord = Function(self.Vec_CG1_space)
+
+        bc.apply(boundary_mask.vector())
+        self.boundary_vertex_coord.vector()[:] = boundary_mask.vector()[:] \
+                                                 *self.vertex_coord.vector()[:]
+        self.boundary_cell_coord = project(self.boundary_vertex_coord,
+                                           self.Vec_DG0_space, solver_type='mumps')
 
     def set_boundary_markers(self, boundary_markers):
         self.boundary_markers = boundary_markers

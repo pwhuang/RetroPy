@@ -52,5 +52,8 @@ class MarkerCollection:
             return on_boundary and near(x[2], self.zmax, DOLFIN_EPS)
 
     class AllBoundary(SubDomain):
+        def __init__(self):
+            super().__init__()
+            
         def inside(self, x, on_boundary):
             return on_boundary
