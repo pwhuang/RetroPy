@@ -3,7 +3,8 @@ sys.path.insert(0, '../../')
 
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.problem import TracerTransportProblem
-from reaktoro_transport.tests import EllipticTransportBenchmark, convergence_rate
+from reaktoro_transport.tests import convergence_rate
+from reaktoro_transport.tests.benchmarks import EllipticTransportBenchmark
 
 from math import isclose
 

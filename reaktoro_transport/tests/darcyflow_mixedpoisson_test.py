@@ -2,7 +2,8 @@ import sys
 sys.path.insert(0, '../../')
 
 from reaktoro_transport.problem import DarcyFlowMixedPoisson
-from reaktoro_transport.tests import DarcyFlowBenchmark, convergence_rate
+from reaktoro_transport.tests import convergence_rate
+from reaktoro_transport.tests.benchmarks import DarcyFlowBenchmark
 
 from dolfin import Expression
 from math import isclose
