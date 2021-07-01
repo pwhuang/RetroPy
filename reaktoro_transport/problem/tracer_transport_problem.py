@@ -11,7 +11,7 @@ class TracerTransportProblem(TransportProblemBase):
     def set_components(self, *args):
         """Sets up the component dictionary.
 
-        Input example: ['Na+', 'Cl-']
+        Input example: 'Na+', 'Cl-'
         """
         self.component_dict = {key: value for value, key in enumerate(args)}
         self.num_component = len(self.component_dict)

@@ -4,9 +4,6 @@ from ..mesh import MarkerCollection
 class TransportProblemBase():
     """Base class for all problems that use FeNiCs."""
 
-    def __init__(self):
-        pass
-
     def set_mesh(self, mesh):
         """Setup mesh and define mesh related quantities."""
 

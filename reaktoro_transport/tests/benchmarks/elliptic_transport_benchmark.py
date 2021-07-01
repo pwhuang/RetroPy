@@ -38,7 +38,7 @@ class EllipticTransportBenchmark(TracerTransportProblem):
     def define_problem(self):
         self.set_components('solute')
         self.set_component_fe_space()
-        self.initialize_form('steady')
+        self.initialize_form(problem_type='steady')
 
         self.add_implicit_advection(marker=0)
         self.add_implicit_diffusion('solute', diffusivity=1.0, marker=0)
@@ -49,14 +49,14 @@ class EllipticTransportBenchmark(TracerTransportProblem):
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})
 
-        # When solving steady-state problems, the diffusivity is a penalty term
-        # to the variational form.
+        # When solving steady-state problems, the diffusivity of the diffusion
+        # boundary is a penalty term to the variational form.
         self.add_component_diffusion_bc('solute', diffusivity=Constant(100.0),
                                         values=[Constant(0.0)]*len(self.marker_dict))
 
     def get_solution(self):
         # To match the rank in mixed spaces,
-        # one should supply a list of expressions to the Expression Function
+        # one should supply a list of expressions to the Expression Function.
         expr = Expression(['x[0]*(1.0-x[0])*x[1]*(1.0-x[1])'], degree=1)
 
         self.solution = Function(self.comp_func_spaces)

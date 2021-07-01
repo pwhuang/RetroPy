@@ -1,2 +1,3 @@
 from .darcyflow_benchmark import DarcyFlowBenchmark
 from .elliptic_transport_benchmark import EllipticTransportBenchmark
+from .diffusion_benchmark import DiffusionBenchmark

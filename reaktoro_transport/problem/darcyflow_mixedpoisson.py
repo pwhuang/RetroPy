@@ -77,7 +77,6 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
     def set_solver(self):
         self.__solver = PETScLUSolver('mumps')
-        prm = self.__solver.parameters
 
     def solve_flow(self, **kwargs):
         assemble(self.__L, tensor=self.__b)
