@@ -5,7 +5,7 @@ from reaktoro_transport.problem import DarcyFlowMixedPoisson
 from reaktoro_transport.tests import convergence_rate
 from reaktoro_transport.tests.benchmarks import DarcyFlowBenchmark
 
-from dolfin import Expression
+from dolfin import Expression, PETScKrylovSolver, PETScLUSolver
 from math import isclose
 
 class DarcyFlowMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
@@ -26,6 +26,9 @@ class DarcyFlowMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
         self.set_velocity_bc([Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1)]*2)
         self.set_solver()
         self.assemble_matrix()
+
+    # def set_solver(self):
+    #     self._DarcyFlowMixedPoisson__solver = PETScKrylovSolver('gmres', 'amg')
 
 # nx is the mesh element in one direction.
 list_of_nx = [10, 20]

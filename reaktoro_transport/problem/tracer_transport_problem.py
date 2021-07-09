@@ -115,6 +115,20 @@ class TracerTransportProblem(TransportProblemBase):
             self.__form += self.diffusion_flux_bc(self.__w[idx], self.__u[idx],
                                                   diffusivity, values[i], marker)
 
+    def add_component_dirichlet_bc(self, component_name: str, values):
+        """"""
+
+        if len(values)!=len(self.__boundary_dict[component_name]):
+            raise Exception("length of values != number of markers")
+
+        idx = self.component_dict[component_name]
+        markers = self.__boundary_dict[component_name]
+
+        for i, marker in enumerate(markers):
+            bc = DirichletBC(self.func_space_list[idx], [values[i], ],
+                             self.boundary_markers, marker)
+            self.__dirichlet_bcs.append(bc)
+
     def add_outflow_bc(self):
         """"""
 

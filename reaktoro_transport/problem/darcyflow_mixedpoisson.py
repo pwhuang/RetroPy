@@ -60,8 +60,9 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
         DarcyFlowBase.set_velocity_bc(self, velocity_bc_val)
         self.mixed_velocity_bc = []
+        markers = self.darcyflow_boundary_dict['velocity']
 
-        for i, marker in enumerate(self.darcyflow_boundary_dict['velocity']):
+        for i, marker in enumerate(markers):
             self.mixed_velocity_bc.append(DirichletBC(self.mixed_func_space.sub(0),
                                                 velocity_bc_val[i],
                                                 self.boundary_markers, marker))

@@ -25,10 +25,16 @@ class DiffusionBenchmark(EllipticTransportBenchmark):
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})
 
-        # When solving steady-state problems, the diffusivity of the diffusion
-        # boundary is a penalty term to the variational form.
-        self.add_component_diffusion_bc('solute', diffusivity=Constant(1e3),
-                                        values=[Constant(0.0)]*len(self.marker_dict))
+    def set_problem_bc(self):
+        """
+        This problem requires 0 Dirichlet bc on all boundaries.
+        Since the implementation of Dirichlet bcs depends on the solving scheme,
+         this method should be defined in tests.
+        """
+        num_marked_boundaries = len(self.marker_dict)
+        values = [Constant(0.0)]*num_marked_boundaries
+
+        return values
 
     def get_solution(self):
         # To match the rank in mixed spaces,
