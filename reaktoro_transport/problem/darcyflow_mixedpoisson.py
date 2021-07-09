@@ -32,7 +32,6 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         (self.__v, self.__q) = TestFunctions(W)
         self.__U1 = Function(W)
 
-
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
 
@@ -40,7 +39,11 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         dx, ds = self.dx, self.ds
         n = self.n
 
+        self.r = Constant(0.0)
+        r = self.r
+
         self.mixed_form = mu/k*inner(v, u)*dx - inner(div(v), p)*dx \
+                          + r*inner(div(v), div(phi*rho*u))*dx \
                           - inner(v, rho*g)*dx \
                           + q*div(phi*rho*u)*dx
 
@@ -67,8 +70,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
                                                 velocity_bc_val[i],
                                                 self.boundary_markers, marker))
 
-    def set_additional_parameters(self, **kwargs):
-        pass
+    def set_additional_parameters(self, r_val: float, **kwargs):
+        self.r.assign(r_val)
 
     def assemble_matrix(self):
         a, self.__L = lhs(self.mixed_form), rhs(self.mixed_form)
@@ -76,8 +79,20 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         self.__A = assemble(a)
         self.__b = PETScVector()
 
-    def set_solver(self):
-        self.__solver = PETScLUSolver('mumps')
+    def set_solver(self, solver_type='mumps', preconditioner='ilu'):
+        lu_solver_types = ['mumps', 'lu']
+        iter_solver_types = ['gmres', 'minres', 'bicgstab']
+
+        if solver_type not in (lu_solver_types + iter_solver_types):
+            raise Exception("Invalid solver type. Possible options: 'mumps'.")
+
+        if solver_type in lu_solver_types:
+            self.__solver = PETScLUSolver(solver_type)
+        if solver_type in iter_solver_types:
+            self.__solver = PETScKrylovSolver(solver_type, preconditioner)
+
+            prm = self.__solver.parameters
+            TransportProblemBase.set_default_solver_parameters(prm)
 
     def solve_flow(self, **kwargs):
         assemble(self.__L, tensor=self.__b)

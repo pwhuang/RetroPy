@@ -24,11 +24,9 @@ class DarcyFlowMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_momentum_sources(self)
 
         self.set_velocity_bc([Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1)]*2)
-        self.set_solver()
+        self.set_solver('bicgstab', 'ilu')
+        self.set_additional_parameters(r_val=1e-1)
         self.assemble_matrix()
-
-    # def set_solver(self):
-    #     self._DarcyFlowMixedPoisson__solver = PETScKrylovSolver('gmres', 'amg')
 
 # nx is the mesh element in one direction.
 list_of_nx = [10, 20]
