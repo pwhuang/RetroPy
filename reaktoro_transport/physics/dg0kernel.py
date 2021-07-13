@@ -43,7 +43,7 @@ class DG0Kernel:
     def d_dt(self, w, u, u0):
         """time derivative operator"""
 
-        return dot(w, (u-u0))/self.dt
+        return dot(w, u-u0)/self.dt
 
     def advection_flux_limiter():
         """"""

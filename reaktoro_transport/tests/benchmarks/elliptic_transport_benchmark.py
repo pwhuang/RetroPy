@@ -3,6 +3,7 @@ sys.path.insert(0, '../../')
 
 from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.problem import TracerTransportProblem
+
 from dolfin import Expression, inner, interpolate, assemble, Constant
 from dolfin import VectorFunctionSpace, Function, norm
 
@@ -38,14 +39,15 @@ class EllipticTransportBenchmark(TracerTransportProblem):
     def define_problem(self):
         self.set_components('solute')
         self.set_component_fe_space()
-        self.initialize_form(problem_type='steady')
+        self.initialize_form()
 
+        self.set_molecular_diffusivity([1.0])
         self.add_implicit_advection(marker=0)
-        self.add_implicit_diffusion('solute', diffusivity=1.0, marker=0)
+        self.add_implicit_diffusion('solute', marker=0)
 
         mass_source = '(2.9-1.8*x[0])*x[1]*(1.0-x[1]) + ' + \
                       '(2.9-1.8*x[1])*x[0]*(1.0-x[0])'
-        self.add_mass_source([Expression(mass_source, degree=1)])
+        self.add_mass_source(['solute'], [Expression(mass_source, degree=1)])
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})
 

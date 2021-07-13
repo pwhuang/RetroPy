@@ -2,7 +2,7 @@ from dolfin import Expression, interpolate, Constant
 
 class FluidProperty:
     """This class defines the physical properties of fluids.
-    Used as components for problems.
+    Used as components for problem classes.
     """
 
     def set_permeability(self, permeability: Expression):

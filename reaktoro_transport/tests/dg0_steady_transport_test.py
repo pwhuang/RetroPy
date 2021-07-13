@@ -2,12 +2,14 @@ import sys
 sys.path.insert(0, '../../')
 
 from reaktoro_transport.physics import DG0Kernel
+from reaktoro_transport.solver import SteadyStateSolver
+
 from reaktoro_transport.tests import convergence_rate
 from reaktoro_transport.tests.benchmarks import EllipticTransportBenchmark
 
 from math import isclose
 
-class DG0SteadyTransportTest(EllipticTransportBenchmark, DG0Kernel):
+class DG0SteadyTransportTest(EllipticTransportBenchmark, DG0Kernel, SteadyStateSolver):
     def __init__(self, nx):
         # TODO: Find out why it does not converge for triangles with 10 < nx <~100.
         super().__init__(*self.get_mesh_and_markers(nx, 'quadrilateral'))

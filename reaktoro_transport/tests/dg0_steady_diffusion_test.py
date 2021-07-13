@@ -2,18 +2,20 @@ import sys
 sys.path.insert(0, '../../')
 
 from reaktoro_transport.physics import DG0Kernel
+from reaktoro_transport.solver import SteadyStateSolver
+
 from reaktoro_transport.tests import convergence_rate
 from reaktoro_transport.tests.benchmarks import DiffusionBenchmark
 
 from dolfin import Constant
 from math import isclose
 
-class DG0SteadyDiffusionTest(DiffusionBenchmark, DG0Kernel):
+class DG0SteadyDiffusionTest(DiffusionBenchmark, DG0Kernel, SteadyStateSolver):
     def __init__(self, nx):
         super().__init__(*self.get_mesh_and_markers(nx, 'quadrilateral'))
 
         self.set_flow_field()
-        self.define_problem('steady')
+        self.define_problem()
         self.set_problem_bc()
 
         self.generate_solver()

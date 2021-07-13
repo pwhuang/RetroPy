@@ -13,15 +13,16 @@ class DiffusionBenchmark(EllipticTransportBenchmark):
         V = VectorFunctionSpace(self.mesh, "CG", 1)
         self.fluid_velocity = interpolate(Expression(('0.0', '0.0'), degree=1), V)
 
-    def define_problem(self, problem_type):
+    def define_problem(self):
         self.set_components('solute')
         self.set_component_fe_space()
-        self.initialize_form(problem_type)
+        self.initialize_form()
 
-        self.add_implicit_diffusion('solute', diffusivity=1.0, marker=0)
+        self.set_molecular_diffusivity([1.0])
+        self.add_implicit_diffusion('solute', marker=0)
 
         mass_source = '2.0*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])'
-        self.add_mass_source([Expression(mass_source, degree=1)])
+        self.add_mass_source(['solute'], [Expression(mass_source, degree=1)])
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})
 

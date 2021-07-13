@@ -1,9 +1,11 @@
 from dolfin import *
 from mpi4py import MPI
 
-from ..material import FluidProperty
+from ..material import FluidProperty, ComponentProperty
 
 from .transport_problem_base import TransportProblemBase
+from .mass_balance_base import MassBalanceBase
+
 from .tracer_transport_problem import TracerTransportProblem
 from .stokesflow_uzawa import StokesFlowUzawa
 

@@ -2,17 +2,19 @@ import sys
 sys.path.insert(0, '../../')
 
 from reaktoro_transport.physics import CGKernel
+from reaktoro_transport.solver import SteadyStateSolver
+
 from reaktoro_transport.tests import convergence_rate
 from reaktoro_transport.tests.benchmarks import DiffusionBenchmark
 
 from math import isclose
 
-class CGSteadyDiffusionTest(DiffusionBenchmark, CGKernel):
+class CGSteadyDiffusionTest(DiffusionBenchmark, CGKernel, SteadyStateSolver):
     def __init__(self, nx):
         super().__init__(*self.get_mesh_and_markers(nx, 'quadrilateral'))
 
         self.set_flow_field()
-        self.define_problem('steady')
+        self.define_problem()
         self.set_problem_bc()
 
         self.generate_solver()

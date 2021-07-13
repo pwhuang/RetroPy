@@ -1,20 +1,18 @@
 from . import *
 
-class TracerTransportProblem(TransportProblemBase):
+class TracerTransportProblem(TransportProblemBase,
+                             MassBalanceBase, ComponentProperty):
     """A class that solves single-phase tracer transport problems."""
 
     def __init__(self, mesh, boundary_markers, domain_markers):
+        try:
+            super().num_forms
+        except:
+            raise Exception("super().num_forms does not exist. Consider inherit a solver class.")
+
         self.set_mesh(mesh)
         self.set_boundary_markers(boundary_markers)
         self.set_domain_markers(domain_markers)
-
-    def set_components(self, *args):
-        """Sets up the component dictionary.
-
-        Input example: 'Na+', 'Cl-'
-        """
-        self.component_dict = {key: value for value, key in enumerate(args)}
-        self.num_component = len(self.component_dict)
 
     def mark_component_boundary(self, **kwargs):
         """This method gives boundary markers physical meaning.
@@ -40,6 +38,8 @@ class TracerTransportProblem(TransportProblemBase):
         self.comp_func_spaces = FunctionSpace(self.mesh,
                                               MixedElement(element_list))
 
+        self.fluid_components = Function(self.comp_func_spaces)
+
         self.func_space_list = []
 
         if self.num_component==1:
@@ -51,25 +51,19 @@ class TracerTransportProblem(TransportProblemBase):
         self.assigner = FunctionAssigner(self.comp_func_spaces,
                                          self.func_space_list)
 
-    def initialize_form(self, problem_type: str):
+    def get_function_space(self):
+        return self.comp_func_spaces
+
+    def get_fluid_components(self):
+        return self.fluid_components
+
+    def initialize_form(self):
         """"""
-        if problem_type=='steady':
-            switch = Constant(0.0)
-        elif problem_type=='transient':
-            switch = Constant(1.0)
-        else:
-            raise Exception("Only supports 'steady' and 'transient' problem types!")
 
         self.__u = TrialFunction(self.comp_func_spaces)
         self.__w = TestFunction(self.comp_func_spaces)
-        self.__u0 = Function(self.comp_func_spaces)
-        self.__u1 = Function(self.comp_func_spaces)
 
-        self.fluid_components = Function(self.comp_func_spaces)
-
-        self.dt = Constant(1.0)
-
-        self.__form = switch*self.d_dt(self.__w, self.__u, self.__u0)*self.dx
+        self.tracer_forms = [Constant(0.0)*inner(self.__w, self.__u)*self.dx]*super().num_forms
 
     def set_component_ics(self, expressions: list):
         """"""
@@ -90,7 +84,7 @@ class TracerTransportProblem(TransportProblemBase):
         idx = self.component_dict[component_name]
         self.__u0[idx].assign(interpolate(expression, self.func_space_list[i]))
 
-    def add_component_advection_bc(self, component_name: str, values):
+    def add_component_advection_bc(self, component_name: str, values, f_id=0):
         """"""
 
         if len(values)!=len(self.__boundary_dict[component_name]):
@@ -100,9 +94,9 @@ class TracerTransportProblem(TransportProblemBase):
         markers = self.__boundary_dict[component_name]
 
         for i, marker in enumerate(markers):
-            self.__form += self.advection_flux_bc(self.__w[idx], values[i], marker)
+            self.tracer_forms[f_id] += self.advection_flux_bc(self.__w[idx], values[i], marker)
 
-    def add_component_diffusion_bc(self, component_name: str, diffusivity, values):
+    def add_component_diffusion_bc(self, component_name: str, diffusivity, values, f_id=0):
         """"""
 
         if len(values)!=len(self.__boundary_dict[component_name]):
@@ -112,8 +106,8 @@ class TracerTransportProblem(TransportProblemBase):
         markers = self.__boundary_dict[component_name]
 
         for i, marker in enumerate(markers):
-            self.__form += self.diffusion_flux_bc(self.__w[idx], self.__u[idx],
-                                                  diffusivity, values[i], marker)
+            self.tracer_forms[f_id] += self.diffusion_flux_bc(self.__w[idx], self.__u[idx],
+                                                              diffusivity, values[i], marker)
 
     def add_component_dirichlet_bc(self, component_name: str, values):
         """"""
@@ -129,75 +123,52 @@ class TracerTransportProblem(TransportProblemBase):
                              self.boundary_markers, marker)
             self.__dirichlet_bcs.append(bc)
 
-    def add_outflow_bc(self):
+    def add_outflow_bc(self, f_id=0):
         """"""
 
         for i, marker in enumerate(self.__boundary_dict['outlet']):
-            self.__form += self.advection_outflow_bc(self.__w, self.__u, marker)
+            self.tracer_forms[f_id] += self.advection_outflow_bc(self.__w, self.__u, marker)
 
-    def add_explicit_advection(self, marker: int):
+    def add_time_derivatives(self, u: Function, f_id=0):
+        self.tracer_forms[f_id] += self.d_dt(self.__w, self.__u, u)
+
+    def add_explicit_advection(self, u: Function, marker: int, f_id=0):
         """Adds explicit advection physics to the variational form."""
 
-        self.__form += self.advection(self.__w, self.__u0, marker)
+        self.tracer_forms[f_id] += self.advection(self.__w, u, marker)
 
-    def add_implicit_advection(self, marker: int):
+    def add_implicit_advection(self, marker: int, f_id=0):
         """Adds implicit advection physics to the variational form."""
 
-        self.__form += self.advection(self.__w, self.__u, marker)
+        self.tracer_forms[f_id] += self.advection(self.__w, self.__u, marker)
 
-    def add_explicit_diffusion(self, component_name: str, diffusivity, marker: int):
+    def add_explicit_diffusion(self, component_name: str, u: Function, marker: int, f_id=0):
         """Adds explicit diffusion physics to the variational form."""
 
         idx = self.component_dict[component_name]
-        self.__form += self.diffusion(self.__w[idx], self.__u0[idx], diffusivity, marker)
+        self.tracer_forms[f_id] += self.diffusion(self.__w[idx], u[idx], self._D[idx], marker)
 
-    def add_implicit_diffusion(self, component_name: str, diffusivity, marker: int):
+    def add_implicit_diffusion(self, component_name: str, marker: int, f_id=0):
         """Adds implicit diffusion physics to the variational form."""
 
         idx = self.component_dict[component_name]
-        self.__form += self.diffusion(self.__w[idx], self.__u[idx], diffusivity, marker)
+        self.tracer_forms[f_id] += self.diffusion(self.__w[idx], self.__u[idx], self._D[idx], marker)
 
     def add_dispersion(self):
         return #TODO: Setup this method.
 
-    def add_mass_source(self, sources: list):
+    def add_mass_source(self, component_names: list[str], sources: list, f_id=0):
         """Adds mass source to the variational form."""
 
-        for i, source in enumerate(sources):
-            self.__form -= self.__w[i]*source*self.dx
+        for i, component_name in enumerate(component_names):
+            idx = self.component_dict[component_name]
+            self.tracer_forms[f_id] -= self.__w[idx]*sources[i]*self.dx
 
-    def generate_solver(self):
-        """"""
+    def get_forms(self):
+        return self.tracer_forms
 
-        a, L = lhs(self.__form), rhs(self.__form)
-
-        problem = LinearVariationalProblem(a, L, self.__u1, self.__dirichlet_bcs)
-        self.__solver = LinearVariationalSolver(problem)
-
-    def set_solver_parameters(self, linear_solver='gmres', preconditioner='amg'):
-        prm = self.__solver.parameters
-        prm['linear_solver'] = linear_solver
-        prm['preconditioner'] = preconditioner
-
-        TransportProblemBase.set_default_solver_parameters(prm['krylov_solver'])
-
-    def solve_transport(self, dt_val=1.0, timesteps=1):
-        """
-        The default values for dt_val and timesteps are defined for steady-state
-         problems.
-        """
-
-        self.dt.assign(dt_val)
-        self.save_to_file(time=0.0)
-
-        for i in range(timesteps):
-            self.__solver.solve()
-            self.__u0.assign(self.__u1)
-            self.save_to_file(time=(i+1)*dt_val)
-
-        self.fluid_components.assign(self.__u0)
-
-        return self.fluid_components.copy()
+    def get_dirichlet_bcs(self):
+        return self.__dirichlet_bcs
 
     def save_to_file(self, time: float):
         """"""
