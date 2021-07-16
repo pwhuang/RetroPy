@@ -29,7 +29,6 @@ class TransportProblemBase():
         self.vertex_coord = interpolate(Expression(space_list, degree=1), self.Vec_CG1_space)
         self.cell_coord = interpolate(Expression(space_list, degree=0), self.Vec_DG0_space)
 
-        #self.delta_h = sqrt(sum([jump(x)**2 for x in self.cell_coord]))
         self.delta_h = sqrt(dot(jump(self.cell_coord), jump(self.cell_coord)))
 
         bc = DirichletBC(self.Vec_CG1_space, [1]*self.mesh.geometric_dimension(),
@@ -104,12 +103,23 @@ class TransportProblemBase():
                 obj.write_checkpoint(func, func.name(),
                                      time_step=0, append=True)
 
-    def set_output_instance(self, file_name: str):
-        self.xdmf_obj = XDMFFile(file_name + '.xdmf')
+    def generate_output_instance(self, file_name: str):
+        self.xdmf_obj = XDMFFile(MPI.comm_world, file_name + '.xdmf')
         self.xdmf_obj.write(self.mesh)
 
+        self.xdmf_obj.parameters['flush_output'] = True
+        self.xdmf_obj.parameters['rewrite_function_mesh'] = False
+
+        return True
+
     def delete_output_instance(self):
+        try:
+            self.xdmf_obj
+        except:
+            return False
+
         self.xdmf_obj.close()
+        return True
 
     @staticmethod
     def set_default_solver_parameters(prm):

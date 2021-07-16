@@ -8,11 +8,14 @@ class TracerTransportProblem(TransportProblemBase,
         try:
             super().num_forms
         except:
-            raise Exception("super().num_forms does not exist. Consider inherit a solver class.")
+            raise Exception("num_forms does not exist. Consider inherit a solver class.")
 
         self.set_mesh(mesh)
         self.set_boundary_markers(boundary_markers)
         self.set_domain_markers(domain_markers)
+
+        self.dt = Constant(1.0)
+        self.__dirichlet_bcs = []
 
     def mark_component_boundary(self, **kwargs):
         """This method gives boundary markers physical meaning.
@@ -24,7 +27,6 @@ class TracerTransportProblem(TransportProblemBase,
         """
 
         self.__boundary_dict = kwargs
-        self.__dirichlet_bcs = []
 
     def set_component_fe_space(self):
         self.FiniteElement = FiniteElement(super().fe_space,
@@ -38,18 +40,23 @@ class TracerTransportProblem(TransportProblemBase,
         self.comp_func_spaces = FunctionSpace(self.mesh,
                                               MixedElement(element_list))
 
-        self.fluid_components = Function(self.comp_func_spaces)
+        #self.__function_space = FunctionSpace(self.mesh, self.FiniteElement)
+        self.__function_space = FunctionSpace(self.mesh, super().fe_space,
+                                              super().fe_degree)
 
         self.func_space_list = []
 
         if self.num_component==1:
             self.func_space_list.append(self.comp_func_spaces)
+
         else:
             for i in range(self.num_component):
                 self.func_space_list.append(self.comp_func_spaces.sub(i).collapse())
 
-        self.assigner = FunctionAssigner(self.comp_func_spaces,
-                                         self.func_space_list)
+        self.output_func_spaces = [self.__function_space]*self.num_component
+        self.function_list = [Function(self.__function_space)]*self.num_component
+        self.output_assigner = FunctionAssigner(self.output_func_spaces,
+                                                self.comp_func_spaces)
 
     def get_function_space(self):
         return self.comp_func_spaces
@@ -63,19 +70,22 @@ class TracerTransportProblem(TransportProblemBase,
         self.__u = TrialFunction(self.comp_func_spaces)
         self.__w = TestFunction(self.comp_func_spaces)
 
+        self.fluid_components = Function(self.comp_func_spaces)
+        self.__u0 = self.fluid_components
+
         self.tracer_forms = [Constant(0.0)*inner(self.__w, self.__u)*self.dx]*super().num_forms
 
-    def set_component_ics(self, expressions: list):
+    def set_component_ics(self, expressions: Expression):
         """"""
 
         if len(expressions)!=self.num_component:
             raise Exception("length of expressions != num_components")
 
-        init_conds = []
-        for i, expression in enumerate(expressions):
-            init_conds.append(interpolate(expression, self.func_space_list[i]))
+        # init_conds = []
+        # for i, expression in enumerate(expressions):
+        #     init_conds.append(interpolate(expression, self.func_space_list[i]))
 
-        self.assigner.assign(self.__u0, init_conds)
+        self.fluid_components.assign(interpolate(expressions, self.comp_func_spaces))
 
     def set_component_ic(self, component_name: str, expression):
         """"""
@@ -129,10 +139,10 @@ class TracerTransportProblem(TransportProblemBase,
         for i, marker in enumerate(self.__boundary_dict['outlet']):
             self.tracer_forms[f_id] += self.advection_outflow_bc(self.__w, self.__u, marker)
 
-    def add_time_derivatives(self, u: Function, f_id=0):
+    def add_time_derivatives(self, u, f_id=0):
         self.tracer_forms[f_id] += self.d_dt(self.__w, self.__u, u)
 
-    def add_explicit_advection(self, u: Function, marker: int, f_id=0):
+    def add_explicit_advection(self, u, marker=0, f_id=0):
         """Adds explicit advection physics to the variational form."""
 
         self.tracer_forms[f_id] += self.advection(self.__w, u, marker)
@@ -142,7 +152,7 @@ class TracerTransportProblem(TransportProblemBase,
 
         self.tracer_forms[f_id] += self.advection(self.__w, self.__u, marker)
 
-    def add_explicit_diffusion(self, component_name: str, u: Function, marker: int, f_id=0):
+    def add_explicit_diffusion(self, component_name: str, u, marker=0, f_id=0):
         """Adds explicit diffusion physics to the variational form."""
 
         idx = self.component_dict[component_name]
@@ -174,13 +184,20 @@ class TracerTransportProblem(TransportProblemBase,
         """"""
 
         try:
-            xdmf_obj
+            self.xdmf_obj
         except:
             return False
 
+        is_appending = True
+
+        if self.num_component==1:
+            self.output_assigner.assign(self.function_list[0], self.fluid_components)
+        else:
+            self.output_assigner.assign(self.function_list, self.fluid_components)
+
         for key, i in self.component_dict.items():
-            self.xdmf_obj.write_checkpoint(self.__u0.sub(i), key,
+            self.xdmf_obj.write_checkpoint(self.function_list[i], key,
                                            time_step=time,
-                                           append=True)
+                                           append=is_appending)
 
         return True

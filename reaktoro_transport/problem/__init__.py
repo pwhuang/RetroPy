@@ -1,5 +1,6 @@
 from dolfin import *
-from mpi4py import MPI
+parameters["ghost_mode"] = "shared_vertex"
+#from mpi4py import MPI
 
 from ..material import FluidProperty, ComponentProperty
 
