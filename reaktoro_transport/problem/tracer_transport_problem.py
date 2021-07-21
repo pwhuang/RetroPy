@@ -139,30 +139,30 @@ class TracerTransportProblem(TransportProblemBase,
         for i, marker in enumerate(self.__boundary_dict['outlet']):
             self.tracer_forms[f_id] += self.advection_outflow_bc(self.__w, self.__u, marker)
 
-    def add_time_derivatives(self, u, f_id=0):
-        self.tracer_forms[f_id] += self.d_dt(self.__w, self.__u, u)
+    def add_time_derivatives(self, u, kappa=Constant(1.0), f_id=0):
+        self.tracer_forms[f_id] += kappa*self.d_dt(self.__w, self.__u, u)
 
-    def add_explicit_advection(self, u, marker=0, f_id=0):
+    def add_explicit_advection(self, u, kappa=Constant(1.0), marker=0, f_id=0):
         """Adds explicit advection physics to the variational form."""
 
-        self.tracer_forms[f_id] += self.advection(self.__w, u, marker)
+        self.tracer_forms[f_id] += kappa*self.advection(self.__w, u, marker)
 
-    def add_implicit_advection(self, marker: int, f_id=0):
+    def add_implicit_advection(self, kappa=Constant(1.0), marker=0, f_id=0):
         """Adds implicit advection physics to the variational form."""
 
-        self.tracer_forms[f_id] += self.advection(self.__w, self.__u, marker)
+        self.tracer_forms[f_id] += kappa*self.advection(self.__w, self.__u, marker)
 
-    def add_explicit_diffusion(self, component_name: str, u, marker=0, f_id=0):
+    def add_explicit_diffusion(self, component_name: str, u, kappa=Constant(1.0), marker=0, f_id=0):
         """Adds explicit diffusion physics to the variational form."""
 
         idx = self.component_dict[component_name]
-        self.tracer_forms[f_id] += self.diffusion(self.__w[idx], u[idx], self._D[idx], marker)
+        self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], u[idx], self._D[idx], marker)
 
-    def add_implicit_diffusion(self, component_name: str, marker: int, f_id=0):
+    def add_implicit_diffusion(self, component_name: str, kappa=Constant(1.0), marker=0, f_id=0):
         """Adds implicit diffusion physics to the variational form."""
 
         idx = self.component_dict[component_name]
-        self.tracer_forms[f_id] += self.diffusion(self.__w[idx], self.__u[idx], self._D[idx], marker)
+        self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], self.__u[idx], self._D[idx], marker)
 
     def add_dispersion(self):
         return #TODO: Setup this method.

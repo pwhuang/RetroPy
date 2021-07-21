@@ -13,6 +13,7 @@ class TransientSolver:
         self.__u0 = self.fluid_components
         self.__u1 = Function(self.comp_func_spaces)
 
+        self.add_physics_to_form(self.__u0)
         self.add_time_derivatives(self.__u0)
         self.__forms = self.get_forms()
         self.__form = self.__forms[0]

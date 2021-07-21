@@ -2,13 +2,13 @@ import sys
 sys.path.insert(0, '../../')
 
 from reaktoro_transport.physics import DG0Kernel
-from reaktoro_transport.solver import TransientSolver
+from reaktoro_transport.solver import TransientRK2Solver
 
 from reaktoro_transport.tests.benchmarks import RotatingCone
 
 from math import isclose
 
-class DG0UpwindAdvectionTest(RotatingCone, DG0Kernel, TransientSolver):
+class DG0UpwindRK2AdvectionTest(RotatingCone, DG0Kernel, TransientRK2Solver):
     def __init__(self, nx, is_output=False):
         super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
@@ -18,7 +18,7 @@ class DG0UpwindAdvectionTest(RotatingCone, DG0Kernel, TransientSolver):
         self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
 
         if is_output==True:
-            self.generate_output_instance('rotating_cone')
+            self.generate_output_instance('rotating_cone_rk2')
 
     def solve_transport(self, dt_val, timesteps):
         self.dt.assign(dt_val)
@@ -40,7 +40,8 @@ timesteps = [50]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):
-    problem = DG0UpwindAdvectionTest(nx, is_output=False)
+    problem = DG0UpwindRK2AdvectionTest(nx, is_output=False)
+    problem.set_kappa(0.5)
     initial_mass = problem.get_total_mass()
     initial_center_x, initial_center_y = problem.get_center_of_mass()
     problem.solve_transport(dt_val=dt, timesteps=timesteps[i])

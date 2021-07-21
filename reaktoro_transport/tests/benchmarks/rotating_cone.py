@@ -33,9 +33,10 @@ class RotatingCone(EllipticTransportBenchmark):
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})
 
-        self.add_explicit_advection(self.fluid_components, marker=0)
-
         self.set_component_ics(self.sol_expr)
+
+    def add_physics_to_form(self, u, kappa=Constant(1.0), f_id=0):
+        self.add_explicit_advection(u, kappa, marker=0, f_id=f_id)
 
     def get_solution(self):
         self.solution = Function(self.comp_func_spaces)
