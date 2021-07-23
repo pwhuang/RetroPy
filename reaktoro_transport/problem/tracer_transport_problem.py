@@ -4,6 +4,8 @@ class TracerTransportProblem(TransportProblemBase,
                              MassBalanceBase, ComponentProperty):
     """A class that solves single-phase tracer transport problems."""
 
+    one = Constant(1.0)
+
     def __init__(self, mesh, boundary_markers, domain_markers):
         try:
             super().num_forms
@@ -40,8 +42,7 @@ class TracerTransportProblem(TransportProblemBase,
         self.comp_func_spaces = FunctionSpace(self.mesh,
                                               MixedElement(element_list))
 
-        #self.__function_space = FunctionSpace(self.mesh, self.FiniteElement)
-        self.__function_space = FunctionSpace(self.mesh, super().fe_space,
+        self.__func_space = FunctionSpace(self.mesh, super().fe_space,
                                               super().fe_degree)
 
         self.func_space_list = []
@@ -53,8 +54,8 @@ class TracerTransportProblem(TransportProblemBase,
             for i in range(self.num_component):
                 self.func_space_list.append(self.comp_func_spaces.sub(i).collapse())
 
-        self.output_func_spaces = [self.__function_space]*self.num_component
-        self.function_list = [Function(self.__function_space)]*self.num_component
+        self.output_func_spaces = [self.__func_space]*self.num_component
+        self.function_list = [Function(self.__func_space)]*self.num_component
         self.output_assigner = FunctionAssigner(self.output_func_spaces,
                                                 self.comp_func_spaces)
 
@@ -80,10 +81,6 @@ class TracerTransportProblem(TransportProblemBase,
 
         if len(expressions)!=self.num_component:
             raise Exception("length of expressions != num_components")
-
-        # init_conds = []
-        # for i, expression in enumerate(expressions):
-        #     init_conds.append(interpolate(expression, self.func_space_list[i]))
 
         self.fluid_components.assign(interpolate(expressions, self.comp_func_spaces))
 
@@ -139,15 +136,15 @@ class TracerTransportProblem(TransportProblemBase,
         for i, marker in enumerate(self.__boundary_dict['outlet']):
             self.tracer_forms[f_id] += self.advection_outflow_bc(self.__w, self.__u, marker)
 
-    def add_time_derivatives(self, u, kappa=Constant(1.0), f_id=0):
+    def add_time_derivatives(self, u, kappa=one, f_id=0):
         self.tracer_forms[f_id] += kappa*self.d_dt(self.__w, self.__u, u)
 
-    def add_explicit_advection(self, u, kappa=Constant(1.0), marker=0, f_id=0):
+    def add_explicit_advection(self, u, kappa=one, marker=0, f_id=0):
         """Adds explicit advection physics to the variational form."""
 
         self.tracer_forms[f_id] += kappa*self.advection(self.__w, u, marker)
 
-    def add_implicit_advection(self, kappa=Constant(1.0), marker=0, f_id=0):
+    def add_implicit_advection(self, kappa=one, marker=0, f_id=0):
         """Adds implicit advection physics to the variational form."""
 
         self.tracer_forms[f_id] += kappa*self.advection(self.__w, self.__u, marker)
@@ -164,15 +161,41 @@ class TracerTransportProblem(TransportProblemBase,
         idx = self.component_dict[component_name]
         self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], self.__u[idx], self._D[idx], marker)
 
+    def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, f_id=0):
+        """Sets up the components for flux limiters and add them to form."""
+
+        self.tracer_forms[f_id] += kappa*self.advection_flux_limited(self.__w, u, u_up, k)
+
+    def get_upwind_form(self, u):
+        """"""
+
+        # Consider renaming this function.
+
+        adv = self.fluid_velocity
+        n = self.n
+
+        adv_np = (dot(adv, n) + Abs(dot(adv, n))) / 2.0
+        adv_nm = (dot(adv, n) - Abs(dot(adv, n))) / 2.0
+
+        np = sign(adv_np)
+        nm = sign(adv_nm)
+
+        upwind_form = dot(jump(nm*self.__w), jump(np*u/self.facet_area))*self.dS
+
+        return upwind_form
+
     def add_dispersion(self):
         return #TODO: Setup this method.
 
     def add_mass_source(self, component_names: list[str], sources: list, f_id=0):
-        """Adds mass source to the variational form."""
+        """Adds mass source to the variational form by component names."""
 
         for i, component_name in enumerate(component_names):
             idx = self.component_dict[component_name]
             self.tracer_forms[f_id] -= self.__w[idx]*sources[i]*self.dx
+
+    def add_sources(self, sources, kappa=one, f_id=0):
+        self.tracer_forms[f_id] -= kappa*dot(self.__w, sources)*self.dx
 
     def get_forms(self):
         return self.tracer_forms

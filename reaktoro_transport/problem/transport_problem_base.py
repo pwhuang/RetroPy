@@ -10,6 +10,8 @@ class TransportProblemBase():
         self.mesh = mesh
 
         self.n = FacetNormal(self.mesh)
+        self.facet_area = FacetArea(self.mesh)
+        self.cell_volume = CellVolume(self.mesh)
 
         self.DG0_space = FunctionSpace(self.mesh, 'DG', 0)
         self.Vec_DG0_space = VectorFunctionSpace(self.mesh, 'DG', 0)

@@ -45,10 +45,44 @@ class DG0Kernel:
 
         return dot(w, u-u0)/self.dt*self.dx
 
-    def advection_flux_limiter():
-        """"""
+    def advection_flux_limited(self, w, u, u_up, kappa=-1.0, marker=0):
+        """
+        We implemented the kappa interpolation scheme originated from van Leer
+        (1985).
+        ---------------------------------
+        kappa = -1 : Second order upwind
+                 0 : Fromm's scheme
+                1/2: QUICK
+                1/3: Third order upwind
+                 1 : Centered scheme
+        """
 
-        return # TODO: Add this method.
+        eps = Constant(1e-10)
+
+        adv = self.fluid_velocity
+        n = self.n
+
+        adv_np = (dot(adv, n) + Abs(dot(adv, n))) / 2.0
+        adv_nm = (dot(adv, n) - Abs(dot(adv, n))) / 2.0
+
+        grad_down = jump(adv_nm*u) - jump(adv_np*u)
+        grad_up = jump(adv_np*u) - jump(adv_np*u_up)
+
+        r = as_vector([grad_down[i]/(grad_up[i] + eps)\
+                      for i in range(self.num_component)])
+
+        high_order_flux = Constant((1.0-kappa)/4.0)*(jump(adv_np*u)-jump(adv_np*u_up))\
+                        + Constant((1.0+kappa)/4.0)*(jump(adv_nm*u)-jump(adv_np*u))
+
+        advective_flux = as_vector([self.flux_limiter(r[i])*high_order_flux[i]\
+                                for i in range(self.num_component)])
+
+        return dot(jump(w), advective_flux)*self.dS(marker)
+
+    def flux_limiter(self, r):
+        """The minmod limiter."""
+
+        return max_value(0.0, min_value(r, 1.0))
 
     def diffusion_flux_bc(self, w, u, D, value, marker: int):
         """"""

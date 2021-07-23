@@ -5,8 +5,7 @@ class TransientRK2Solver:
 
     num_forms = 2
 
-    def generate_solver(self):
-
+    def set_solver_forms(self):
         self.__func_space = self.get_function_space()
 
         self.__u0 = self.fluid_components
@@ -18,22 +17,26 @@ class TransientRK2Solver:
         self.add_time_derivatives(self.__u0, f_id=0)
 
         self.add_physics_to_form(self.__u1, Constant(0.5)/self.kappa, f_id=1)
-        self.add_physics_to_form(self.__u0, one - Constant(0.5)/self.kappa, f_id=1)
+        self.add_sources((self.__u1 - self.__u0)/self.dt,
+                         (one - Constant(0.5)/self.kappa)/self.kappa, f_id=1)
         self.add_time_derivatives(self.__u0, f_id=1)
 
+    def generate_solver(self):
         self.__forms = self.get_forms()
-        self.__form1 = self.__forms[0]
-        self.__form2 = self.__forms[1]
 
-        a, L = lhs(self.__form1), rhs(self.__form1)
+        a1, L1 = lhs(self.__forms[0]), rhs(self.__forms[0])
+        a2, L2 = lhs(self.__forms[1]), rhs(self.__forms[1])
 
-        problem1 = LinearVariationalProblem(a, L, self.__u1, self.get_dirichlet_bcs())
-        problem2 = LinearVariationalProblem(a, L, self.__u0, self.get_dirichlet_bcs())
+        problem1 = LinearVariationalProblem(a1, L1, self.__u1, self.get_dirichlet_bcs())
+        problem2 = LinearVariationalProblem(a2, L2, self.__u0, self.get_dirichlet_bcs())
 
         self.__solver1 = LinearVariationalSolver(problem1)
         self.__solver2 = LinearVariationalSolver(problem2)
 
-    def set_solver_parameters(self, linear_solver='gmres', preconditioner='amg'):
+    def get_solver_functions(self):
+        return self.__u0, self.__u1
+
+    def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
         prm = self.__solver1.parameters
         prm['linear_solver'] = linear_solver
         prm['preconditioner'] = preconditioner
@@ -59,8 +62,10 @@ class TransientRK2Solver:
     def set_dt(self, dt_val):
         self.dt.assign(dt_val)
 
-    def solve_one_step(self):
+    def solve_first_step(self):
         self.__solver1.solve()
+
+    def solve_second_step(self):
         self.__solver2.solve()
 
     def solve_transport(self, dt_val=1.0, timesteps=1):
@@ -70,5 +75,6 @@ class TransientRK2Solver:
         self.save_to_file(time=0.0)
 
         for i in range(timesteps):
-            self.solve_one_step()
+            self.solve_first_step()
+            self.solve_second_step()
             self.save_to_file(time=(i+1)*dt_val)

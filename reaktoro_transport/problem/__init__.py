@@ -1,6 +1,9 @@
 from dolfin import *
 parameters["ghost_mode"] = "shared_vertex"
-#from mpi4py import MPI
+
+from ufl.algebra import Abs
+from ufl.operators import sqrt
+from ufl import min_value, max_value, sign
 
 from ..material import FluidProperty, ComponentProperty
 
