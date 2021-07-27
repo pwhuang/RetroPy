@@ -57,7 +57,7 @@ class DG0Kernel:
                  1 : Centered scheme
         """
 
-        eps = Constant(1e-10)
+        eps = Constant(1e-13)
 
         adv = self.fluid_velocity
         n = self.n
@@ -65,14 +65,17 @@ class DG0Kernel:
         adv_np = (dot(adv, n) + Abs(dot(adv, n))) / 2.0
         adv_nm = (dot(adv, n) - Abs(dot(adv, n))) / 2.0
 
+        np = sign(adv_np)
+        nm = sign(adv_nm)
+
         grad_down = jump(adv_nm*u) - jump(adv_np*u)
         grad_up = jump(adv_np*u) - jump(adv_np*u_up)
 
         r = as_vector([grad_down[i]/(grad_up[i] + eps)\
                       for i in range(self.num_component)])
 
-        high_order_flux = Constant((1.0-kappa)/4.0)*(jump(adv_np*u)-jump(adv_np*u_up))\
-                        + Constant((1.0+kappa)/4.0)*(jump(adv_nm*u)-jump(adv_np*u))
+        high_order_flux = Constant((1.0-kappa)/4.0)*grad_up\
+                        + Constant((1.0+kappa)/4.0)*grad_down
 
         advective_flux = as_vector([self.flux_limiter(r[i])*high_order_flux[i]\
                                 for i in range(self.num_component)])
@@ -82,7 +85,7 @@ class DG0Kernel:
     def flux_limiter(self, r):
         """The minmod limiter."""
 
-        return max_value(0.0, min_value(r, 1.0))
+        return FluxLimiterCollection.minmod(r)
 
     def diffusion_flux_bc(self, w, u, D, value, marker: int):
         """"""

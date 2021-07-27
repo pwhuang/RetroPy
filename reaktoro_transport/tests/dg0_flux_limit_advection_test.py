@@ -1,13 +1,12 @@
 import sys
 sys.path.insert(0, '../../')
 
-from reaktoro_transport.physics import DG0Kernel
+from reaktoro_transport.physics import DG0Kernel, FluxLimiterCollection
 from reaktoro_transport.solver import TransientRK2Solver
 
 from reaktoro_transport.tests.benchmarks import RotatingCone
 
 from dolfin import Constant, assemble, Function
-from ufl import min_value, max_value, sign
 from math import isclose
 
 class DG0FluxLimitAdvectionTest(RotatingCone, DG0Kernel, TransientRK2Solver):
@@ -34,10 +33,13 @@ class DG0FluxLimitAdvectionTest(RotatingCone, DG0Kernel, TransientRK2Solver):
 
     def add_physics_to_form(self, u, kappa, f_id):
         super().add_physics_to_form(u, kappa, f_id)
-        self.add_flux_limiter(u, self.__u_up, k=-1.0, kappa=kappa, f_id=f_id)
+        self.add_flux_limiter(u, self.__u_up, k=0.33, kappa=kappa, f_id=f_id)
 
     def solve_upwind_step(self, L_up):
         self.__u_up.vector()[:] = assemble(L_up).get_local()
+
+    def flux_limiter(self, r):
+        return FluxLimiterCollection.Koren(r)
 
     def solve_transport(self, dt_val, timesteps):
         self.dt.assign(dt_val)

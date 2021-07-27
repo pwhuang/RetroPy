@@ -5,3 +5,4 @@ from ufl import min_value, max_value, sign
 
 from .dg0kernel import DG0Kernel
 from .cgkernel import CGKernel
+from .flux_limiter_collection import FluxLimiterCollection

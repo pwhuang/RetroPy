@@ -36,7 +36,7 @@ class MarkedRectangleMesh(MarkerCollection):
                                          [self.bottom_left_point, self.top_right_point],
                                          [self.num_elements_x, self.num_elements_y],
                                          self.mesh_type,
-                                         'right/left')
+                                         'right')
 
         return self.mesh
 
