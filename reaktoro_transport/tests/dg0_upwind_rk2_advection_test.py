@@ -42,7 +42,7 @@ timesteps = [70]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):
-    problem = DG0UpwindRK2AdvectionTest(nx, is_output=True)
+    problem = DG0UpwindRK2AdvectionTest(nx, is_output=False)
     problem.set_kappa(0.5)
     initial_mass = problem.get_total_mass()
     initial_center_x, initial_center_y = problem.get_center_of_mass()

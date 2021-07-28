@@ -54,8 +54,16 @@ class TracerTransportProblem(TransportProblemBase,
             for i in range(self.num_component):
                 self.func_space_list.append(self.comp_func_spaces.sub(i).collapse())
 
-        self.output_func_spaces = [self.__func_space]*self.num_component
-        self.function_list = [Function(self.__func_space)]*self.num_component
+        self.output_func_spaces = []
+        self.function_list = []
+
+        for i in range(self.num_component):
+            self.output_func_spaces.append(FunctionSpace(self.mesh,
+                                                         super().fe_space,
+                                                         super().fe_degree))
+
+            self.function_list.append(Function(self.output_func_spaces[i]))
+
         self.output_assigner = FunctionAssigner(self.output_func_spaces,
                                                 self.comp_func_spaces)
 
@@ -91,7 +99,7 @@ class TracerTransportProblem(TransportProblemBase,
         idx = self.component_dict[component_name]
         self.__u0[idx].assign(interpolate(expression, self.func_space_list[i]))
 
-    def add_component_advection_bc(self, component_name: str, values, f_id=0):
+    def add_component_advection_bc(self, component_name: str, values, kappa=one, f_id=0):
         """"""
 
         if len(values)!=len(self.__boundary_dict[component_name]):
@@ -101,9 +109,9 @@ class TracerTransportProblem(TransportProblemBase,
         markers = self.__boundary_dict[component_name]
 
         for i, marker in enumerate(markers):
-            self.tracer_forms[f_id] += self.advection_flux_bc(self.__w[idx], values[i], marker)
+            self.tracer_forms[f_id] += kappa*self.advection_flux_bc(self.__w[idx], values[i], marker)
 
-    def add_component_diffusion_bc(self, component_name: str, diffusivity, values, f_id=0):
+    def add_component_flux_bc(self, component_name: str, values, kappa=one, f_id=0):
         """"""
 
         if len(values)!=len(self.__boundary_dict[component_name]):
@@ -113,8 +121,21 @@ class TracerTransportProblem(TransportProblemBase,
         markers = self.__boundary_dict[component_name]
 
         for i, marker in enumerate(markers):
-            self.tracer_forms[f_id] += self.diffusion_flux_bc(self.__w[idx], self.__u[idx],
-                                                              diffusivity, values[i], marker)
+            self.tracer_forms[f_id] += kappa*self.general_flux_bc(self.__w[idx],
+                                                                  values[i], marker)
+
+    def add_component_diffusion_bc(self, component_name: str, diffusivity, values, kappa=one, f_id=0):
+        """"""
+
+        if len(values)!=len(self.__boundary_dict[component_name]):
+            raise Exception("length of values != number of markers")
+
+        idx = self.component_dict[component_name]
+        markers = self.__boundary_dict[component_name]
+
+        for i, marker in enumerate(markers):
+            self.tracer_forms[f_id] += kappa*self.diffusion_flux_bc(self.__w[idx], self.__u[idx],
+                                                                    diffusivity, values[i], marker)
 
     def add_component_dirichlet_bc(self, component_name: str, values):
         """"""
@@ -187,12 +208,12 @@ class TracerTransportProblem(TransportProblemBase,
     def add_dispersion(self):
         return #TODO: Setup this method.
 
-    def add_mass_source(self, component_names: list[str], sources: list, f_id=0):
+    def add_mass_source(self, component_names: list[str], sources: list, kappa=one, f_id=0):
         """Adds mass source to the variational form by component names."""
 
         for i, component_name in enumerate(component_names):
             idx = self.component_dict[component_name]
-            self.tracer_forms[f_id] -= self.__w[idx]*sources[i]*self.dx
+            self.tracer_forms[f_id] -= kappa*self.__w[idx]*sources[i]*self.dx
 
     def add_sources(self, sources, kappa=one, f_id=0):
         self.tracer_forms[f_id] -= kappa*dot(self.__w, sources)*self.dx

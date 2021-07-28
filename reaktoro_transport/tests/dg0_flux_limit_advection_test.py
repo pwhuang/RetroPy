@@ -39,7 +39,7 @@ class DG0FluxLimitAdvectionTest(RotatingCone, DG0Kernel, TransientRK2Solver):
         self.__u_up.vector()[:] = assemble(L_up).get_local()
 
     def flux_limiter(self, r):
-        return FluxLimiterCollection.Koren(r)
+        return FluxLimiterCollection.vanLeer(r)
 
     def solve_transport(self, dt_val, timesteps):
         self.dt.assign(dt_val)
@@ -64,7 +64,7 @@ timesteps = [200]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):
-    problem = DG0FluxLimitAdvectionTest(nx, is_output=True)
+    problem = DG0FluxLimitAdvectionTest(nx, is_output=False)
     problem.set_kappa(1.0)
     initial_mass = problem.get_total_mass()
     initial_center_x, initial_center_y = problem.get_center_of_mass()

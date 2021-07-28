@@ -8,7 +8,8 @@ from dolfin import Expression, inner, interpolate, assemble, Constant
 from dolfin import VectorFunctionSpace, Function, norm
 
 class EllipticTransportBenchmark(TracerTransportProblem):
-    """This benchmark problem is based on the following work: Optimal order
+    """
+    This benchmark problem is based on the following work: Optimal order
     convergence of a modified BDM1 mixed finite element scheme for reactive
     transport in porous media by Fabian Brunner et. al., 2012, published in
     Advances in Water Resources. doi: 10.1016/j.advwatres.2011.10.001

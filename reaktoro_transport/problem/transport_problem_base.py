@@ -110,6 +110,7 @@ class TransportProblemBase():
         self.xdmf_obj.write(self.mesh)
 
         self.xdmf_obj.parameters['flush_output'] = True
+        self.xdmf_obj.parameters['functions_share_mesh'] = False
         self.xdmf_obj.parameters['rewrite_function_mesh'] = False
 
         return True

@@ -71,7 +71,10 @@ class DG0Kernel:
         grad_down = jump(adv_nm*u) - jump(adv_np*u)
         grad_up = jump(adv_np*u) - jump(adv_np*u_up)
 
-        r = as_vector([grad_down[i]/(grad_up[i] + eps)\
+        down = jump(nm*u) - jump(np*u)
+        up = jump(np*u) - jump(np*u_up)
+
+        r = as_vector([down[i]/(up[i] + eps)\
                       for i in range(self.num_component)])
 
         high_order_flux = Constant((1.0-kappa)/4.0)*grad_up\
@@ -83,9 +86,10 @@ class DG0Kernel:
         return dot(jump(w), advective_flux)*self.dS(marker)
 
     def flux_limiter(self, r):
-        """The minmod limiter."""
-
         return FluxLimiterCollection.minmod(r)
+
+    def general_flux_bc(self, w, value, marker: int):
+        return w*value*self.ds(marker)
 
     def diffusion_flux_bc(self, w, u, D, value, marker: int):
         """"""
@@ -94,7 +98,7 @@ class DG0Kernel:
         dh = sqrt(dot(self.boundary_cell_coord - self.cell_coord,
                       self.boundary_cell_coord - self.cell_coord))
 
-        return w*D*(u - value)/dh*self.ds(marker)
+        return self.general_flux_bc(w, D*(u - value)/dh, marker)
 
     def advection_flux_bc(self, w, value, marker: int):
         """"""
