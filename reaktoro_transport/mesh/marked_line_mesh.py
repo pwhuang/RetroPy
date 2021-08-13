@@ -28,7 +28,7 @@ class MarkedLineMesh(MarkerCollection):
 
         return self.mesh
 
-    def set_boundary_markers(self):
+    def generate_boundary_markers(self):
         self.boundary_markers = MeshFunction('size_t', self.mesh,
                                              dim=self.mesh.geometric_dimension()-1)
 
@@ -44,7 +44,7 @@ class MarkedLineMesh(MarkerCollection):
 
         return self.boundary_markers, marker_dict
 
-    def set_domain_markers(self):
+    def generate_domain_markers(self):
         self.domain_markers = MeshFunction('size_t', self.mesh,
                                            dim=self.mesh.geometric_dimension())
 

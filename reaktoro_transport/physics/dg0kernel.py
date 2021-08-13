@@ -111,3 +111,34 @@ class DG0Kernel:
 
         adv = dot(self.fluid_velocity, self.n)
         return inner(w, adv*u)*self.ds(marker)
+
+    def charge_balanced_diffusion(self, w, u, u0, marker):
+        """
+        This function implements the charge balanced diffusion in the following
+        article:
+        Multicomponent ionic diffusion in porewaters: Coulombic effects
+        revisited by B.P. Boudreau, F.J.R. Meysman, and J.J. Middelburg,
+        published in Earth and Planetary Science Letters, 222 (2004) 653--666.
+        """
+
+        Z = self.charge
+        D = self.molecular_diffusivity
+        charge_by_diff = []
+        charge_by_diff_by_concenctration = []
+
+        for i in range(self.num_component):
+            charge_by_diff.append(Z[i]*D[i])
+            charge_by_diff_by_concenctration.append(Z[i]*D[i]*u0[i])
+
+        ZD = as_vector(charge_by_diff)
+        ZDC = as_vector(charge_by_diff_by_concenctration)
+
+        D_tensor = outer(ZD, ZDC)/dot(as_vector(Z), ZDC)
+
+        # for i in range(self.num_component):
+        #     diffusivity_matrix.append([])
+        #     for j in range(self.num_component):
+        #         diffusivity_matrix[i].append()
+        # D_tensor = as_matrix(diffusivity_matrix)
+
+        return -dot(jump(w), jump(D_tensor*u))/self.delta_h*self.dS(marker)

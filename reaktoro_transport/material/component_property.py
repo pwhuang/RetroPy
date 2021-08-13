@@ -12,10 +12,18 @@ class ComponentProperty:
             raise Exception("length of list != num_components")
 
         self.molecular_diffusivity = molecular_diffusivity
-        self._D = molecular_diffusivity
+        self._D = self.molecular_diffusivity
 
     def set_molar_mass(self, molar_mass: list[float]):
-        pass
+        if len(molar_mass)!=self.num_component:
+            raise Exception("length of list != num_components")
+
+        self.molar_mass = molar_mass
+        self._M = self.molar_mass
 
     def set_charge(self, charge: list[float]):
-        pass
+        if len(charge)!=self.num_component:
+            raise Exception("length of list != num_components")
+
+        self.charge = charge
+        self._Z = self.charge

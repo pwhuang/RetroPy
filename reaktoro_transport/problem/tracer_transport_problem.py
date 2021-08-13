@@ -170,17 +170,23 @@ class TracerTransportProblem(TransportProblemBase,
 
         self.tracer_forms[f_id] += kappa*self.advection(self.__w, self.__u, marker)
 
-    def add_explicit_diffusion(self, component_name: str, u, kappa=Constant(1.0), marker=0, f_id=0):
+    def add_explicit_diffusion(self, component_name: str, u, kappa=one, marker=0, f_id=0):
         """Adds explicit diffusion physics to the variational form."""
 
         idx = self.component_dict[component_name]
         self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], u[idx], self._D[idx], marker)
 
-    def add_implicit_diffusion(self, component_name: str, kappa=Constant(1.0), marker=0, f_id=0):
+    def add_implicit_diffusion(self, component_name: str, kappa=one, marker=0, f_id=0):
         """Adds implicit diffusion physics to the variational form."""
 
         idx = self.component_dict[component_name]
         self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], self.__u[idx], self._D[idx], marker)
+
+    def add_explicit_charge_balanced_diffusion(self, u, kappa=one, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, u, u, marker)
+
+    def add_semi_implicit_charge_balanced_diffusion(self, u, kappa=one, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, u, marker)
 
     def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, f_id=0):
         """Sets up the components for flux limiters and add them to form."""

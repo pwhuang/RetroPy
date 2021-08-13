@@ -11,5 +11,3 @@ class MassBalanceBase:
 
         self.component_dict = {comp: idx for idx, comp in enumerate(args)}
         self.num_component = len(self.component_dict)
-
-    
