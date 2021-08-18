@@ -81,7 +81,37 @@ class DG0Kernel:
                         + Constant((1.0+kappa)/4.0)*grad_down
 
         advective_flux = as_vector([self.flux_limiter(r[i])*high_order_flux[i]\
-                                for i in range(self.num_component)])
+                                    for i in range(self.num_component)])
+
+        return dot(jump(w), advective_flux)*self.dS(marker)
+
+    def advection_implicit_flux_limited(self, w, u, u0, u_up, marker=0):
+        """
+        """
+
+        eps = Constant(1e-13)
+
+        adv = self.fluid_velocity
+        n = self.n
+
+        adv_np = (dot(adv, n) + Abs(dot(adv, n))) / 2.0
+        adv_nm = (dot(adv, n) - Abs(dot(adv, n))) / 2.0
+
+        np = sign(adv_np)
+        nm = sign(adv_nm)
+
+        grad_down = jump(adv_nm*u) - jump(adv_np*u0)
+
+        down = jump(nm*u0) - jump(np*u0)
+        up = jump(np*u0) - jump(np*u_up)
+
+        r = as_vector([up[i]/(down[i] + eps)\
+                      for i in range(self.num_component)])
+
+        high_order_flux = Constant(0.5)*grad_down
+
+        advective_flux = as_vector([self.flux_limiter(r[i])*high_order_flux[i]\
+                                    for i in range(self.num_component)])
 
         return dot(jump(w), advective_flux)*self.dS(marker)
 
@@ -123,22 +153,18 @@ class DG0Kernel:
 
         Z = self.charge
         D = self.molecular_diffusivity
+        M = self.molar_mass
+
         charge_by_diff = []
         charge_by_diff_by_concenctration = []
 
         for i in range(self.num_component):
             charge_by_diff.append(Z[i]*D[i])
-            charge_by_diff_by_concenctration.append(Z[i]*D[i]*u0[i])
+            charge_by_diff_by_concenctration.append(Z[i]*D[i]/M[i]*u0[i])
 
         ZD = as_vector(charge_by_diff)
         ZDC = as_vector(charge_by_diff_by_concenctration)
 
         D_tensor = outer(ZD, ZDC)/dot(as_vector(Z), ZDC)
 
-        # for i in range(self.num_component):
-        #     diffusivity_matrix.append([])
-        #     for j in range(self.num_component):
-        #         diffusivity_matrix[i].append()
-        # D_tensor = as_matrix(diffusivity_matrix)
-
-        return -dot(jump(w), jump(D_tensor*u))/self.delta_h*self.dS(marker)
+        return -dot(jump(w), avg(D_tensor)*jump(u))/self.delta_h*self.dS(marker)

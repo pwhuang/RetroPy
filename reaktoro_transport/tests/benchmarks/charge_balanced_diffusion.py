@@ -56,6 +56,7 @@ class ChargeBalancedDiffusion(TracerTransportProblem):
 
         self.set_molecular_diffusivity([self.D_Na, self.D_Cl])
         self.set_charge([self.Z_Na, self.Z_Cl])
+        self.set_molar_mass([1.0, 1.0])
 
         self.mark_component_boundary(**{'Na+': self.marker_dict.values(),
                                         'Cl-': self.marker_dict.values()})

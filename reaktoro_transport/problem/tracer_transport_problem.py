@@ -188,10 +188,17 @@ class TracerTransportProblem(TransportProblemBase,
     def add_semi_implicit_charge_balanced_diffusion(self, u, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, u, marker)
 
-    def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, f_id=0):
+    def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, marker=0, f_id=0):
         """Sets up the components for flux limiters and add them to form."""
 
-        self.tracer_forms[f_id] += kappa*self.advection_flux_limited(self.__w, u, u_up, k)
+        self.tracer_forms[f_id] += \
+        kappa*self.advection_flux_limited(self.__w, u, u_up, k, marker)
+
+    def add_implicit_flux_limiter(self, u0, u_up, kappa=one, marker=0, f_id=0):
+        # Consider renaming this function.
+
+        self.tracer_forms[f_id] += \
+        kappa*self.advection_implicit_flux_limited(self.__w, self.__u, u0, u_up, marker)
 
     def get_upwind_form(self, u):
         """"""
