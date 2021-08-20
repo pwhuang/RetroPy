@@ -32,7 +32,7 @@ class DarcyFlowBenchmark:
     def set_material_properties(self):
         self.set_porosity(Constant(1.0))
         self.set_permeability(Constant(1.0))
-        self.set_fluid_density(1.0)
+        self.set_fluid_density(Constant(1.0))
         self.set_fluid_viscosity(1.0)
         self.set_gravity((0.0, 0.0))
 

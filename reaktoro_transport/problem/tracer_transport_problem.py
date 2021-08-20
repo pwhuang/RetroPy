@@ -42,6 +42,8 @@ class TracerTransportProblem(TransportProblemBase,
         self.comp_func_spaces = FunctionSpace(self.mesh,
                                               MixedElement(element_list))
 
+        self.fluid_components = Function(self.comp_func_spaces)
+
         self.__func_space = FunctionSpace(self.mesh, super().fe_space,
                                               super().fe_degree)
 
@@ -79,7 +81,6 @@ class TracerTransportProblem(TransportProblemBase,
         self.__u = TrialFunction(self.comp_func_spaces)
         self.__w = TestFunction(self.comp_func_spaces)
 
-        self.fluid_components = Function(self.comp_func_spaces)
         self.__u0 = self.fluid_components
 
         self.tracer_forms = [Constant(0.0)*inner(self.__w, self.__u)*self.dx]*super().num_forms

@@ -15,10 +15,11 @@ class FluidProperty:
 
         self._phi = interpolate(porosity, self.pressure_func_space)
 
-    def set_fluid_density(self, density: float):
+    def set_fluid_density(self, density: Expression):
         """Sets the fluid density in the unit of mass over volume."""
 
-        self._rho = Constant(density)
+        self._rho = interpolate(density, self.pressure_func_space)
+        self.fluid_density = self._rho
 
     def set_fluid_viscosity(self, viscosity: float):
         """Sets fluid dynamic viscosity in the unit of pressure*time."""
