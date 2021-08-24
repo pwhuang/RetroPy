@@ -5,8 +5,9 @@ from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.problem import TracerTransportProblem
 
-from dolfin import Expression
+from dolfin import Expression, TestFunction, dx, assemble, inner, CellVolume
 from numpy import array, dot
+from ufl import Index
 
 nx = 2
 mesh_type = 'triangle'
@@ -31,7 +32,11 @@ problem.set_component_fe_space()
 problem.set_component_ics(Expression(['1', '2', '3', '4'], degree=0))
 mixed_function = problem.get_fluid_components()
 
-vector_diff = mixed_function.vector()[:] - array([1,2,3,4]*int(nx*nx*2))
+print(mixed_function.vector()[:].reshape(-1, problem.num_component).sum(axis=1))
+
+n = int(mixed_function.vector()[:].size/problem.num_component)
+
+vector_diff = mixed_function.vector()[:] - array([1,2,3,4]*n)
 error = dot(vector_diff, vector_diff)
 
 print(error)

@@ -16,3 +16,5 @@ def set_default_solver_parameters(prm):
 from .steady_state_solver import SteadyStateSolver
 from .transient_solver import TransientSolver
 from .transient_rk2_solver import TransientRK2Solver
+from .projection_solver import ProjectionSolver
+from .gradient_solver import GradientSolver
