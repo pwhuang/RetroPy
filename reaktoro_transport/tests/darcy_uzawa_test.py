@@ -8,7 +8,7 @@ from reaktoro_transport.tests.benchmarks import DarcyFlowBenchmark
 from math import isclose
 from dolfin import Constant
 
-class DarcyFlowUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
+class DarcyUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
     """"""
 
     def __init__(self, nx):
@@ -36,7 +36,7 @@ p_err_norms = []
 v_err_norms = []
 
 for nx in list_of_nx:
-    problem = DarcyFlowUzawaTest(nx)
+    problem = DarcyUzawaTest(nx)
     problem.solve_flow(target_residual=1e-10, max_steps=50)
     pressure_error_norm, velocity_error_norm = problem.get_error_norm()
 

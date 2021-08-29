@@ -5,10 +5,10 @@ from reaktoro_transport.problem import DarcyFlowMixedPoisson
 from reaktoro_transport.tests import convergence_rate
 from reaktoro_transport.tests.benchmarks import DarcyFlowBenchmark
 
-from dolfin import Expression, PETScKrylovSolver, PETScLUSolver
+from dolfin import Expression
 from math import isclose
 
-class DarcyFlowMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
+class DarcyMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
     """"""
 
     def __init__(self, nx):
@@ -23,8 +23,7 @@ class DarcyFlowMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_boundary_conditions(self)
         DarcyFlowBenchmark.set_momentum_sources(self)
 
-        self.set_velocity_bc([Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1)]*2)
-        self.set_solver('bicgstab', 'ilu')
+        self.set_solver('bicgstab', 'jacobi')
         self.set_additional_parameters(r_val=1e-1)
         self.assemble_matrix()
 
@@ -35,7 +34,7 @@ p_err_norms = []
 v_err_norms = []
 
 for nx in list_of_nx:
-    problem = DarcyFlowMixedPoissonTest(nx)
+    problem = DarcyMixedPoissonTest(nx)
     problem.solve_flow()
     pressure_error_norm, velocity_error_norm = problem.get_error_norm()
 

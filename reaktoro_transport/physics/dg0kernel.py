@@ -149,18 +149,19 @@ class DG0Kernel:
         Multicomponent ionic diffusion in porewaters: Coulombic effects
         revisited by B.P. Boudreau, F.J.R. Meysman, and J.J. Middelburg,
         published in Earth and Planetary Science Letters, 222 (2004) 653--666.
+
+        Currently only compatible with molar density.
         """
 
         Z = self.charge
         D = self.molecular_diffusivity
-        M = self.molar_mass
 
         charge_by_diff = []
         charge_by_diff_by_concenctration = []
 
         for i in range(self.num_component):
             charge_by_diff.append(Z[i]*D[i])
-            charge_by_diff_by_concenctration.append(Z[i]*D[i]/M[i]*u0[i])
+            charge_by_diff_by_concenctration.append(Z[i]*D[i]*u0[i])
 
         ZD = as_vector(charge_by_diff)
         ZDC = as_vector(charge_by_diff_by_concenctration)

@@ -69,6 +69,12 @@ class DarcyFlowBase(FluidProperty):
             self.residual_momentum_form += self.pressure_bc[i]*inner(n, v) \
                                            *ds(marker)
 
+    def add_mass_source_to_residual_form(self, sources: list):
+        q = self.__q
+
+        for source in sources:
+            self.residual_mass_form -= q*source*self.dx
+
     def add_momentum_source_to_residual_form(self, sources: list):
         v  = self.__v
 

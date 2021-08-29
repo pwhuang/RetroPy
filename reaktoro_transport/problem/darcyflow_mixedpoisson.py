@@ -39,8 +39,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         dx, ds = self.dx, self.ds
         n = self.n
 
-        self.r = Constant(0.0)
-        r = self.r
+        self.__r = Constant(0.0)
+        r = self.__r
 
         self.mixed_form = mu/k*inner(v, u)*dx - inner(div(v), p)*dx \
                           + r*inner(div(v), div(phi*rho*u))*dx \
@@ -51,6 +51,13 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
             self.mixed_form += self.pressure_bc[i]*inner(n, v)*ds(marker)
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
+
+    def add_mass_source(self, sources):
+        q, v, r = self.__q, self.__v, self.__r
+        dx = self.dx
+
+        for source in sources:
+            self.mixed_form -= q*source*dx + r*inner(div(v), source)*dx
 
     def add_momentum_source(self, sources: list):
         v  = self.__v
@@ -71,7 +78,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
                                                 self.boundary_markers, marker))
 
     def set_additional_parameters(self, r_val: float, **kwargs):
-        self.r.assign(r_val)
+        self.__r.assign(r_val)
 
     def assemble_matrix(self):
         a, self.__L = lhs(self.mixed_form), rhs(self.mixed_form)
@@ -80,8 +87,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         self.__b = PETScVector()
 
     def set_solver(self, solver_type='mumps', preconditioner='ilu'):
-        lu_solver_types = ['mumps', 'lu']
-        iter_solver_types = ['gmres', 'minres', 'bicgstab']
+        lu_solver_types = ['mumps', 'default', 'superlu', 'petsc']
+        iter_solver_types = ['gmres', 'minres', 'bicgstab', 'cg']
 
         if solver_type not in (lu_solver_types + iter_solver_types):
             raise Exception("Invalid solver type. Possible options: 'mumps'.")
@@ -93,6 +100,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
             prm = self.__solver.parameters
             TransportProblemBase.set_default_solver_parameters(prm)
+
+            return prm
 
     def solve_flow(self, **kwargs):
         assemble(self.__L, tensor=self.__b)

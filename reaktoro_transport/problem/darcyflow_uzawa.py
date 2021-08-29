@@ -30,9 +30,9 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
 
-        self.r = Constant(1.0)
+        self.__r = Constant(1.0)
         self.omega = Constant(1.0)
-        r, omega = self.r, self.omega
+        r, omega = self.__r, self.omega
 
         n = self.n
         dx, ds, dS = self.dx, self.ds, self.dS
@@ -50,6 +50,14 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
 
+    def add_mass_source(self, sources: list):
+        q, v, r, omega = self.__q, self.__v, self.__r, self.omega
+        dx = self.dx
+
+        for source in sources:
+            self.form_update_velocity -= r*inner(div(v), source)*dx
+            self.form_update_pressure -= q*omega*source*dx
+
     def add_momentum_source(self, sources: list):
         v = self.__v
 
@@ -59,7 +67,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
     def set_additional_parameters(self, r_val: float, omega_by_r: float):
         """For 0 < omega/r < 2, the augmented system converges."""
 
-        self.r.assign(r_val)
+        self.__r.assign(r_val)
         self.omega.assign(r_val*omega_by_r)
 
     def get_relative_error(self):
@@ -87,8 +95,8 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
-        self.solver_v = PETScKrylovSolver('gmres', 'ilu')
-        self.solver_p = PETScKrylovSolver('gmres', 'amg')
+        self.solver_v = PETScKrylovSolver('bicgstab', 'sor')
+        self.solver_p = PETScKrylovSolver('gmres', 'none')
 
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters
