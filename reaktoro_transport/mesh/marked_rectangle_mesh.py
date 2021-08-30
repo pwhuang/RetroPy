@@ -31,12 +31,12 @@ class MarkedRectangleMesh(MarkerCollection):
         else:
             raise Exception("This class supports 'triangle' and 'quadrilateral' mesh.")
 
-    def generate_mesh(self):
+    def generate_mesh(self, mesh_shape='right'):
         self.mesh = RectangleMesh.create(MPI.comm_world,
                                          [self.bottom_left_point, self.top_right_point],
                                          [self.num_elements_x, self.num_elements_y],
                                          self.mesh_type,
-                                         'right')
+                                         mesh_shape)
 
         return self.mesh
 
