@@ -35,6 +35,11 @@ class TransientSolver:
 
     def solve_one_step(self):
         self.__solver.solve()
+
+    def get_solution(self):
+        return self.__u1
+
+    def assign_u1_to_u0(self):
         self.__u0.assign(self.__u1)
 
     def solve_transport(self, dt_val=1.0, timesteps=1):
@@ -45,4 +50,5 @@ class TransientSolver:
 
         for i in range(timesteps):
             self.solve_one_step()
+            self.assign_u1_to_u0()
             self.save_to_file(time=(i+1)*dt_val)
