@@ -88,8 +88,8 @@ class TracerTransportProblem(TransportProblemBase,
     def set_component_ics(self, expressions: Expression):
         """"""
 
-        if len(expressions)!=self.num_component:
-            raise Exception("length of expressions != num_components")
+        # if len(expressions)!=self.num_component:
+        #     raise Exception("length of expressions != num_components")
 
         self.fluid_components.assign(interpolate(expressions, self.comp_func_spaces))
 
@@ -174,14 +174,16 @@ class TracerTransportProblem(TransportProblemBase,
     def add_explicit_diffusion(self, component_name: str, u, kappa=one, marker=0, f_id=0):
         """Adds explicit diffusion physics to the variational form."""
 
+        D = self.molecular_diffusivity
         idx = self.component_dict[component_name]
-        self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], u[idx], self._D[idx], marker)
+        self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], u[idx], D[idx], marker)
 
     def add_implicit_diffusion(self, component_name: str, kappa=one, marker=0, f_id=0):
         """Adds implicit diffusion physics to the variational form."""
 
+        D = self.molecular_diffusivity
         idx = self.component_dict[component_name]
-        self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], self.__u[idx], self._D[idx], marker)
+        self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], self.__u[idx], D[idx], marker)
 
     def add_explicit_charge_balanced_diffusion(self, u, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, u, u, marker)
@@ -257,5 +259,8 @@ class TracerTransportProblem(TransportProblemBase,
             self.xdmf_obj.write_checkpoint(self.function_list[i], key,
                                            time_step=time,
                                            append=is_appending)
+
+            self.save_fluid_pressure(time, is_appending)
+            self.save_fluid_velocity(time, is_appending)
 
         return True

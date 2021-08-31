@@ -91,7 +91,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         self.A_p = assemble(a_p)
         self.b_v, self.b_p = PETScVector(), PETScVector()
 
-    def set_solver(self):
+    def set_solver(self, **kwargs):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
@@ -107,7 +107,11 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
     def solve_flow(self, target_residual: float, max_steps: int):
         steps = 0
 
-        while self.get_residual() > target_residual and steps < max_steps:
+        while (residual := self.get_residual()) > target_residual\
+               and steps < max_steps:
+
+            info('Darcy flow residual = ' + str(residual))
+            
             assemble(self.L_v, tensor=self.b_v)
             for bc in self.velocity_bc:
                 bc.apply(self.A_v, self.b_v)

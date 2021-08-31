@@ -8,15 +8,24 @@ class FluidProperty:
     def set_permeability(self, permeability: Expression):
         """Sets the permeability in the unit of length squared."""
 
+        if type(permeability)==float:
+            permeability = Constant(permeability)
+
         self._k = interpolate(permeability, self.pressure_func_space)
 
     def set_porosity(self, porosity: Expression):
         """Sets the porosity in dimensionless unit."""
 
+        if type(porosity)==float:
+            porosity = Constant(porosity)
+
         self._phi = interpolate(porosity, self.pressure_func_space)
 
     def set_fluid_density(self, density: Expression):
         """Sets the fluid density in the unit of mass over volume."""
+
+        if type(density)==float:
+            density = Constant(density)
 
         self._rho = interpolate(density, self.pressure_func_space)
         self.fluid_density = self._rho

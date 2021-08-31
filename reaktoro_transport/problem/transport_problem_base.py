@@ -105,12 +105,24 @@ class TransportProblemBase():
                 obj.write_checkpoint(func, func.name(),
                                      time_step=0, append=True)
 
+    def save_fluid_pressure(self, time_step, is_appending):
+        self.xdmf_obj.write_checkpoint(self.fluid_pressure,
+                                       self.fluid_pressure.name(),
+                                       time_step=time_step,
+                                       append=is_appending)
+
+    def save_fluid_velocity(self, time_step, is_appending):
+        self.xdmf_obj.write_checkpoint(self.fluid_velocity,
+                                       self.fluid_velocity.name(),
+                                       time_step=time_step,
+                                       append=is_appending)
+
     def generate_output_instance(self, file_name: str):
         self.xdmf_obj = XDMFFile(MPI.comm_world, file_name + '.xdmf')
         self.xdmf_obj.write(self.mesh)
 
         self.xdmf_obj.parameters['flush_output'] = True
-        self.xdmf_obj.parameters['functions_share_mesh'] = False
+        self.xdmf_obj.parameters['functions_share_mesh'] = True
         self.xdmf_obj.parameters['rewrite_function_mesh'] = False
 
         return True
