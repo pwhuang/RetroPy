@@ -16,7 +16,7 @@ class MeshFactory(MarkedRectangleMesh):
         self.set_number_of_elements(nx, ny)
         self.set_mesh_type(mesh_type)
 
-        self.generate_mesh('right')
+        self.generate_mesh('crossed')
         #self.refine_mesh()
 
         boundary_markers, self.marker_dict = self.generate_boundary_markers()

@@ -110,7 +110,8 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         while (residual := self.get_residual()) > target_residual\
                and steps < max_steps:
 
-            info('Darcy flow residual = ' + str(residual))
+            if (MPI.rank(MPI.comm_world)==0):
+                info('Darcy flow residual = ' + str(residual))
 
             assemble(self.L_v, tensor=self.b_v)
             for bc in self.velocity_bc:
@@ -127,4 +128,5 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             self.__u0.assign(self.__u1)
             self.__p0.assign(self.__p1)
 
-        print('Steps used: ', steps)
+        if (MPI.rank(MPI.comm_world)==0):
+            info('Steps used: ' + str(steps))
