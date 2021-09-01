@@ -20,6 +20,7 @@ try:
 
     print(problem._get_species_amounts())
     print(problem._get_species_log_activity_coeffs())
+    print(problem._get_species_chemical_potentials())
     print(problem._get_fluid_density())
 
     test_result = True

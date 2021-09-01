@@ -71,6 +71,10 @@ class MassBalanceBase:
     def _get_species_log_activity_coeffs(self):
         return self.chem_prop.lnActivityCoefficients().val
 
+    def _get_species_chemical_potentials(self):
+        """The unit of the chemical potential is J/mol"""
+        return self.chem_prop.chemicalPotentials().val
+
     def _get_fluid_density(self):
         """The unit of density is kg/m3."""
         return self.chem_prop.phaseDensities().val[0]
