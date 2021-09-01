@@ -1,3 +1,6 @@
+import os
+os.environ['OMP_NUM_THREADS'] = '1'
+
 import sys
 sys.path.insert(0, '../../')
 
@@ -59,7 +62,7 @@ timesteps = [200]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):
-    problem = DG0ImplicitFluxLimitAdvectionTest(nx, is_output=True)
+    problem = DG0ImplicitFluxLimitAdvectionTest(nx, is_output=False)
 
     initial_mass = problem.get_total_mass()
     initial_center_x, initial_center_y = problem.get_center_of_mass()

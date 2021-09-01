@@ -6,4 +6,4 @@ __pycache__/
 *.h5
 *.xdmf
 *.obj
-/gold/
+*/gold/*

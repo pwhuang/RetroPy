@@ -1,3 +1,6 @@
+import os
+os.environ['OMP_NUM_THREADS'] = '1'
+
 import sys
 sys.path.insert(0, '../../')
 
@@ -28,6 +31,7 @@ class DG0UpwindAdvectionTest(RotatingCone, DG0Kernel, TransientSolver):
 
         for i in range(timesteps):
             self.solve_one_step()
+            self.assign_u1_to_u0()
             endtime += dt_val
             self.t_end.assign(endtime)
             self.save_to_file(time=endtime)
@@ -35,12 +39,12 @@ class DG0UpwindAdvectionTest(RotatingCone, DG0Kernel, TransientSolver):
         self.delete_output_instance()
 
 nx = 30
-list_of_dt = [2e-2]
-timesteps = [50]
+list_of_dt = [1e-2]
+timesteps = [100]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):
-    problem = DG0UpwindAdvectionTest(nx, is_output=True)
+    problem = DG0UpwindAdvectionTest(nx, is_output=False)
     initial_mass = problem.get_total_mass()
     initial_center_x, initial_center_y = problem.get_center_of_mass()
     problem.solve_transport(dt_val=dt, timesteps=timesteps[i])
