@@ -15,7 +15,22 @@ class MassBalanceBase:
         self.num_component = len(self.component_dict)
 
     def set_solvent(self, solvent='H2O(l)'):
-        self.solvent = solvent
+        """The solvent is not included in transport calculations."""
+
+        self.solvent_name = solvent
+
+    def set_solvent_molar_mass(self, solvent_molar_mass=18.0e-3):
+        self.M_solvent = solvent_molar_mass
+
+    def set_solvent_ic(self, init_expr: Expression):
+        self.solvent = interpolate(init_expr, self.comp_func_spaces.sub(0).collapse())
+        self._M_fraction = self._M/self.M_solvent
+
+    def _solve_solvent_amount(self, fluid_comp_old):
+        self.solvent.vector()[:] =\
+        self.solvent.vector()[:] + \
+        ((fluid_comp_old.vector()[:] - self.fluid_components.vector()[:]).reshape(-1, self.num_component)\
+         *self._M_fraction).sum(axis=1)
 
     def initiaize_ln_activity(self):
         self.ln_activity = Function(self.comp_func_spaces)
@@ -25,27 +40,30 @@ class MassBalanceBase:
         """
 
         editor = rkt.ChemicalEditor(rkt.Database(database))
-        editor.addAqueousPhase(list(self.component_dict.keys()) + [self.solvent])
+        editor.addAqueousPhase(list(self.component_dict.keys()) + [self.solvent_name])
 
         system = rkt.ChemicalSystem(editor)
 
         self.chem_equi_solver = rkt.EquilibriumSolver(system)
         self.chem_state = rkt.ChemicalState(system)
         self.chem_quant = rkt.ChemicalQuantity(self.chem_state)
-        #self.chem_prop = rkt.ChemicalProperties(system)
+        self.chem_prop = rkt.ChemicalProperties(system)
 
     def _set_temperature(self, value=298.0, unit='K'):
+        self.chem_temp = value
         self.chem_state.setTemperature(value, unit)
 
     def _set_pressure(self, value=1.0, unit='atm'):
+        self.chem_pres = value
         self.chem_state.setPressure(value, unit)
 
     def _set_species_amount(self, moles: list):
         self.chem_state.setSpeciesAmounts(moles)
 
     def solve_chemical_equilibrium(self):
-        self.chem_results = self.chem_equi_solver.solve(self.chem_state)
-        self.chem_prop = self.chem_state.properties()
+        self.chem_equi_solver.solve(self.chem_state)
+        self.chem_prop.update(self.chem_temp, self.chem_pres,\
+                              self._get_species_amounts())
 
     def _get_species_amounts(self):
         return self.chem_state.speciesAmounts()

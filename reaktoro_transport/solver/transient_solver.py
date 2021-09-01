@@ -30,6 +30,8 @@ class TransientSolver:
 
         set_default_solver_parameters(prm['krylov_solver'])
 
+        return prm
+
     def set_dt(self, dt_val):
         self.dt.assign(dt_val)
 

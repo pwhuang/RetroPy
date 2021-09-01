@@ -95,8 +95,8 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
-        self.solver_v = PETScKrylovSolver('bicgstab', 'sor')
-        self.solver_p = PETScKrylovSolver('gmres', 'none')
+        self.solver_v = PETScKrylovSolver('bicgstab', 'jacobi')
+        self.solver_p = PETScKrylovSolver('gmres', 'amg')
 
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters
@@ -111,7 +111,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
                and steps < max_steps:
 
             info('Darcy flow residual = ' + str(residual))
-            
+
             assemble(self.L_v, tensor=self.b_v)
             for bc in self.velocity_bc:
                 bc.apply(self.A_v, self.b_v)

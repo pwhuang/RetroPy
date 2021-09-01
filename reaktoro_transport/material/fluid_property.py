@@ -29,6 +29,7 @@ class FluidProperty:
 
         self._rho = interpolate(density, self.pressure_func_space)
         self.fluid_density = self._rho
+        self.fluid_density.rename('density', 'fluid_density')
 
     def set_fluid_viscosity(self, viscosity: float):
         """Sets fluid dynamic viscosity in the unit of pressure*time."""

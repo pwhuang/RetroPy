@@ -69,6 +69,9 @@ class TracerTransportProblem(TransportProblemBase,
         self.output_assigner = FunctionAssigner(self.output_func_spaces,
                                                 self.comp_func_spaces)
 
+    def get_num_dof_per_component(self):
+        return len(self.fluid_components.vector()[:].reshape(-1, self.num_component))
+
     def get_function_space(self):
         return self.comp_func_spaces
 
@@ -84,6 +87,9 @@ class TracerTransportProblem(TransportProblemBase,
         self.__u0 = self.fluid_components
 
         self.tracer_forms = [Constant(0.0)*inner(self.__w, self.__u)*self.dx]*super().num_forms
+
+    def get_trial_function(self):
+        return self.__u
 
     def set_component_ics(self, expressions: Expression):
         """"""
@@ -191,6 +197,9 @@ class TracerTransportProblem(TransportProblemBase,
     def add_semi_implicit_charge_balanced_diffusion(self, u, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, u, marker)
 
+    def add_implicit_charge_balanced_diffusion(self, u, kappa=one, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, self.__u, marker)
+
     def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, marker=0, f_id=0):
         """Sets up the components for flux limiters and add them to form."""
 
@@ -260,7 +269,7 @@ class TracerTransportProblem(TransportProblemBase,
                                            time_step=time,
                                            append=is_appending)
 
-            self.save_fluid_pressure(time, is_appending)
-            self.save_fluid_velocity(time, is_appending)
+        self.save_fluid_pressure(time, is_appending)
+        self.save_fluid_velocity(time, is_appending)
 
         return True

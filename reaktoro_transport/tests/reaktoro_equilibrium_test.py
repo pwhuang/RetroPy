@@ -10,7 +10,7 @@ try:
     problem.initialize_Reaktoro()
 
     problem._set_temperature(298, 'K')
-    problem._set_pressure(1, 'atm')
+    problem._set_pressure(101325, 'Pa')
     problem._set_species_amount([1.0, 1.0, 1e-15, 1e-15, 55.0])
 
     problem.solve_chemical_equilibrium()
@@ -22,6 +22,7 @@ try:
     test_result = True
 
 except:
+    print('Expection occurred!', sys.exc_info())
     test_result = False
 
 def test_function():

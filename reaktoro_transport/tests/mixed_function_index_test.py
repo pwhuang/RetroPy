@@ -32,7 +32,7 @@ problem.set_component_fe_space()
 problem.set_component_ics(Expression(['1', '2', '3', '4'], degree=0))
 mixed_function = problem.get_fluid_components()
 
-print(mixed_function.vector()[:].reshape(-1, problem.num_component).sum(axis=1))
+print(mixed_function.vector()[:].reshape(-1, problem.num_component))
 
 n = int(mixed_function.vector()[:].size/problem.num_component)
 
