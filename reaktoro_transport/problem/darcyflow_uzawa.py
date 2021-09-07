@@ -122,7 +122,6 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             assemble(self.L_p, tensor=self.b_p)
             self.solver_p.solve(self.A_p, self.__p1.vector(), self.b_p)
 
-            relative_error = self.get_relative_error()
             steps+=1
 
             self.__u0.assign(self.__u1)

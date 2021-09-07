@@ -84,27 +84,13 @@ class TracerTransportProblem(TransportProblemBase,
         self.__u = TrialFunction(self.comp_func_spaces)
         self.__w = TestFunction(self.comp_func_spaces)
 
-        self.__u0 = self.fluid_components
-
         self.tracer_forms = [Constant(0.0)*inner(self.__w, self.__u)*self.dx]*super().num_forms
 
     def get_trial_function(self):
         return self.__u
 
     def set_component_ics(self, expressions: Expression):
-        """"""
-
-        # if len(expressions)!=self.num_component:
-        #     raise Exception("length of expressions != num_components")
-
         self.fluid_components.assign(interpolate(expressions, self.comp_func_spaces))
-
-    def set_component_ic(self, component_name: str, expression):
-        """"""
-        #TODO: Make this function work.
-
-        idx = self.component_dict[component_name]
-        self.__u0[idx].assign(interpolate(expression, self.func_space_list[i]))
 
     def add_component_advection_bc(self, component_name: str, values, kappa=one, f_id=0):
         """"""

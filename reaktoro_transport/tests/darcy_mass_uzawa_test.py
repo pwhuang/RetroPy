@@ -25,7 +25,7 @@ class DarcyMassMixedPoissonTest(DarcyFlowUzawa, DarcyMassSourceBenchmark):
         self.set_mass_sources()
 
         self.set_solver()
-        self.set_additional_parameters(r_val=1.0, omega_by_r=1.1)
+        self.set_additional_parameters(r_val=1e1, omega_by_r=1.1)
         self.assemble_matrix()
 
 # nx is the mesh element in one direction.

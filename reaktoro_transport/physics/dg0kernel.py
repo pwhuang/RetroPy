@@ -23,7 +23,7 @@ class DG0Kernel:
             The length between two cells.
         """
 
-        return D*dot(jump(w), jump(u))/self.delta_h*self.dS(marker)
+        return D*inner(jump(w), jump(u))/self.delta_h*self.dS(marker)
 
     def advection(self, w, u, marker: int):
         """Upwind advection operator
@@ -38,12 +38,12 @@ class DG0Kernel:
         adv_np = (dot(self.fluid_velocity, self.n)\
                   + Abs(dot(self.fluid_velocity, self.n)))/2.0
 
-        return dot(jump(w), jump(adv_np*u))*self.dS(marker)
+        return inner(jump(w), jump(adv_np*u))*self.dS(marker)
 
     def d_dt(self, w, u, u0):
         """time derivative operator"""
 
-        return dot(w, u-u0)/self.dt*self.dx
+        return inner(w, u-u0)/self.dt*self.dx
 
     def advection_flux_limited(self, w, u, u_up, kappa=-1.0, marker=0):
         """

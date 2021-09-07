@@ -91,10 +91,10 @@ class TransportProblemBase():
         self.fluid_pressure.rename('pressure', 'fluid pressure')
 
     def get_fluid_velocity(self):
-        return self.fluid_velocity.copy()
+        return self.fluid_velocity
 
     def get_fluid_pressure(self):
-        return self.fluid_pressure.copy()
+        return self.fluid_pressure
 
     def quick_save(self, file_name: str):
         """"""

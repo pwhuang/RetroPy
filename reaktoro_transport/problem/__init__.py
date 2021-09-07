@@ -11,6 +11,7 @@ from .transport_problem_base import TransportProblemBase
 from .mass_balance_base import MassBalanceBase
 
 from .tracer_transport_problem import TracerTransportProblem
+from .tracer_transport_problem_exp import TracerTransportProblemExp
 from .stokesflow_uzawa import StokesFlowUzawa
 
 from .darcyflow_base import DarcyFlowBase
