@@ -4,6 +4,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 sys.path.insert(0, '../../')
 
+from reaktoro_transport.problem import TracerTransportProblem
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import SteadyStateSolver
 
@@ -13,9 +14,10 @@ from reaktoro_transport.tests.benchmarks import DiffusionBenchmark
 from dolfin import Constant
 from math import isclose
 
-class DG0SteadyDiffusionTest(DiffusionBenchmark, DG0Kernel, SteadyStateSolver):
+class DG0SteadyDiffusionTest(TracerTransportProblem, DiffusionBenchmark,
+                             DG0Kernel, SteadyStateSolver):
     def __init__(self, nx):
-        super().__init__(*self.get_mesh_and_markers(nx, 'quadrilateral'))
+        super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
         self.set_flow_field()
         self.define_problem()

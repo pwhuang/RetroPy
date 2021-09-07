@@ -4,23 +4,26 @@ os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 sys.path.insert(0, '../../')
 
+from reaktoro_transport.problem import TracerTransportProblemExp
 from reaktoro_transport.physics import DG0Kernel
-from reaktoro_transport.solver import SteadyStateSolver, TransientNLSolver
+from reaktoro_transport.solver import TransientNLSolver
 
-from reaktoro_transport.tests import convergence_rate
-from reaktoro_transport.tests.benchmarks import ExpDiffusionBenchmark
+from reaktoro_transport.tests import convergence_rate, quick_plot
+from reaktoro_transport.tests.benchmarks import DiffusionBenchmark
 
-from dolfin import Constant
+from numpy import exp
+from dolfin import Constant, Function, norm
 from math import isclose
 
-class DG0ExpSteadyDiffusionTest(ExpDiffusionBenchmark, DG0Kernel, TransientNLSolver):
+class DG0ExpSteadyDiffusionTest(TracerTransportProblemExp, DiffusionBenchmark,
+                                DG0Kernel, TransientNLSolver):
     def __init__(self, nx):
         super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
         self.set_flow_field()
         self.define_problem()
-        self.set_problem_bc()
 
+        self.set_problem_bc()
         self.generate_solver()
         self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
 
@@ -31,11 +34,20 @@ class DG0ExpSteadyDiffusionTest(ExpDiffusionBenchmark, DG0Kernel, TransientNLSol
         self.add_component_diffusion_bc('solute', diffusivity=Constant(1e3),
                                         values=values)
 
-list_of_nx = [10, 20]
+    def get_error_norm(self):
+        mass_error = Function(self.comp_func_spaces)
+        self.fluid_components.vector()[:] = exp(self.fluid_components.vector())
+
+        mass_error.assign(self.fluid_components - self.solution)
+        mass_error_norm = norm(mass_error, 'l2')
+
+        return mass_error_norm
+
+list_of_nx = [10]
 element_diameters = []
 err_norms = []
 
-for nx in list_of_nx:
+for i, nx in enumerate(list_of_nx):
     problem = DG0ExpSteadyDiffusionTest(nx)
     problem.solve_transport()
     numerical_solution = problem.get_solution()
@@ -45,8 +57,5 @@ for nx in list_of_nx:
 
 print(err_norms)
 
-convergence_rate_m = convergence_rate(err_norms, element_diameters)
-print(convergence_rate_m)
-
 def test_function():
-    assert isclose(convergence_rate_m, 1, rel_tol=0.2)
+    assert err_norms[0] < 1e-1

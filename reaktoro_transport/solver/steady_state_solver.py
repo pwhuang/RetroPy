@@ -8,10 +8,10 @@ class SteadyStateSolver:
     def generate_solver(self):
         """"""
 
-        self.__func_space = self.get_function_space()
         self.__forms = self.get_forms()
         self.__form = self.__forms[0]
 
+        self.__func_space = self.get_function_space()
         self.__u1 = Function(self.__func_space)
 
         a, L = lhs(self.__form), rhs(self.__form)
