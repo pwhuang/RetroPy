@@ -14,7 +14,7 @@ from dolfin import Constant, DOLFIN_EPS, exp, assemble
 from math import isclose
 from numpy import log, abs
 
-class DG0UpwindAdvectionTest(TracerTransportProblemExp, RotatingCone,
+class DG0ExpUpwindAdvectionTest(TracerTransportProblemExp, RotatingCone,
                              DG0Kernel, TransientNLSolver):
     def __init__(self, nx, is_output=False):
         super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
@@ -66,7 +66,7 @@ list_of_dt = [2e-2]
 timesteps = [50]
 
 for i, dt in enumerate(list_of_dt):
-    problem = DG0UpwindAdvectionTest(nx, is_output=True)
+    problem = DG0ExpUpwindAdvectionTest(nx, is_output=False)
     problem.generate_solver()
 
     initial_mass = problem.get_total_mass()
