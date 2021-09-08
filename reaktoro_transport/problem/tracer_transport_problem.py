@@ -57,14 +57,14 @@ class TracerTransportProblem(TransportProblemBase,
                 self.func_space_list.append(self.comp_func_spaces.sub(i).collapse())
 
         self.output_func_spaces = []
-        self.function_list = []
+        self.output_func_list = []
 
         for i in range(self.num_component):
             self.output_func_spaces.append(FunctionSpace(self.mesh,
                                                          super().fe_space,
                                                          super().fe_degree))
 
-            self.function_list.append(Function(self.output_func_spaces[i]))
+            self.output_func_list.append(Function(self.output_func_spaces[i]))
 
         self.output_assigner = FunctionAssigner(self.output_func_spaces,
                                                 self.comp_func_spaces)
@@ -158,10 +158,16 @@ class TracerTransportProblem(TransportProblemBase,
 
         self.tracer_forms[f_id] += kappa*self.advection(self.__w, u, marker)
 
+    def add_explicit_downwind_advection(self, u, kappa=one, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa*self.downwind_advection(self.__w, u, marker)
+
     def add_implicit_advection(self, kappa=one, marker=0, f_id=0):
         """Adds implicit advection physics to the variational form."""
 
         self.tracer_forms[f_id] += kappa*self.advection(self.__w, self.__u, marker)
+
+    def add_implicit_downwind_advection(self, kappa=one, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa*self.downwind_advection(self.__w, self.__u, marker)
 
     def add_explicit_diffusion(self, component_name: str, u, kappa=one, marker=0, f_id=0):
         """Adds explicit diffusion physics to the variational form."""
@@ -235,7 +241,7 @@ class TracerTransportProblem(TransportProblemBase,
     def get_dirichlet_bcs(self):
         return self.__dirichlet_bcs
 
-    def save_to_file(self, time: float):
+    def save_to_file(self, time: float, is_saving_pv=False):
         """"""
 
         try:
@@ -246,16 +252,17 @@ class TracerTransportProblem(TransportProblemBase,
         is_appending = True
 
         if self.num_component==1:
-            self.output_assigner.assign(self.function_list[0], self.fluid_components)
+            self.output_assigner.assign(self.output_func_list[0], self.fluid_components)
         else:
-            self.output_assigner.assign(self.function_list, self.fluid_components)
+            self.output_assigner.assign(self.output_func_list, self.fluid_components)
 
         for key, i in self.component_dict.items():
-            self.xdmf_obj.write_checkpoint(self.function_list[i], key,
+            self.xdmf_obj.write_checkpoint(self.output_func_list[i], key,
                                            time_step=time,
                                            append=is_appending)
 
-        self.save_fluid_pressure(time, is_appending)
-        self.save_fluid_velocity(time, is_appending)
+        if is_saving_pv:
+            self.save_fluid_pressure(time, is_appending)
+            self.save_fluid_velocity(time, is_appending)
 
         return True

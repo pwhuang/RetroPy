@@ -40,6 +40,21 @@ class DG0Kernel:
 
         return inner(jump(w), jump(adv_np*u))*self.dS(marker)
 
+    def downwind_advection(self, w, u, marker: int):
+        """Downwind advection operator
+
+        Arguments
+        ---------
+        fluid_velocity : dolfin Function
+            The advection velocity.
+        n : dolfin FacetNormal
+        """
+
+        adv_nm = (dot(self.fluid_velocity, self.n)\
+                  - Abs(dot(self.fluid_velocity, self.n)))/2.0
+
+        return inner(jump(w), jump(adv_nm*u))*self.dS(marker)
+
     def d_dt(self, w, u, u0):
         """time derivative operator"""
 
