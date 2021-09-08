@@ -1,5 +1,5 @@
 from . import *
-from ufl import Index
+import numpy as np
 
 class TracerTransportProblemExp(TracerTransportProblem):
     """
@@ -21,3 +21,30 @@ class TracerTransportProblemExp(TracerTransportProblem):
         u = self._TracerTransportProblem__u
 
         self.tracer_forms = [Constant(0.0)*inner(self.__w, u)*self.dx]*super().num_forms
+
+    def save_to_file(self, time: float, is_saving_pv=False):
+        """"""
+
+        try:
+            self.xdmf_obj
+        except:
+            return False
+
+        is_appending = True
+
+        if self.num_component==1:
+            self.output_assigner.assign(self.output_func_list[0], self.fluid_components)
+        else:
+            self.output_assigner.assign(self.output_func_list, self.fluid_components)
+
+        for key, i in self.component_dict.items():
+            self.output_func_list[i].vector()[:] = np.exp(self.output_func_list[i].vector()[:])
+            self.xdmf_obj.write_checkpoint(self.output_func_list[i], key,
+                                           time_step=time,
+                                           append=is_appending)
+
+        if is_saving_pv:
+            self.save_fluid_pressure(time, is_appending)
+            self.save_fluid_velocity(time, is_appending)
+
+        return True

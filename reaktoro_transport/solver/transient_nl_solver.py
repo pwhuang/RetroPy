@@ -10,7 +10,7 @@ class TransientNLSolver(TransientSolver):
 
         self.__func_space = self.get_function_space()
 
-        self.__u0 = as_vector([exp(u) for u in  self.fluid_components])
+        self.__u0 = as_vector([exp(u) for u in self.fluid_components])
         self.__u1 = Function(self.comp_func_spaces)
 
         self.add_physics_to_form(self.__u0)
@@ -26,7 +26,7 @@ class TransientNLSolver(TransientSolver):
         problem = NonlinearVariationalProblem(self.__form, self.__u1, bcs, J)
         self.__solver = NonlinearVariationalSolver(problem)
 
-    def set_solver_parameters(self, linear_solver='gmres', preconditioner='amg'):
+    def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
         prm = self.__solver.parameters
 
         prm['nonlinear_solver'] = 'snes'
@@ -37,7 +37,7 @@ class TransientNLSolver(TransientSolver):
         prm[nl_solver_type]['relative_tolerance'] = 1e-14
         prm[nl_solver_type]['maximum_iterations'] = 50
         prm['snes_solver']['method'] = 'newtonls'
-        prm['snes_solver']['line_search'] = 'basic'
+        prm['snes_solver']['line_search'] = 'bt'
         prm[nl_solver_type]['linear_solver'] = linear_solver
         prm[nl_solver_type]['preconditioner'] = preconditioner
 
