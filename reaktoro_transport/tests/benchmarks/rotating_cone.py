@@ -27,11 +27,11 @@ class RotatingCone(EllipticTransportBenchmark):
         self.fluid_velocity = interpolate(expr, V)*cos(Constant(pi)*self.t_end)
         self.fluid_pressure = Function(self.DG0_space)
 
-        self.set_advection_velocity()
-
     def define_problem(self):
         self.set_components('solute')
         self.set_component_fe_space()
+        self.set_advection_velocity()
+        
         self.initialize_form()
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})

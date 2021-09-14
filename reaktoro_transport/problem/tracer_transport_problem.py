@@ -89,6 +89,10 @@ class TracerTransportProblem(TransportProblemBase,
     def get_trial_function(self):
         return self.__u
 
+    def set_advection_velocity(self):
+        self.advection_velocity = \
+        as_vector([self.fluid_velocity for i in range(self.num_component)])
+
     def set_component_ics(self, expressions: Expression):
         self.fluid_components.assign(interpolate(expressions, self.comp_func_spaces))
 
