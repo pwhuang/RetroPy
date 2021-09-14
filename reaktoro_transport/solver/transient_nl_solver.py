@@ -26,8 +26,15 @@ class TransientNLSolver(TransientSolver):
         problem = NonlinearVariationalProblem(self.__form, self.__u1, bcs, J)
         self.__solver = NonlinearVariationalSolver(problem)
 
+        # Link to super class
+        self._TransientSolver__solver = self.__solver
+        self._TransientSolver__u1 = self.__u1
+
+    def get_solver_parameters(self):
+        return self.__solver.parameters
+
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
-        prm = self.__solver.parameters
+        prm = self.get_solver_parameters()
 
         prm['nonlinear_solver'] = 'snes'
 
@@ -43,13 +50,8 @@ class TransientNLSolver(TransientSolver):
 
         set_default_solver_parameters(prm[nl_solver_type]['krylov_solver'])
 
-        return prm
-
-    def solve_one_step(self):
-        self.__solver.solve()
-
-    def get_solution(self):
-        return self.__u1
-
     def assign_u1_to_u0(self):
         self.fluid_components.assign(self.__u1)
+
+    def assign_u0_to_u1(self):
+        self.__u1.assign(self.fluid_components)
