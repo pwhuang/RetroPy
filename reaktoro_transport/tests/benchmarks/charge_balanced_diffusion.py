@@ -66,13 +66,16 @@ class ChargeBalancedDiffusion(TracerTransportProblem):
         self.set_component_ics(expr)
 
     def add_physics_to_form(self, u):
-        self.add_implicit_diffusion('Na+', kappa=Constant(0.5), marker=0)
-        self.add_explicit_diffusion('Na+', u, kappa=Constant(0.5), marker=0)
-        self.add_implicit_diffusion('Cl-', kappa=Constant(0.5), marker=0)
-        self.add_explicit_diffusion('Cl-', u, kappa=Constant(0.5), marker=0)
+        theta = Constant(0.5)
+        one = Constant(1.0)
 
-        self.add_explicit_charge_balanced_diffusion(u, kappa=Constant(0.5), marker=0)
-        self.add_semi_implicit_charge_balanced_diffusion(u, kappa=Constant(0.5), marker=0)
+        self.add_implicit_diffusion('Na+', kappa=theta, marker=0)
+        self.add_explicit_diffusion('Na+', u, kappa=one-theta, marker=0)
+        self.add_implicit_diffusion('Cl-', kappa=theta, marker=0)
+        self.add_explicit_diffusion('Cl-', u, kappa=one-theta, marker=0)
+
+        self.add_explicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
+        self.add_semi_implicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
 
     def get_solution(self, t_end):
         expr = Expression(self.expression_string,

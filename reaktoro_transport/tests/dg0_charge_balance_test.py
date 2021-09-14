@@ -19,7 +19,7 @@ class DG0ChargeBalanceTest(ChargeBalancedDiffusion, DG0Kernel, TransientSolver):
         self.set_flow_field()
         self.define_problem(t0=t0)
         self.generate_solver()
-        self.set_solver_parameters(linear_solver='gmres', preconditioner='sor')
+        self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
 
         if is_output==True:
             self.generate_output_instance('charge_balance')
@@ -31,8 +31,8 @@ class DG0ChargeBalanceTest(ChargeBalancedDiffusion, DG0Kernel, TransientSolver):
         plt.show()
 
 nx, t0 = 51, 1.0
-list_of_dt = [1e-1]
-timesteps = [15]
+list_of_dt = [3e-1]
+timesteps = [10]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):

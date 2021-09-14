@@ -176,11 +176,11 @@ class DG0Kernel:
 
         for i in range(self.num_component):
             charge_by_diff.append(Z[i]*D[i])
-            charge_by_diff_by_concenctration.append(Z[i]*D[i]*u0[i])
+            charge_by_diff_by_concenctration.append(Z[i]*D[i]*avg(u0[i]))
 
         ZD = as_vector(charge_by_diff)
         ZDC = as_vector(charge_by_diff_by_concenctration)
 
         D_tensor = outer(ZD, ZDC)/dot(as_vector(Z), ZDC)
 
-        return -dot(jump(w), avg(D_tensor)*jump(u))/self.delta_h*self.dS(marker)
+        return -dot(jump(w), D_tensor*jump(u))/self.delta_h*self.dS(marker)
