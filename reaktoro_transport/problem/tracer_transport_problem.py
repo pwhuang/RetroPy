@@ -189,7 +189,7 @@ class TracerTransportProblem(TransportProblemBase,
     def add_semi_implicit_charge_balanced_diffusion(self, u, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, u, marker)
 
-    def add_implicit_charge_balanced_diffusion(self, u, kappa=one, marker=0, f_id=0):
+    def add_implicit_charge_balanced_diffusion(self, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, self.__u, marker)
 
     def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, marker=0, f_id=0):

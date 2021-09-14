@@ -23,13 +23,13 @@ class MassBalanceBase:
         self.M_solvent = solvent_molar_mass
 
     def set_solvent_ic(self, init_expr: Expression):
-        self.solvent = interpolate(init_expr, self.comp_func_spaces.sub(0).collapse())
+        self.solvent = interpolate(init_expr, self.DG0_space)
         self._M_fraction = self._M/self.M_solvent
 
-    def _solve_solvent_amount(self, fluid_comp_old):
+    def _solve_solvent_amount(self, fluid_comp_new):
         self.solvent.vector()[:] =\
         self.solvent.vector()[:] + \
-        ((fluid_comp_old.vector()[:] - self.fluid_components.vector()[:]).reshape(-1, self.num_component)\
+        ((fluid_comp_components.vector()[:] - self.fluid_comp_new.vector()[:]).reshape(-1, self.num_component)\
          *self._M_fraction).sum(axis=1)
 
     def initiaize_ln_activity(self):

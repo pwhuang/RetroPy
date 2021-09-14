@@ -38,7 +38,9 @@ class TracerTransportProblemExp(TracerTransportProblem):
             self.output_assigner.assign(self.output_func_list, self.fluid_components)
 
         for key, i in self.component_dict.items():
-            self.output_func_list[i].vector()[:] = np.exp(self.output_func_list[i].vector()[:])
+            self.output_func_list[i].vector()[:] = \
+            np.exp(self.output_func_list[i].vector()[:])
+
             self.xdmf_obj.write_checkpoint(self.output_func_list[i], key,
                                            time_step=time,
                                            append=is_appending)
