@@ -36,6 +36,7 @@ class EllipticTransportBenchmark(TracerTransportProblem):
     def set_flow_field(self):
         V = VectorFunctionSpace(self.mesh, "CG", 1)
         self.fluid_velocity = interpolate(Expression(('0.9', '0.9'), degree=1), V)
+        self.set_advection_velocity()
 
     def define_problem(self):
         self.set_components('solute')

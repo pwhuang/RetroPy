@@ -40,6 +40,7 @@ class ReactingSpecies(TracerTransportProblem):
     def set_flow_field(self):
         V = VectorFunctionSpace(self.mesh, 'CG', 1)
         self.fluid_velocity = interpolate(Expression(('0.0', '-1.0'), degree=1), V)
+        self.set_advection_velocity()
 
     def define_problem(self):
         self.set_components('c1', 'c2')

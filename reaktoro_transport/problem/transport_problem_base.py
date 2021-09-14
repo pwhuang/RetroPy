@@ -67,6 +67,7 @@ class TransportProblemBase():
                                                  self.velocity_finite_element)
 
         self.fluid_velocity = Function(self.velocity_func_space)
+        self.fluid_velocity.rename('velocity', 'fluid velocity')
 
     def set_velocity_fe_space(self, fe_space: str, fe_degree: int):
         self.velocity_finite_element = FiniteElement(fe_space,
@@ -78,6 +79,9 @@ class TransportProblemBase():
 
         self.fluid_velocity = Function(self.velocity_func_space)
         self.fluid_velocity.rename('velocity', 'fluid velocity')
+
+    def set_advection_velocity(self):
+        self.advection_velocity = self.fluid_velocity
 
     def set_pressure_fe_space(self, fe_space: str, fe_degree: int):
         self.pressure_finite_element = FiniteElement(fe_space,

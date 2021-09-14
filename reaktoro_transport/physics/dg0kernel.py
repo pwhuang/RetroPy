@@ -35,8 +35,8 @@ class DG0Kernel:
         n : dolfin FacetNormal
         """
 
-        adv_np = (dot(self.fluid_velocity, self.n)\
-                  + Abs(dot(self.fluid_velocity, self.n)))/2.0
+        adv_np = (dot(self.advection_velocity, self.n)\
+                  + Abs(dot(self.advection_velocity, self.n)))/2.0
 
         return inner(jump(w), jump(adv_np*u))*self.dS(marker)
 
@@ -50,8 +50,8 @@ class DG0Kernel:
         n : dolfin FacetNormal
         """
 
-        adv_nm = (dot(self.fluid_velocity, self.n)\
-                  - Abs(dot(self.fluid_velocity, self.n)))/2.0
+        adv_nm = (dot(self.advection_velocity, self.n)\
+                  - Abs(dot(self.advection_velocity, self.n)))/2.0
 
         return inner(jump(w), jump(adv_nm*u))*self.dS(marker)
 
@@ -74,7 +74,7 @@ class DG0Kernel:
 
         eps = Constant(1e-13)
 
-        adv = self.fluid_velocity
+        adv = self.advection_velocity
         n = self.n
 
         adv_np = (dot(adv, n) + Abs(dot(adv, n))) / 2.0
@@ -106,7 +106,7 @@ class DG0Kernel:
 
         eps = Constant(1e-13)
 
-        adv = self.fluid_velocity
+        adv = self.advection_velocity
         n = self.n
 
         adv_np = (dot(adv, n) + Abs(dot(adv, n))) / 2.0
@@ -148,13 +148,13 @@ class DG0Kernel:
     def advection_flux_bc(self, w, value, marker: int):
         """"""
 
-        adv = dot(self.fluid_velocity, self.n)
+        adv = dot(self.advection_velocity, self.n)
         return w*adv*value*self.ds(marker)
 
     def advection_outflow_bc(self, w, u, marker: int):
         """"""
 
-        adv = dot(self.fluid_velocity, self.n)
+        adv = dot(self.advection_velocity, self.n)
         return inner(w, adv*u)*self.ds(marker)
 
     def charge_balanced_diffusion(self, w, u, u0, marker):
