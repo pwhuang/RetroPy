@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, '../../')
 
 from reaktoro_transport.problem import DarcyFlowUzawa
-from dolfin import Constant, Function, info, PETScKrylovSolver
+from dolfin import Constant, Function, info, PETScKrylovSolver, PETScLUSolver
 from numpy import abs, max
 
 def set_krylov_solver_params(prm):
@@ -11,7 +11,7 @@ def set_krylov_solver_params(prm):
     prm['maximum_iterations'] = 8000
     prm['error_on_nonconvergence'] = True
     prm['monitor_convergence'] = False
-    prm['nonzero_initial_guess'] = False
+    prm['nonzero_initial_guess'] = True
 
 class FlowManager(DarcyFlowUzawa):
     def set_fluid_properties(self):
@@ -23,7 +23,7 @@ class FlowManager(DarcyFlowUzawa):
 
     def setup_flow_solver(self):
         self.set_pressure_fe_space('DG', 0)
-        self.set_velocity_fe_space('BDM', 1)
+        self.set_velocity_fe_space('RT', 1)
 
         self.set_pressure_ic(Constant(0.0))
         self._rho_old = Function(self.pressure_func_space)
@@ -36,13 +36,14 @@ class FlowManager(DarcyFlowUzawa):
 
         self.set_pressure_bc([]) # Pa
         self.generate_form()
-        self.generate_residual_form()
         #self.add_mass_source([-(self.fluid_density - self._rho_old)/self.dt])
+
+        self.generate_residual_form()
+        #self.add_mass_source_to_residual_form([-(self.fluid_density - self._rho_old)/self.dt])
         self.set_velocity_bc([Constant([0.0, 0.0])]*4)
 
         self.set_solver()
-        #set_krylov_solver_params(prm)
-        self.set_additional_parameters(r_val=2e4, omega_by_r=1.3)
+        self.set_additional_parameters(r_val=3e6, omega_by_r=1.0)
         self.assemble_matrix()
 
     def solve_flow(self, target_residual: float, max_steps: int):
@@ -54,11 +55,12 @@ class FlowManager(DarcyFlowUzawa):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
-        self.solver_v = PETScKrylovSolver('bicgstab', 'jacobi')
-        self.solver_p = PETScKrylovSolver('gmres', 'none')
+        #self.solver_v = PETScKrylovSolver('bicgstab', 'jacobi')
+        self.solver_v = PETScLUSolver('mumps')
+        self.solver_p = PETScKrylovSolver('gmres', 'jacobi')
 
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters
 
-        set_krylov_solver_params(prm_v)
-        set_krylov_solver_params(prm_p)
+        #set_krylov_solver_params(prm_v)
+        #set_krylov_solver_params(prm_p)

@@ -160,7 +160,7 @@ class ChemicallyDrivenConvection(TracerTransportProblem, DarcyFlowMixedPoisson,
                                        append=True)
 
     def save_to_file(self, time):
-        super().save_to_file(time)
+        super().save_to_file(time, is_saving_pv=True)
         self.save_fluid_density(time)
 
         return True

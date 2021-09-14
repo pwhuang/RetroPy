@@ -2,13 +2,15 @@ import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
 import sys
+sys.path.insert(0, '../../')
 
 from mesh_factory import MeshFactory
 from flow_manager_uzawa import FlowManager
-from transport_manager import TransportManager
+from transport_manager_exp import TransportManager
+from reaktoro_transport.tests import quick_plot
 
 import numpy as np
-from dolfin import info, DOLFIN_EPS, assemble, exp
+from dolfin import info, DOLFIN_EPS, assemble, exp, begin, end
 
 class main(FlowManager, TransportManager, MeshFactory):
     """
@@ -20,8 +22,7 @@ class main(FlowManager, TransportManager, MeshFactory):
 
     def _solve_chem_equi_over_dofs(self):
         pressure = self.fluid_pressure.vector()[:]
-        component_molar_density = self.fluid_components.vector()[:].reshape(-1, self.num_component)
-        #solvent_molar_density = self.solvent.vector()[:]
+        component_molar_density = np.exp(self.fluid_components.vector()[:].reshape(-1, self.num_component))
 
         molar_density_list = []
         rho_list = []
@@ -32,20 +33,19 @@ class main(FlowManager, TransportManager, MeshFactory):
             self._set_species_amount(list(component_molar_density[i]) + [self.solvent.vector()[i]])
             self.solve_chemical_equilibrium()
             self.molar_density_temp[i] = self._get_species_amounts()
-            #print(self.molar_density_temp[i])
             self.rho_temp[i] = self._get_fluid_density()*1e-6
 
-        self.fluid_components.vector()[:] = self.molar_density_temp[:, :-1].flatten()
-        #solvent_molar_density = self.molar_density_temp[:, -1]
-        #print(self.molar_density_temp[:,-1])
+        #print(self._get_species_amounts())
+        #print(self.molar_density_temp[:, :-1].flatten())
+        self.fluid_components.vector()[:] = np.log(self.molar_density_temp[:, :-1].flatten())
+        #print(np.exp(self.fluid_components.vector()[:]))
         self.solvent.vector()[:] = self.molar_density_temp[:,-1].flatten()
-        #print(self.solvent.vector()[:])
-        self.fluid_density.vector()[:] = self.rho_temp
+        self.fluid_density.vector()[:] = self.rho_temp.flatten()
 
     def solve_solvent_amount(self, fluid_comp_new):
         self.solvent.vector()[:] =\
         self.solvent.vector()[:] + \
-        ((self.fluid_components.vector()[:] - fluid_comp_new.vector()[:]).reshape(-1, self.num_component)\
+        ((np.exp(self.fluid_components.vector()[:]) - np.exp(fluid_comp_new.vector()[:])).reshape(-1, self.num_component)\
          *self._M_fraction).sum(axis=1)
 
     def solve_initial_condition(self):
@@ -70,7 +70,7 @@ class main(FlowManager, TransportManager, MeshFactory):
         self.solve_flow(target_residual=5e-9, max_steps=100)
 
         current_time = 0.0
-        min_dt = 1e-4
+        min_dt = 1e-5
         max_dt = 1.0
         timestep = 1
         self.save_to_file(time=current_time)
@@ -81,32 +81,18 @@ class main(FlowManager, TransportManager, MeshFactory):
 
             self.set_dt(dt_val)
 
-            # try:
-            #     self.solve_one_step()
-            # except:
-            #     #self.assign_u0_to_u1()
-            #     if (dt_val := 0.75*dt_val) < min_dt:
-            #         print('Reached minimum dt. Abort!')
-            #         break
-            #     continue
-
-            self.solve_one_step()
-            if (min_val := self.get_solution().vector().min()) < 0.0:
-                info('min_val = ' + str(min_val) + '   !!!!!!!!')
-                info('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                dt_val = 0.75*dt_val
+            try:
+                self.solve_one_step()
+            except:
+                self.assign_u0_to_u1()
+                if (dt_val := 0.75*dt_val) < min_dt:
+                    print('Reached minimum dt. Abort!')
+                    break
                 continue
 
             self.solve_solvent_amount(self.get_solution())
             self.assign_u1_to_u0()
             self._solve_chem_equi_over_dofs()
-
-            print(assemble( (self.solvent )*self.dx))
-            #print(assemble(exp(self.fluid_components[2])*self.dx))
-            #print(assemble( (self.solvent + exp(self.fluid_components[2]) + exp(self.fluid_components[3]))*self.dx))
-
-            # print(assemble((self._rho_old - self.fluid_density)*\
-            #                (self._rho_old - self.fluid_density)/self.dt*self.dx))
 
             self.solve_flow(target_residual=5e-9, max_steps=50)
 
@@ -123,9 +109,11 @@ class main(FlowManager, TransportManager, MeshFactory):
 
 
 
-problem = main(nx=31, ny=50)
+problem = main(nx=16, ny=26)
 problem.generate_output_instance(sys.argv[1])
 problem.define_problem()
 problem.setup_flow_solver()
 problem.setup_transport_solver()
-problem.solve(dt_val=1e-1, endtime=100.0)
+problem.solve(dt_val=1e-2, endtime=250.0)
+
+#quick_plot(problem.fluid_components.sub(1), problem.fluid_components.sub(2))
