@@ -26,28 +26,14 @@ class DG0Kernel:
         return D*inner(jump(w), jump(u))/self.delta_h*self.dS(marker)
 
     def advection(self, w, u, marker: int):
-        """Upwind advection operator
-
-        Arguments
-        ---------
-        advection_velocity : dolfin Function
-            The advection velocity.
-        n : dolfin FacetNormal
-        """
+        """Upwind advection operator"""
 
         adv_np = as_matrix(self.__get_advection_tensor(sign=1.0))
 
         return inner(jump(w), jump(adv_np*u))*self.dS(marker)
 
     def downwind_advection(self, w, u, marker: int):
-        """Downwind advection operator
-
-        Arguments
-        ---------
-        advection_velocity : dolfin Function
-            The advection velocity.
-        n : dolfin FacetNormal
-        """
+        """Downwind advection operator"""
 
         adv_nm = as_matrix(self.__get_advection_tensor(sign=-1.0))
 

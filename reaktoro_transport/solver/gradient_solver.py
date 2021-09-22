@@ -1,9 +1,6 @@
 from . import *
 
 class GradientSolver(ProjectionSolver):
-    # def __init__(self, projection_space: FunctionSpace):
-    #     super().__init__(projection_space)
-
     def set_projection_form(self, func_to_project: Function):
         V = self.projection_space
 
