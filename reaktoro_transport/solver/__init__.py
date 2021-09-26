@@ -18,4 +18,5 @@ from .transient_solver import TransientSolver
 from .transient_rk2_solver import TransientRK2Solver
 from .projection_solver import ProjectionSolver
 from .gradient_solver import GradientSolver
+from .electric_field_solver import ElectricFieldSolver
 from .transient_nl_solver import TransientNLSolver
