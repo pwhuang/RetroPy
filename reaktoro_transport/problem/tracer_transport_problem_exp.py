@@ -53,3 +53,11 @@ class TracerTransportProblemExp(TracerTransportProblem):
 
     def get_fluid_components(self):
         return as_vector([exp(self.fluid_components[i]) for i in range(self.num_component)])
+
+    def set_component_ics(self, expressions: Expression):
+        super().set_component_ics(expressions)
+
+        if np.any(self.fluid_components.vector() < DOLFIN_EPS):
+            raise ValueError('fluid_components contains negative or zero values!')
+
+        self.fluid_components.vector()[:] = np.log(self.fluid_components.vector())
