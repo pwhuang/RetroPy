@@ -2,12 +2,11 @@ import sys
 sys.path.insert(0, '../../')
 
 from reaktoro_transport.mesh import MarkedLineMesh
-from reaktoro_transport.problem import TracerTransportProblem
 
 from dolfin import Expression, inner, interpolate, Constant
-from dolfin import FunctionSpace, Function, norm
+from dolfin import VectorFunctionSpace, Function, norm
 
-class ChargeBalancedDiffusion(TracerTransportProblem):
+class ChargeBalancedDiffusion:
     """
     This benchmark problem tests whether two species diffusing with different
     molecular diffusivities diffuse at the same rate when charge balance of the
@@ -38,8 +37,10 @@ class ChargeBalancedDiffusion(TracerTransportProblem):
         return self.mesh_characteristic_length
 
     def set_flow_field(self):
-        V = FunctionSpace(self.mesh, "CG", 1)
-        self.fluid_velocity = interpolate(Expression('0.0', degree=1), V)
+        self.velocity_func_space = VectorFunctionSpace(self.mesh, "CG", 1)
+        V = self.velocity_func_space
+
+        self.fluid_velocity = interpolate(Expression(['0.0', ], degree=1), V)
 
     def define_problem(self, t0):
         self.set_components('Na+', 'Cl-')

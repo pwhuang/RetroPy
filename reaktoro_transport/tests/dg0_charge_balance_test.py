@@ -4,6 +4,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 sys.path.insert(0, '../../')
 
+from reaktoro_transport.problem import TracerTransportProblem
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import TransientSolver
 
@@ -12,7 +13,7 @@ from reaktoro_transport.tests.benchmarks import ChargeBalancedDiffusion
 from dolfin.common.plotting import mplot_function
 import matplotlib.pyplot as plt
 
-class DG0ChargeBalanceTest(ChargeBalancedDiffusion, DG0Kernel, TransientSolver):
+class DG0ChargeBalanceTest(TracerTransportProblem, ChargeBalancedDiffusion, DG0Kernel, TransientSolver):
     def __init__(self, nx, t0, is_output=False):
         super().__init__(*self.get_mesh_and_markers(nx))
 
