@@ -5,6 +5,7 @@ from reaktoro_transport.tests.benchmarks import EllipticTransportBenchmark
 
 from dolfin import Expression, inner, interpolate, assemble, Constant
 from dolfin import VectorFunctionSpace, FunctionSpace, Function, norm, cos, pi
+from dolfin import DOLFIN_EPS
 
 class RotatingCone(EllipticTransportBenchmark):
     """This benchmark problem is inspired by Randall J. Leveque's work:
@@ -14,8 +15,8 @@ class RotatingCone(EllipticTransportBenchmark):
     """
 
     sol_expr = Expression(['(pow((x[0]-x0)/sigma, 2) + pow((x[1]-x1)/sigma, 2) < 0.1)' +
-                          ' ? cos(M_PI*(x[0]-x0)/sigma) * cos(M_PI*(x[1]-x1)/sigma) : 0.0', ],
-                          degree=1, x0=0.5, x1=0.8, sigma=0.2)
+                          ' ? cos(M_PI*(x[0]-x0)/sigma) * cos(M_PI*(x[1]-x1)/sigma) : eps', ],
+                          degree=1, x0=0.5, x1=0.8, sigma=0.2, eps=DOLFIN_EPS)
 
     def set_flow_field(self):
         V = VectorFunctionSpace(self.mesh, 'CG', 1)
@@ -31,7 +32,7 @@ class RotatingCone(EllipticTransportBenchmark):
         self.set_components('solute')
         self.set_component_fe_space()
         self.set_advection_velocity()
-        
+
         self.initialize_form()
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})

@@ -15,15 +15,12 @@ from math import isclose
 from numpy import log, abs
 
 class DG0ExpUpwindAdvectionTest(TracerTransportProblemExp, RotatingCone,
-                             DG0Kernel, TransientNLSolver):
+                                DG0Kernel, TransientNLSolver):
     def __init__(self, nx, is_output=False):
         super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
         self.set_flow_field()
         self.define_problem()
-
-        self.fluid_components.vector()[:] = \
-        log(abs(self.fluid_components.vector()[:]) + DOLFIN_EPS)
 
         if is_output==True:
             self.generate_output_instance('rotating_cone_exp')
