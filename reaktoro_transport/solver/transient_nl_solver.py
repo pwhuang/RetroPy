@@ -10,7 +10,7 @@ class TransientNLSolver(TransientSolver):
 
         self.__func_space = self.get_function_space()
 
-        self.__u0 = as_vector([exp(u) for u in self.fluid_components])
+        self.__u0 = self.get_fluid_components()
         self.__u1 = Function(self.comp_func_spaces)
 
         self.add_physics_to_form(self.__u0)
@@ -21,6 +21,7 @@ class TransientNLSolver(TransientSolver):
         du = TrialFunction(self.__func_space)
         self.__form = action(self.__form, self.__u1)
         J = derivative(self.__form, self.__u1, du)
+
         bcs = self.get_dirichlet_bcs()
 
         problem = NonlinearVariationalProblem(self.__form, self.__u1, bcs, J)
@@ -49,9 +50,6 @@ class TransientNLSolver(TransientSolver):
         prm[nl_solver_type]['preconditioner'] = preconditioner
 
         set_default_solver_parameters(prm[nl_solver_type]['krylov_solver'])
-
-    def assign_u1_to_u0(self):
-        self.fluid_components.assign(self.__u1)
 
     def assign_u0_to_u1(self):
         self.__u1.assign(self.fluid_components)
