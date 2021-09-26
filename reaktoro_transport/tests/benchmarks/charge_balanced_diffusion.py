@@ -75,9 +75,6 @@ class ChargeBalancedDiffusion:
         self.add_implicit_diffusion('Cl-', kappa=theta, marker=0)
         self.add_explicit_diffusion('Cl-', u, kappa=one-theta, marker=0)
 
-        self.add_explicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
-        self.add_semi_implicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
-
     def get_solution(self, t_end):
         expr = Expression(self.expression_string,
                           D=self.avg_D, x0=self.center_of_mass, t=t_end, degree=1)

@@ -10,6 +10,7 @@ from reaktoro_transport.solver import TransientSolver
 
 from reaktoro_transport.tests.benchmarks import ChargeBalancedDiffusion
 
+from dolfin import Constant
 from dolfin.common.plotting import mplot_function
 import matplotlib.pyplot as plt
 
@@ -25,10 +26,19 @@ class DG0ChargeBalanceTest(TracerTransportProblem, ChargeBalancedDiffusion, DG0K
         if is_output==True:
             self.generate_output_instance('charge_balance')
 
+    def add_physics_to_form(self, u):
+        super().add_physics_to_form(u)
+        theta = Constant(0.5)
+        one = Constant(1.0)
+
+        self.add_explicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
+        self.add_semi_implicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
+
     def mpl_output(self):
         fig, ax = plt.subplots(1,1)
-        mplot_function(ax, self.solution.sub(0), lw=3)
-        mplot_function(ax, self.fluid_components.sub(0), ls=(0,(5,5)), lw=3)
+        mplot_function(ax, self.solution.sub(0), lw=3, c='C0')
+        mplot_function(ax, self.fluid_components.sub(0), ls=(0,(5,5)), lw=3, c='C1')
+        mplot_function(ax, self.fluid_components.sub(1), ls=(0,(5,5)), lw=3, c='C3')
         plt.show()
 
 nx, t0 = 51, 1.0
