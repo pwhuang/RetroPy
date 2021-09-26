@@ -50,3 +50,6 @@ class TracerTransportProblemExp(TracerTransportProblem):
             self.save_fluid_velocity(time, is_appending)
 
         return True
+
+    def get_fluid_components(self):
+        return as_vector([exp(self.fluid_components[i]) for i in range(self.num_component)])

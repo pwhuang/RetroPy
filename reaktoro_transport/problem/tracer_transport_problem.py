@@ -76,7 +76,7 @@ class TracerTransportProblem(TransportProblemBase,
         return self.comp_func_spaces
 
     def get_fluid_components(self):
-        return self.fluid_components
+        return as_vector([self.fluid_components[i] for i in range(self.num_component)])
 
     def initialize_form(self):
         """"""
@@ -165,6 +165,9 @@ class TracerTransportProblem(TransportProblemBase,
     def add_explicit_downwind_advection(self, u, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.downwind_advection(self.__w, u, marker)
 
+    def add_explicit_centered_advection(self, u, kappa=one, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa*self.centered_advection(self.__w, u, marker)
+
     def add_implicit_advection(self, kappa=one, marker=0, f_id=0):
         """Adds implicit advection physics to the variational form."""
 
@@ -172,6 +175,9 @@ class TracerTransportProblem(TransportProblemBase,
 
     def add_implicit_downwind_advection(self, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.downwind_advection(self.__w, self.__u, marker)
+
+    def add_implicit_centered_advection(self, kappa=one, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa*self.centered_advection(self.__w, self.__u, marker)
 
     def add_explicit_diffusion(self, component_name: str, u, kappa=one, marker=0, f_id=0):
         """Adds explicit diffusion physics to the variational form."""
@@ -195,6 +201,13 @@ class TracerTransportProblem(TransportProblemBase,
 
     def add_implicit_charge_balanced_diffusion(self, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, self.__u, marker)
+
+    def add_electric_field_advection(self, u, kappa=Constant(0.5), marker=0, f_id=0):
+        D = self.molecular_diffusivity
+        z = self.charge
+
+        E = as_vector([z[i]*D[i]*self.electric_field for i in range(self.num_component)])
+        pass 
 
     def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, marker=0, f_id=0):
         """Sets up the components for flux limiters and add them to form."""

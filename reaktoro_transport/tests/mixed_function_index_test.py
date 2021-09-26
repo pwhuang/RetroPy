@@ -33,7 +33,7 @@ problem = MixedFunctionIndexTest(mesh)#, boundary_markers, domain_markers)
 problem.set_components('A', 'B', 'C', 'D')
 problem.set_component_fe_space()
 problem.set_component_ics(Expression(['1', '2', '3', '4'], degree=0))
-mixed_function = problem.get_fluid_components()
+mixed_function = problem.fluid_components
 
 print(mixed_function.vector()[:].reshape(-1, problem.num_component))
 
