@@ -62,23 +62,26 @@ class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver,
     def add_physics_to_form(self, u, kappa=Constant(1.0), f_id=0):
         self.set_advection_velocity()
 
-        theta = Constant(0.5)
+        theta = Constant(1.0)
         one = Constant(1.0)
 
-        self.add_explicit_advection(u, kappa=one-theta, marker=0, f_id=f_id)
-        self.add_implicit_advection(kappa=one, marker=0, f_id=f_id)
+        self.add_explicit_advection(u, kappa=one, marker=0, f_id=f_id)
+        #self.add_implicit_advection(kappa=theta, marker=0, f_id=f_id)
+
+        #self.add_electric_field_advection(u, kappa=one, marker=0, f_id=f_id)
 
         for component in self.component_dict.keys():
             self.add_implicit_diffusion(component, kappa=theta, marker=0)
             self.add_explicit_diffusion(component, u, kappa=one-theta, marker=0)
 
-        self.add_semi_implicit_charge_balanced_diffusion(u, kappa=one, marker=0)
-        #self.add_explicit_charge_balanced_diffusion(u, kappa=one, marker=0)
-        #self.add_implicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
+        self.add_semi_implicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
+        self.add_explicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
+        #self.add_implicit_charge_balanced_diffusion(kappa=theta, marker=0)
 
     def setup_transport_solver(self):
         self.generate_solver()
         prm = self.set_solver_parameters('gmres', 'amg')
+        #prm = self.get_solver_parameters()
         set_krylov_solver_params(prm['krylov_solver'])
 
     def get_components_min_value(self):

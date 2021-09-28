@@ -3,6 +3,7 @@ sys.path.insert(0, '../../')
 
 from reaktoro_transport.problem import DarcyFlowUzawa
 from dolfin import Constant, Function, info, PETScKrylovSolver, PETScLUSolver
+#from dolfin import jump, avg, exp, inner, TestFunction, as_vector, assemble, project, div
 from numpy import abs, max
 
 def set_krylov_solver_params(prm):
@@ -43,10 +44,25 @@ class FlowManager(DarcyFlowUzawa):
         self.set_velocity_bc([Constant([0.0, 0.0])]*4)
 
         self.set_solver()
-        self.set_additional_parameters(r_val=3e6, omega_by_r=1.0)
+        self.set_additional_parameters(r_val=1e6, omega_by_r=1.0)
         self.assemble_matrix()
 
+        # self.set_electric_field_form()
+        # self.generate_electric_field_solver(markers=[1,2,3,4])
+        # self.set_electric_field_solver_params()
+
     def solve_flow(self, target_residual: float, max_steps: int):
+        # isSolved = False
+        # r_val = 1e6
+        # while isSolved==False:
+        #     try:
+        #         super().solve_flow(target_residual, max_steps)
+        #         isSolved=True
+        #     except:
+        #         self.fluid_velocity.vector()[:] = 0.0
+        #         r_val *= 1.1
+        #         self.set_additional_parameters(r_val=r_val, omega_by_r=1.0)
+
         super().solve_flow(target_residual, max_steps)
 
         #info('Max velocity: ' + str( (self.fluid_velocity.vector().max() )))

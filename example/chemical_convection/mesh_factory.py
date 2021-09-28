@@ -16,8 +16,8 @@ class MeshFactory(MarkedRectangleMesh):
         self.set_number_of_elements(nx, ny)
         self.set_mesh_type(mesh_type)
 
-        self.generate_mesh('crossed')
-        #self.refine_mesh()
+        self.generate_mesh('left/right')
+        self.refine_mesh()
 
         boundary_markers, self.marker_dict = self.generate_boundary_markers()
         domain_markers = self.generate_domain_markers()
@@ -27,7 +27,7 @@ class MeshFactory(MarkedRectangleMesh):
     def refine_mesh(self):
         class middle(SubDomain):
             def inside(self, x, on_boundary):
-                return x[1]<35.0 and x[1]>17.5
+                return x[1]>20.0# and x[1]<52.0
 
         cell_markers = MeshFunction('bool', self.mesh, dim=self.mesh.geometric_dimension())
 

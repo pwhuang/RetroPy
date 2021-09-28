@@ -70,7 +70,7 @@ class main(FlowManager, TransportManager, MeshFactory):
         self.solve_flow(target_residual=5e-9, max_steps=100)
 
         current_time = 0.0
-        min_dt = 1e-4
+        min_dt = 1e-7
         max_dt = 1.0
         timestep = 1
         self.save_to_file(time=current_time)
@@ -81,34 +81,27 @@ class main(FlowManager, TransportManager, MeshFactory):
 
             self.set_dt(dt_val)
 
-            # try:
-            #     self.solve_one_step()
-            # except:
-            #     #self.assign_u0_to_u1()
-            #     if (dt_val := 0.75*dt_val) < min_dt:
-            #         print('Reached minimum dt. Abort!')
-            #         break
-            #     continue
-
             self.solve_one_step()
-            if (min_val := self.get_solution().vector().min()) < 0.0:
+            if (min_val := self.get_solution().vector().min()) < -1e-10:
                 info('min_val = ' + str(min_val) + '   !!!!!!!!')
                 info('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                dt_val = 0.75*dt_val
+                if (dt_val := 0.75*dt_val) < min_dt:
+                    print('Reached minimum dt. Abort!')
+                    break
                 continue
 
             self.solve_solvent_amount(self.get_solution())
             self.assign_u1_to_u0()
             self._solve_chem_equi_over_dofs()
 
-            print(assemble( (self.solvent )*self.dx))
+            #print(assemble( (self.solvent )*self.dx))
             #print(assemble(exp(self.fluid_components[2])*self.dx))
             #print(assemble( (self.solvent + exp(self.fluid_components[2]) + exp(self.fluid_components[3]))*self.dx))
 
             # print(assemble((self._rho_old - self.fluid_density)*\
             #                (self._rho_old - self.fluid_density)/self.dt*self.dx))
 
-            self.solve_flow(target_residual=5e-9, max_steps=50)
+            self.solve_flow(target_residual=1e-10, max_steps=50)
 
             self._rho_old.assign(self.fluid_density)
 
@@ -118,14 +111,14 @@ class main(FlowManager, TransportManager, MeshFactory):
             if (dt_val := dt_val*1.1) > max_dt:
                 dt_val = max_dt
 
-            if timestep%1 == 0:
+            if timestep%10 == 0:
                 self.save_to_file(time=current_time)
 
 
 
-problem = main(nx=31, ny=50)
+problem = main(nx=16, ny=25)
 problem.generate_output_instance(sys.argv[1])
 problem.define_problem()
 problem.setup_flow_solver()
 problem.setup_transport_solver()
-problem.solve(dt_val=1e-1, endtime=100.0)
+problem.solve(dt_val=1e-5, endtime=100.0)
