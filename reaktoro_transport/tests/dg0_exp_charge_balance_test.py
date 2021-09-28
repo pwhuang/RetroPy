@@ -31,6 +31,7 @@ class DG0ExpChargeBalanceTest(TracerTransportProblemExp, DG0Kernel,
         self.set_flow_field()
         self.define_problem(t0=t0)
 
+        TransientNLSolver.__init__(self)
         self.generate_solver()
         self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
 
