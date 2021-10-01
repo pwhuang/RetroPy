@@ -12,8 +12,7 @@ from aux_variables import AuxVariables
 from reaktoro_transport.tests import quick_plot
 
 import numpy as np
-from dolfin import info, DOLFIN_EPS, assemble, exp, begin, end
-from dolfin import as_vector
+from dolfin import info, begin, end, as_vector, Constant
 
 class main(FlowManager, TransportManager, ReactionManager, MeshFactory, AuxVariables):
     """
@@ -29,8 +28,13 @@ class main(FlowManager, TransportManager, ReactionManager, MeshFactory, AuxVaria
         #self._rho_old.assign(self.fluid_density)
 
     def set_advection_velocity(self):
-        self.advection_velocity = \
-        as_vector([self.fluid_velocity for i in range(self.num_component)])
+        D = self.molecular_diffusivity
+        advection_list = []
+
+        for i in range(self.num_component):
+            advection_list.append(self.fluid_velocity - Constant(D[i])*self._grad_lna.sub(i))
+
+        self.advection_velocity = as_vector(advection_list)
 
     def _save_fluid_density(self, time):
         self.xdmf_obj.write_checkpoint(self.fluid_density,
@@ -52,7 +56,7 @@ class main(FlowManager, TransportManager, ReactionManager, MeshFactory, AuxVaria
     def solve(self, dt_val=1.0, endtime=10.0):
         self.solve_initial_condition()
         self.solve_flow(target_residual=1e-10, max_steps=30)
-        #self.solve_projection()
+        self.solve_projection()
 
         r_val = 3e6
         current_time = 0.0
@@ -82,7 +86,7 @@ class main(FlowManager, TransportManager, ReactionManager, MeshFactory, AuxVaria
             self.assign_u1_to_u0()
 
             self.solve_flow(target_residual=1e-10, max_steps=10)
-            #self.solve_projection()
+            self.solve_projection()
 
             timestep += 1
             current_time += dt_val

@@ -3,7 +3,6 @@ sys.path.insert(0, '../../')
 
 from reaktoro_transport.problem import DarcyFlowUzawa
 from dolfin import Constant, Function, info, PETScKrylovSolver, PETScLUSolver
-#from dolfin import jump, avg, exp, inner, TestFunction, as_vector, assemble, project, div
 from numpy import abs, max
 
 def set_krylov_solver_params(prm):
@@ -79,4 +78,4 @@ class FlowManager(DarcyFlowUzawa):
         prm_p = self.solver_p.parameters
 
         #set_krylov_solver_params(prm_v)
-        #set_krylov_solver_params(prm_p)
+        set_krylov_solver_params(prm_p)
