@@ -17,6 +17,7 @@ from math import isclose
 
 class GradientReconstructionRTTest(TransportProblemBase, GradientSolver):
     def __init__(self, projection_space):
+        self.num_component = 1
         GradientSolver.__init__(self, projection_space)
 
     def set_mesh(self, mesh):
@@ -54,7 +55,7 @@ for nx in nx_list:
     problem.set_mesh(mesh)
     problem.set_boundary_markers(boundary_markers)
     problem.set_domain_markers(domain_markers)
-    problem.set_projection_form(func_to_project)
+    problem.set_projection_form([func_to_project])
     problem.generate_projection_solver(func_to_assign, [1,2,3,4])
     problem.set_projection_solver_params(preconditioner='none')
     problem.solve_projection()

@@ -34,6 +34,10 @@ class MassBalanceBase:
 
     def initiaize_ln_activity(self):
         self.ln_activity = Function(self.comp_func_spaces)
+        self.ln_activity_dict = {}
+
+        for comp_name, idx in self.component_dict.items():
+            self.ln_activity_dict['lna_'+comp_name] = idx
 
     def initialize_Reaktoro(self, database='supcrt07.xml'):
         """
