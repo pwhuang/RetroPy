@@ -207,7 +207,7 @@ class TracerTransportProblem(TransportProblemBase,
         z = self.charge
 
         E = as_vector([z[i]*D[i]*self.electric_field for i in range(self.num_component)])
-        pass 
+        pass
 
     def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, marker=0, f_id=0):
         """Sets up the components for flux limiters and add them to form."""
@@ -268,18 +268,23 @@ class TracerTransportProblem(TransportProblemBase,
 
         is_appending = True
 
-        if self.num_component==1:
-            self.output_assigner.assign(self.output_func_list[0], self.fluid_components)
-        else:
-            self.output_assigner.assign(self.output_func_list, self.fluid_components)
-
-        for key, i in self.component_dict.items():
-            self.xdmf_obj.write_checkpoint(self.output_func_list[i], key,
-                                           time_step=time,
-                                           append=is_appending)
+        self._save_mixed_function(time, self.fluid_components, self.component_dict)
 
         if is_saving_pv:
             self.save_fluid_pressure(time, is_appending)
             self.save_fluid_velocity(time, is_appending)
 
         return True
+
+    def _save_mixed_function(self, time, func_to_save, name_dict):
+        is_appending = True
+
+        if self.num_component==1:
+            self.output_assigner.assign(self.output_func_list[0], func_to_save)
+        else:
+            self.output_assigner.assign(self.output_func_list, func_to_save)
+
+        for key, i in name_dict.items():
+            self.xdmf_obj.write_checkpoint(self.output_func_list[i], key,
+                                           time_step=time,
+                                           append=is_appending)
