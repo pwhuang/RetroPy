@@ -1,5 +1,6 @@
 from . import *
 import reaktoro as rkt
+from numpy import array
 
 class MassBalanceBase:
     """Base class for mass balance problems"""
@@ -47,30 +48,41 @@ class MassBalanceBase:
         editor.addAqueousPhase(list(self.component_dict.keys()) + [self.solvent_name])
 
         system = rkt.ChemicalSystem(editor)
+        self.num_chem_elements = system.numElements()
+        self.__zeros = array([0.0]*self.num_chem_elements)
+
+        self.chem_problem = rkt.EquilibriumProblem(system)
 
         self.chem_equi_solver = rkt.EquilibriumSolver(system)
+
         self.chem_state = rkt.ChemicalState(system)
         self.chem_quant = rkt.ChemicalQuantity(self.chem_state)
         self.chem_prop = rkt.ChemicalProperties(system)
 
     def _set_temperature(self, value=298.0, unit='K'):
         self.chem_temp = value
-        self.chem_state.setTemperature(value, unit)
+        self.chem_problem.setTemperature(value, unit)
 
     def _set_pressure(self, value=1.0, unit='atm'):
         self.chem_pres = value
-        self.chem_state.setPressure(value, unit)
+        self.chem_problem.setPressure(value, unit)
 
     def _set_species_amount(self, moles: list):
         self.chem_state.setSpeciesAmounts(moles)
+        self.chem_problem.setElementAmounts(self.__zeros)
+        self.chem_problem.addState(self.chem_state)
+        self.chem_problem.setElectricalCharge(0.0)
 
     def solve_chemical_equilibrium(self):
-        self.chem_equi_solver.solve(self.chem_state)
+        self.chem_equi_solver.solve(self.chem_state, self.chem_problem)
         self.chem_prop.update(self.chem_temp, self.chem_pres,\
                               self._get_species_amounts())
 
     def _get_species_amounts(self):
         return self.chem_state.speciesAmounts()
+
+    def _get_charge_amount(self):
+        return self.chem_state.elementAmount('Z')
 
     def _get_species_log_activity_coeffs(self):
         return self.chem_prop.lnActivityCoefficients().val
