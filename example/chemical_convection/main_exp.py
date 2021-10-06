@@ -39,12 +39,13 @@ class main(FlowManager, TransportManager, ReactionManager, MeshFactory, AuxVaria
                                        append=True)
 
     def _save_log_activity_coeff(self, time):
-        self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict.items())
+        self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
 
     def save_to_file(self, time):
         super().save_to_file(time, is_saving_pv=True)
         self._save_fluid_density(time)
         self._save_log_activity_coeff(time)
+        self._save_auxiliary_variables(time)
 
     def timestepper(self):
         pass
@@ -53,6 +54,7 @@ class main(FlowManager, TransportManager, ReactionManager, MeshFactory, AuxVaria
         self.solve_initial_condition()
         self.solve_flow(target_residual=1e-10, max_steps=30)
         #self.solve_projection()
+        self.solve_auxiliary_variables()
 
         r_val = 3e6
         current_time = 0.0
@@ -83,6 +85,7 @@ class main(FlowManager, TransportManager, ReactionManager, MeshFactory, AuxVaria
 
             self.solve_flow(target_residual=1e-10, max_steps=10)
             #self.solve_projection()
+            self.solve_auxiliary_variables()
 
             timestep += 1
             current_time += dt_val
@@ -102,5 +105,7 @@ problem.setup_flow_solver()
 problem.setup_reaction_solver()
 problem.setup_projection_solver()
 problem.setup_transport_solver()
+
+problem.setup_auxiliary_solver()
 
 problem.solve(dt_val=1e-1, endtime=500.0)

@@ -71,8 +71,6 @@ class TransportManager(TracerTransportProblemExp, DG0Kernel, TransientNLSolver,
         #self.add_semi_implicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
         self.add_explicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
 
-        self.add_lna_advection(u, kappa=one, marker=0)
-
         self.evaluate_jacobian(self.get_forms()[0])
 
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
