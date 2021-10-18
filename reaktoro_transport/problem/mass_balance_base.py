@@ -27,12 +27,6 @@ class MassBalanceBase:
         self.solvent = interpolate(init_expr, self.DG0_space)
         self._M_fraction = self._M/self.M_solvent
 
-    def _solve_solvent_amount(self, fluid_comp_new):
-        self.solvent.vector()[:] =\
-        self.solvent.vector()[:] + \
-        ((fluid_comp_components.vector()[:] - self.fluid_comp_new.vector()[:]).reshape(-1, self.num_component)\
-         *self._M_fraction).sum(axis=1)
-
     def initiaize_ln_activity(self):
         self.ln_activity = Function(self.comp_func_spaces)
         self.ln_activity_dict = {}
