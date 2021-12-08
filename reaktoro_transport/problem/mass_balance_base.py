@@ -39,7 +39,16 @@ class MassBalanceBase:
         """
 
         editor = rkt.ChemicalEditor(rkt.Database(database))
-        editor.addAqueousPhase(list(self.component_dict.keys()) + [self.solvent_name])
+        aqueous_phase = editor.addAqueousPhase(list(self.component_dict.keys()) + [self.solvent_name])
+        aqueous_phase.setChemicalModelHKF()
+
+        #TODO: write an interface for setting activity models
+        # db = rkt.DebyeHuckelParams()
+        # db.setPHREEQC()
+        #
+        # aqueous_phase.setChemicalModelDebyeHuckel(db)
+        # aqueous_phase.setChemicalModelPitzerHMW()
+        # aqueous_phase.setChemicalModelIdeal()
 
         system = rkt.ChemicalSystem(editor)
         self.num_chem_elements = system.numElements()
