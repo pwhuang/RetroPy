@@ -1,13 +1,16 @@
 from . import *
 
-def get_mass_fraction(component_list, pressure, temperature, molar_mass, species_amount):
-    # This function calculates the equilibrium state of species in units of moles,
-    # and returns the mass fraction.
-    # component_list = ['Na+', 'Cl-', 'H+', 'OH-', 'H2O(l)']
-    # molar_mass  = [22.99e-3, 35.453e-3, 1.0e-3, 17.0e-3, 18.0e-3]
-    # pressure = 1.0 #atm
-    # temperature = 273.15+25 #K
-    # species_amount: List of moles
+def get_mass_fraction(component_list, pressure, temperature,
+                      molar_mass, species_amount):
+    """This function calculates the equilibrium state of species in units of
+    moles, and returns the mass fraction.
+
+    component_list = ['Na+', 'Cl-', 'H+', 'OH-', 'H2O(l)']
+    molar_mass  = [22.99e-3, 35.453e-3, 1.0e-3, 17.0e-3, 18.0e-3]
+    pressure = 1.0 #atm
+    temperature = 273.15+25 #K
+    species_amount: List of moles
+    """
 
     db = rkt.Database('supcrt07.xml')
 
