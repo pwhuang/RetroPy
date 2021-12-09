@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.mesh import MarkedRectangleMesh
 from dolfin import Expression, inner, interpolate, assemble, Constant
 from dolfin import Function, norm

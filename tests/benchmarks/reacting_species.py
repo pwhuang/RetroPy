@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.problem import TracerTransportProblem
 
