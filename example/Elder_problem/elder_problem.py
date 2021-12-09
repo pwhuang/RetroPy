@@ -1,8 +1,6 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
 from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.problem import TracerTransportProblem, DarcyFlowMixedPoisson
 from reaktoro_transport.physics import DG0Kernel
@@ -61,6 +59,7 @@ class FlowManager(DarcyFlowMixedPoisson):
         self.set_velocity_fe_space('BDM', 1)
 
         self.set_fluid_properties()
+        self.set_advection_velocity()
 
         self.mark_flow_boundary(pressure = [],
                                 velocity = self.marker_dict.values())
