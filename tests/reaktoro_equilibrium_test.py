@@ -1,9 +1,6 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.problem import MassBalanceBase
 
 try:

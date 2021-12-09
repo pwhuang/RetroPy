@@ -1,14 +1,11 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import SteadyStateSolver
 
-from reaktoro_transport.tests import convergence_rate
-from reaktoro_transport.tests.benchmarks import EllipticTransportBenchmark
+from utility_functions import convergence_rate
+from benchmarks import EllipticTransportBenchmark
 
 from math import isclose
 

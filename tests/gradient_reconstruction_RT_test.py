@@ -1,9 +1,6 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.problem import TransportProblemBase
 from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.solver import GradientSolver
@@ -12,7 +9,7 @@ from dolfin import (FunctionSpace, Function, interpolate,
                     Expression, norm, FacetNormal)
 from numpy import array
 
-from reaktoro_transport.tests import convergence_rate
+from utility_functions import convergence_rate
 from math import isclose
 
 class GradientReconstructionRTTest(TransportProblemBase, GradientSolver):

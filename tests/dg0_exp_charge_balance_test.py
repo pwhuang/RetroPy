@@ -1,14 +1,11 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.problem import TracerTransportProblemExp
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import TransientNLSolver
 
-from reaktoro_transport.tests.benchmarks import ChargeBalancedDiffusion
+from benchmarks import ChargeBalancedDiffusion
 
 from numpy import exp
 from dolfin import Constant, as_vector, Function, norm

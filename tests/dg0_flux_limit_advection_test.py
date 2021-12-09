@@ -1,13 +1,10 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.physics import DG0Kernel, FluxLimiterCollection
 from reaktoro_transport.solver import TransientRK2Solver
 
-from reaktoro_transport.tests.benchmarks import RotatingCone
+from benchmarks import RotatingCone
 
 from dolfin import Constant, assemble, Function
 from math import isclose

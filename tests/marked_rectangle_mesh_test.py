@@ -1,9 +1,6 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from dolfin import FunctionSpace, DOLFIN_EPS
 from numpy import all
 from reaktoro_transport.mesh import MarkedRectangleMesh

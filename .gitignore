@@ -7,3 +7,6 @@ __pycache__/
 *.xdmf
 *.obj
 */gold/*
+src/reaktoro_transport.egg-info/*
+dist/*
+build/*

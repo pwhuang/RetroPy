@@ -1,15 +1,12 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.problem import TracerTransportProblem
 from reaktoro_transport.physics import CGKernel
 from reaktoro_transport.solver import SteadyStateSolver
 
-from reaktoro_transport.tests import convergence_rate
-from reaktoro_transport.tests.benchmarks import DiffusionBenchmark
+from utility_functions import convergence_rate
+from benchmarks import DiffusionBenchmark
 
 from math import isclose
 

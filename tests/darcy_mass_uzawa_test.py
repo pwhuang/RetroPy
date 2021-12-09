@@ -1,12 +1,9 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.problem import DarcyFlowUzawa
-from reaktoro_transport.tests import convergence_rate
-from reaktoro_transport.tests.benchmarks import DarcyMassSourceBenchmark
+from utility_functions import convergence_rate
+from benchmarks import DarcyMassSourceBenchmark
 
 from math import isclose
 

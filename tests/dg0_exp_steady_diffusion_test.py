@@ -1,15 +1,12 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.problem import TracerTransportProblemExp
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import TransientNLSolver
 
-from reaktoro_transport.tests import convergence_rate, quick_plot
-from reaktoro_transport.tests.benchmarks import DiffusionBenchmark
+from utility_functions import convergence_rate, quick_plot
+from benchmarks import DiffusionBenchmark
 
 from numpy import exp
 from dolfin import Constant, Function, norm

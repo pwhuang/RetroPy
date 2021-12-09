@@ -1,9 +1,6 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.problem import TracerTransportProblem
