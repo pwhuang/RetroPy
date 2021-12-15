@@ -26,17 +26,17 @@ class DG0Kernel:
         return D*inner(jump(w), jump(u))/self.delta_h*self.dS(marker)
 
     def advection_by_func(self, w, u, func, marker):
-        adv_np = as_matrix(self.__get_advection_tensor(func, sign=1.0))
+        adv_np = self.__get_advection_tensor(func, sign=1.0)
 
         return inner(jump(w), jump(adv_np*u))*self.dS(marker)
 
     def downwind_advection_by_func(self, w, u, func, marker):
-        adv_nm = as_matrix(self.__get_advection_tensor(func, sign=-1.0))
+        adv_nm = self.__get_advection_tensor(func, sign=-1.0)
 
         return inner(jump(w), jump(adv_nm*u))*self.dS(marker)
 
     def centered_advection_by_func(self, w, u, func, marker):
-        adv_nc = as_matrix(self.__get_advection_tensor(func, sign=0.0))
+        adv_nc = self.__get_advection_tensor(func, sign=0.0)
 
         return inner(jump(w), jump(adv_nc*u))*self.dS(marker)
 
@@ -52,6 +52,10 @@ class DG0Kernel:
 
     def centered_advection(self, w, u, marker: int):
         return self.centered_advection_by_func(w, u, self.advection_velocity, marker)
+
+    def periodic_advection(self, w, u, marker_l, marker_r):
+        # TODO: Implement this method.
+        pass
 
     def d_dt(self, w, u, u0):
         """time derivative operator"""
@@ -72,11 +76,11 @@ class DG0Kernel:
 
         eps = Constant(1e-13)
 
-        adv_np = as_matrix(self.__get_advection_tensor(self.advection_velocity, sign=1.0))
-        adv_nm = as_matrix(self.__get_advection_tensor(self.advection_velocity, sign=-1.0))
+        adv_np = self.__get_advection_tensor(self.advection_velocity, sign=1.0)
+        adv_nm = self.__get_advection_tensor(self.advection_velocity, sign=-1.0)
 
-        np = as_matrix(self.__get_sign_tensor(self.advection_velocity, _sign=1.0))
-        nm = as_matrix(self.__get_sign_tensor(self.advection_velocity, _sign=-1.0))
+        np = self.__get_sign_tensor(self.advection_velocity, _sign=1.0)
+        nm = self.__get_sign_tensor(self.advection_velocity, _sign=-1.0)
 
         grad_down = jump(adv_nm*u) - jump(adv_np*u)
         grad_up = jump(adv_np*u) - jump(adv_np*u_up)
@@ -101,11 +105,11 @@ class DG0Kernel:
 
         eps = Constant(1e-13)
 
-        adv_np = as_matrix(self.__get_advection_tensor(self.advection_velocity, sign=1.0))
-        adv_nm = as_matrix(self.__get_advection_tensor(self.advection_velocity, sign=-1.0))
+        adv_np = self.__get_advection_tensor(self.advection_velocity, sign=1.0)
+        adv_nm = self.__get_advection_tensor(self.advection_velocity, sign=-1.0)
 
-        np = as_matrix(self.__get_sign_tensor(self.advection_velocity, _sign=1.0))
-        nm = as_matrix(self.__get_sign_tensor(self.advection_velocity, _sign=-1.0))
+        np = self.__get_sign_tensor(self.advection_velocity, _sign=1.0)
+        nm = self.__get_sign_tensor(self.advection_velocity, _sign=-1.0)
 
         grad_down = jump(adv_nm*u) - jump(adv_np*u0)
 
@@ -150,7 +154,7 @@ class DG0Kernel:
 
         # Multiplied by 2 since __get_advection_tensor returns half advection
         # velocity.
-        adv = Constant(2.0)*as_matrix(self.__get_advection_tensor(self.advection_velocity, sign=0.0))
+        adv = Constant(2.0)*self.__get_advection_tensor(self.advection_velocity, sign=0.0)
 
         return inner(w, adv*u)*self.ds(marker)
 
@@ -196,7 +200,7 @@ class DG0Kernel:
                 else:
                     adv_mat[i].append(Constant(0.0))
 
-        return adv_mat
+        return as_matrix(adv_mat)
 
     def __get_sign_tensor(self, advection_velocity, _sign: float):
         adv_mat = []
@@ -212,4 +216,4 @@ class DG0Kernel:
                 else:
                     adv_mat[i].append(Constant(0.0))
 
-        return adv_mat
+        return as_matrix(adv_mat)
