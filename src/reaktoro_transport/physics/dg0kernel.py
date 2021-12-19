@@ -54,8 +54,10 @@ class DG0Kernel:
         return self.centered_advection_by_func(w, u, self.advection_velocity, marker)
 
     def periodic_advection(self, w, u, marker_l, marker_r):
-        # TODO: Implement this method.
-        pass
+        # TODO: Make this function work.
+
+        return inner(w, self.periodic_flux)*self.periodic_ds(marker_l)\
+               - inner(w, self.periodic_flux)*self.periodic_ds(marker_r)
 
     def d_dt(self, w, u, u0):
         """time derivative operator"""
@@ -152,9 +154,7 @@ class DG0Kernel:
     def advection_outflow_bc(self, w, u, marker: int):
         """"""
 
-        # Multiplied by 2 since __get_advection_tensor returns half advection
-        # velocity.
-        adv = Constant(2.0)*self.__get_advection_tensor(self.advection_velocity, sign=0.0)
+        adv = self.__get_advection_tensor(self.advection_velocity, sign=1.0)
 
         return inner(w, adv*u)*self.ds(marker)
 
@@ -196,7 +196,7 @@ class DG0Kernel:
             for j in range(self.num_component):
                 if i==j:
                     adv_mat[i].append((dot(advection_velocity[i], self.n)\
-                                 + sign*Abs(dot(advection_velocity[i], self.n)))/2.0)
+                                     + sign*Abs(dot(advection_velocity[i], self.n)))/2.0)
                 else:
                     adv_mat[i].append(Constant(0.0))
 

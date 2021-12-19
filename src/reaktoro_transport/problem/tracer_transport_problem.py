@@ -6,13 +6,14 @@ class TracerTransportProblem(TransportProblemBase,
 
     one = Constant(1.0)
 
-    def __init__(self, mesh, boundary_markers, domain_markers):
+    def __init__(self, mesh, boundary_markers, domain_markers,
+                 periodic_bcs=None):
         try:
             super().num_forms
         except:
             raise Exception("num_forms does not exist. Consider inherit a solver class.")
 
-        self.set_mesh(mesh)
+        self.set_mesh(mesh, periodic_bcs)
         self.set_boundary_markers(boundary_markers)
         self.set_domain_markers(domain_markers)
 
@@ -40,12 +41,11 @@ class TracerTransportProblem(TransportProblemBase,
             element_list.append(self.FiniteElement)
 
         self.comp_func_spaces = FunctionSpace(self.mesh,
-                                              MixedElement(element_list))
+                                              MixedElement(element_list),
+                                              constrained_domain=self.periodic_bcs)
 
         self.fluid_components = Function(self.comp_func_spaces)
-
-        self.__func_space = FunctionSpace(self.mesh, super().fe_space,
-                                              super().fe_degree)
+        self.periodic_flux = Function(self.comp_func_spaces)
 
         self.func_space_list = []
 
@@ -62,7 +62,8 @@ class TracerTransportProblem(TransportProblemBase,
         for i in range(self.num_component):
             self.output_func_spaces.append(FunctionSpace(self.mesh,
                                                          super().fe_space,
-                                                         super().fe_degree))
+                                                         super().fe_degree,
+                                                         constrained_domain=self.periodic_bcs))
 
             self.output_func_list.append(Function(self.output_func_spaces[i]))
 
@@ -168,6 +169,13 @@ class TracerTransportProblem(TransportProblemBase,
     def add_explicit_centered_advection(self, u, kappa=one, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa*self.centered_advection(self.__w, u, marker)
 
+    def add_explicit_periodic_advection(self, u, kappa=one, marker_l=[], marker_r=[], f_id=0):
+        # This method has not yet been tested.
+        # TODO: Write a test and test it.
+
+        for ml, mr in zip(marker_l, marker_r):
+            self.tracer_forms[f_id] += kappa*self.periodic_advection(self.__w, u, ml, mr)
+
     def add_implicit_advection(self, kappa=one, marker=0, f_id=0):
         """Adds implicit advection physics to the variational form."""
 
@@ -207,7 +215,6 @@ class TracerTransportProblem(TransportProblemBase,
         z = self.charge
 
         E = as_vector([z[i]*D[i]*self.electric_field for i in range(self.num_component)])
-        pass
 
     def add_flux_limiter(self, u, u_up, k=-1.0, kappa=one, marker=0, f_id=0):
         """Sets up the components for flux limiters and add them to form."""
