@@ -7,13 +7,13 @@ class TracerTransportProblem(TransportProblemBase,
     one = Constant(1.0)
 
     def __init__(self, mesh, boundary_markers, domain_markers,
-                 periodic_bcs=None):
+                 option='cell_centered', periodic_bcs=None):
         try:
             super().num_forms
         except:
             raise Exception("num_forms does not exist. Consider inherit a solver class.")
 
-        self.set_mesh(mesh, periodic_bcs)
+        self.set_mesh(mesh, option, periodic_bcs)
         self.set_boundary_markers(boundary_markers)
         self.set_domain_markers(domain_markers)
 

@@ -1,10 +1,11 @@
 from . import *
 from ..mesh import MarkerCollection
+from numpy import array
 
 class TransportProblemBase():
     """Base class for all problems that use FeNiCs."""
 
-    def set_mesh(self, mesh, periodic_bcs=None):
+    def set_mesh(self, mesh, option='cell_centered', periodic_bcs=None):
         """Setup mesh and define mesh related quantities."""
 
         self.mesh = mesh
@@ -14,13 +15,14 @@ class TransportProblemBase():
         self.cell_volume = CellVolume(self.mesh)
 
         self.set_periodic_bcs(periodic_bcs)
-        self.__init_TPFA_recipe()
+        self.__init_TPFA_recipe(option)
 
-    def __init_TPFA_recipe(self):
+    def __init_TPFA_recipe(self, option):
         # TODO: Find a better name for this method.
 
         self.DG0_space = FunctionSpace(self.mesh, 'DG', 0,
                                        constrained_domain=self.periodic_bcs)
+
         self.Vec_DG0_space = VectorFunctionSpace(self.mesh, 'DG', 0,
                                                  constrained_domain=self.periodic_bcs)
         self.Vec_CG1_space = VectorFunctionSpace(self.mesh, 'CG', 1,
@@ -36,12 +38,28 @@ class TransportProblemBase():
         # TODO: Please address this.
 
         self.vertex_coord = interpolate(Expression(space_list, degree=1), self.Vec_CG1_space)
-        self.cell_coord = interpolate(Expression(space_list, degree=0), self.Vec_DG0_space)
+
+        if option=='cell_centered':
+            self.cell_coord = interpolate(Expression(space_list, degree=0), self.Vec_DG0_space)
+
+        elif option=='voronoi':
+            self.cell_coord = Function(self.Vec_DG0_space)
+            circumcenter_list = []
+
+            for c in cells(self.mesh):
+                circumcenter_list.append(self.circumcenter_from_points(*c.get_coordinate_dofs()))
+
+            self.cell_coord.vector()[:] = array(circumcenter_list).flatten()
+
+        else:
+            raise ValueError("Valid inputs are 'cell_centered' or 'voronoi'. ")
+
 
         self.delta_h = sqrt(dot(jump(self.cell_coord), jump(self.cell_coord)))
 
         bc = DirichletBC(self.Vec_CG1_space, [1]*self.mesh.geometric_dimension(),
                          MarkerCollection.AllBoundary())
+
         boundary_mask = Function(self.Vec_CG1_space)
         self.boundary_vertex_coord = Function(self.Vec_CG1_space)
 
@@ -158,3 +176,21 @@ class TransportProblemBase():
         prm['error_on_nonconvergence'] = True
         prm['monitor_convergence'] = True
         prm['nonzero_initial_guess'] = True
+
+    @staticmethod
+    def circumcenter_from_points(ax, ay, bx, by, cx, cy):
+        # Translation considering A as the origin of the Cartesian coordinate
+        bxt = bx - ax
+        byt = by - ay
+
+        cxt = cx - ax
+        cyt = cy - ay
+
+        D = 2.0*(bxt*cyt - byt*cxt)
+        bt_l2 = bxt**2 + byt**2 # length squared
+        ct_l2 = cxt**2 + cyt**2
+
+        ux = (cyt*bt_l2 - byt*ct_l2)/D + ax
+        uy = (bxt*ct_l2 - cxt*bt_l2)/D + ay
+
+        return [ux, uy]
