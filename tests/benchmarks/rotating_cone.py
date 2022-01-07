@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, '../')
 
-from tests.benchmarks import EllipticTransportBenchmark
+from benchmarks import EllipticTransportBenchmark
 
 from dolfin import Expression, inner, interpolate, assemble, Constant
 from dolfin import VectorFunctionSpace, FunctionSpace, Function, norm, cos, pi
