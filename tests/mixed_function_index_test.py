@@ -14,7 +14,7 @@ mesh_type = 'triangle'
 
 class MixedFunctionIndexTest(TracerTransportProblem, DG0Kernel):
     def __init__(self, mesh):
-        self.mesh = mesh
+        self.set_mesh(mesh)
 
 mesh_factory = MarkedRectangleMesh()
 mesh_factory.set_bottom_left_coordinates(coord_x = 0.0, coord_y = 0.0)
@@ -23,10 +23,8 @@ mesh_factory.set_number_of_elements(nx, nx)
 mesh_factory.set_mesh_type(mesh_type)
 
 mesh = mesh_factory.generate_mesh()
-boundary_markers, marker_dict = mesh_factory.generate_boundary_markers()
-domain_markers = mesh_factory.generate_domain_markers()
 
-problem = MixedFunctionIndexTest(mesh)#, boundary_markers, domain_markers)
+problem = MixedFunctionIndexTest(mesh)
 problem.set_components('A', 'B', 'C', 'D')
 problem.set_component_fe_space()
 problem.set_component_ics(Expression(['1', '2', '3', '4'], degree=0))
