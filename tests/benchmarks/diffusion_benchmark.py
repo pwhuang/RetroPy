@@ -52,7 +52,7 @@ class DiffusionBenchmark:
 
     def set_problem_bc(self):
         """
-        This problem requires 1.0 Dirichlet bc on all boundaries.
+        This problem requires Dirichlet bc on all boundaries.
         Since the implementation of Dirichlet bcs depends on the solving scheme,
          this method should be defined in tests.
         """
