@@ -1,6 +1,7 @@
 from . import *
 import reaktoro as rkt
 from numpy import array
+from warnings import warn
 
 class MassBalanceBase:
     """Base class for mass balance problems"""
@@ -50,17 +51,36 @@ class MassBalanceBase:
         # aqueous_phase.setChemicalModelPitzerHMW()
         # aqueous_phase.setChemicalModelIdeal()
 
-        system = rkt.ChemicalSystem(editor)
-        self.num_chem_elements = system.numElements()
+        self.chem_system = rkt.ChemicalSystem(editor)
+        self.num_chem_elements = self.chem_system.numElements()
         self.__zeros = array([0.0]*self.num_chem_elements)
 
-        self.chem_problem = rkt.EquilibriumProblem(system)
+        self.chem_problem = rkt.EquilibriumProblem(self.chem_system)
+        self.chem_equi_solver = rkt.EquilibriumSolver(self.chem_system)
 
-        self.chem_equi_solver = rkt.EquilibriumSolver(system)
-
-        self.chem_state = rkt.ChemicalState(system)
+        self.chem_state = rkt.ChemicalState(self.chem_system)
         self.chem_quant = rkt.ChemicalQuantity(self.chem_state)
-        self.chem_prop = rkt.ChemicalProperties(system)
+        self.chem_prop = rkt.ChemicalProperties(self.chem_system)
+
+    def set_smart_equilibrium_solver(self, reltol=1e-3, amount_fraction_cutoff=1e-14,
+                                     mole_fraction_cutoff=1e-14):
+
+        try:
+            rkt.SmartEquilibriumOptions()
+        except:
+            warn('\n The installed Reaktoro version does not support ' + \
+                 'SmartEquilibriumSolver! \n EquilibriumSolver is used.')
+            return
+
+        self.chem_equi_solver = rkt.SmartEquilibriumSolver(self.chem_system)
+        smart_equi_options = rkt.SmartEquilibriumOptions()
+
+        smart_equi_options.reltol = reltol
+        smart_equi_options.amount_fraction_cutoff = amount_fraction_cutoff
+        smart_equi_options.mole_fraction_cutoff = mole_fraction_cutoff
+
+        self.chem_equi_solver = rkt.SmartEquilibriumSolver(self.chem_system)
+        self.chem_equi_solver.setOptions(smart_equi_options)
 
     def _set_temperature(self, value=298.0, unit='K'):
         self.chem_temp = value
@@ -74,7 +94,7 @@ class MassBalanceBase:
         self.chem_state.setSpeciesAmounts(moles)
         self.chem_problem.setElementAmounts(self.__zeros)
         self.chem_problem.addState(self.chem_state)
-        self.chem_problem.setElectricalCharge(0.0)
+        self.chem_problem.setElectricalCharge(1e-16)
 
     def solve_chemical_equilibrium(self):
         self.chem_equi_solver.solve(self.chem_state, self.chem_problem)
