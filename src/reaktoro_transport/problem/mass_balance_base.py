@@ -1,6 +1,6 @@
 from . import *
 import reaktoro as rkt
-from numpy import array
+from numpy import array, log
 from warnings import warn
 
 class MassBalanceBase:
@@ -62,6 +62,8 @@ class MassBalanceBase:
         self.chem_quant = rkt.ChemicalQuantity(self.chem_state)
         self.chem_prop = rkt.ChemicalProperties(self.chem_system)
 
+        self.ln10 = log(10.0)
+
     def set_smart_equilibrium_solver(self, reltol=1e-3, amount_fraction_cutoff=1e-14,
                                      mole_fraction_cutoff=1e-14):
 
@@ -117,3 +119,7 @@ class MassBalanceBase:
     def _get_fluid_density(self):
         """The unit of density is kg/m3."""
         return self.chem_prop.phaseDensities().val[0]
+
+    def _get_fluid_pH(self, idx):
+        """The input idx should be the id of H+."""
+        return -self.chem_prop.lnActivities().val[idx]/self.ln10
