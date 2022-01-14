@@ -17,4 +17,5 @@ problem.setup_transport_solver()
 
 problem.setup_auxiliary_solver()
 
-problem.solve(dt_val=1e-1, endtime=400.0)
+time_stamps = [10.0, 40.0, 60.0, 115.0, 170.0, 200.0]
+problem.solve(dt_val=1e-1, endtime=400.0, time_stamps=time_stamps)
