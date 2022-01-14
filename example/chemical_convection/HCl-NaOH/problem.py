@@ -9,7 +9,7 @@ from chemical_convection.aux_variables import AuxVariables
 
 import numpy as np
 from dolfin import (info, DOLFIN_EPS, assemble, exp, begin, end, as_vector,
-                    Expression)
+                    Expression, MPI)
 
 class Problem(FlowManager, TransportManager, ReactionManager,
               MeshFactory, AuxVariables):
@@ -17,6 +17,7 @@ class Problem(FlowManager, TransportManager, ReactionManager,
 
     def __init__(self, nx, ny):
         TransportManager.__init__(self, *self.get_mesh_and_markers(nx, ny))
+        self.__MPI_rank = MPI.rank(MPI.comm_world)
 
     def set_component_properties(self):
         self.set_molar_mass([22.99, 35.453, 1.0, 17.0]) #g/mol
@@ -82,6 +83,8 @@ class Problem(FlowManager, TransportManager, ReactionManager,
         min_dt = 5e-2
         max_dt = 2.0
         timestep = 1
+        saved_times = []
+
         max_trials = 7
         trial_count = 0
 
@@ -89,10 +92,12 @@ class Problem(FlowManager, TransportManager, ReactionManager,
         time_stamp = time_stamps.pop(0)
 
         self.save_to_file(time=current_time)
+        saved_times.append(current_time)
 
         while current_time < endtime:
-            info('timestep = ' + str(timestep) + ',  dt = ' + str(dt_val)\
-                 + ', current_time = ' + str(current_time) )
+            if self.__MPI_rank==0:
+                info(f"timestep = {timestep}, dt = {dt_val:.6f}, "\
+                     f"current_time = {current_time:.6f}\n")
 
             self.set_dt(dt_val)
 
@@ -137,3 +142,7 @@ class Problem(FlowManager, TransportManager, ReactionManager,
 
             if timestep%1 == 0:
                 self.save_to_file(time=current_time)
+                saved_times.append(current_time)
+
+        if self.__MPI_rank==0:
+            np.save(self.output_file_name, np.array(saved_times), allow_pickle=False)

@@ -150,6 +150,8 @@ class TransportProblemBase():
                                        append=is_appending)
 
     def generate_output_instance(self, file_name: str):
+        self.output_file_name = file_name
+
         self.xdmf_obj = XDMFFile(MPI.comm_world, file_name + '.xdmf')
         self.xdmf_obj.write(self.mesh)
 

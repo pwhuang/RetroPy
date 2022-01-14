@@ -6,6 +6,7 @@ __pycache__/
 *.h5
 *.xdmf
 *.obj
+*.npy
 */gold/*
 src/reaktoro_transport.egg-info/*
 dist/*
