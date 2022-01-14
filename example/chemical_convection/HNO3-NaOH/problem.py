@@ -9,7 +9,7 @@ from chemical_convection.aux_variables import AuxVariables
 
 import numpy as np
 from dolfin import (info, DOLFIN_EPS, assemble, exp, begin, end, as_vector,
-                    Expression)
+                    Expression, MPI)
 
 class Problem(FlowManager, TransportManager, ReactionManager,
               MeshFactory, AuxVariables):
@@ -57,6 +57,12 @@ class Problem(FlowManager, TransportManager, ReactionManager,
         self.advection_velocity = \
         as_vector([self.fluid_velocity for i in range(self.num_component)])
 
+    def _save_solvent_molarity(self, time):
+        self.xdmf_obj.write_checkpoint(self.solvent,
+                                       self.solvent_name,
+                                       time_step=time,
+                                       append=True)
+
     def _save_fluid_density(self, time):
         self.xdmf_obj.write_checkpoint(self.fluid_density,
                                        self.fluid_density.name(),
@@ -68,6 +74,7 @@ class Problem(FlowManager, TransportManager, ReactionManager,
 
     def save_to_file(self, time):
         super().save_to_file(time, is_saving_pv=True)
+        self._save_solvent_molarity(time)
         self._save_fluid_density(time)
         self._save_log_activity_coeff(time)
         self._save_auxiliary_variables(time)

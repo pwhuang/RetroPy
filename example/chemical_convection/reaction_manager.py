@@ -42,5 +42,3 @@ class ReactionManager:
         self.solvent.vector()[:] += \
         ((exp(self.fluid_components.vector()) - exp(fluid_comp_new.vector())).reshape(-1, self.num_component)\
         *self._M_fraction).sum(axis=1)
-
-        #print(self.solvent.vector().sum())
