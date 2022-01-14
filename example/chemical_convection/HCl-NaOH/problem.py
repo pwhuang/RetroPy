@@ -83,6 +83,7 @@ class Problem(FlowManager, TransportManager, ReactionManager,
         max_dt = 2.0
         timestep = 1
         max_trials = 7
+        trial_count = 0
 
         time_stamps.append(endtime)
         time_stamp = time_stamps.pop(0)
@@ -105,6 +106,8 @@ class Problem(FlowManager, TransportManager, ReactionManager,
                     raise RuntimeError('Reached max trial count. Abort!')
 
                 continue
+
+            trial_count = 0
 
             self.solve_solvent_amount(self.get_solution())
 

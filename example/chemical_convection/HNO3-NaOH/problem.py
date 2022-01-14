@@ -83,6 +83,7 @@ class Problem(FlowManager, TransportManager, ReactionManager,
         max_dt = 1.0
         timestep = 1
         max_trials = 7
+        trial_count = 0
 
         time_stamps.append(endtime)
         time_stamp = time_stamps.pop(0)
