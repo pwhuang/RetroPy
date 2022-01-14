@@ -6,6 +6,8 @@ from numpy import zeros, log, array, exp
 class ReactionManager:
     def setup_reaction_solver(self):
         self.initialize_Reaktoro()
+        self.set_smart_equilibrium_solver()
+
         self._set_temperature(298, 'K') # Isothermal problem
         self.initiaize_ln_activity()
 

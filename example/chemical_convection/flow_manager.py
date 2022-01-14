@@ -6,7 +6,7 @@ from dolfin import Constant, Function
 
 def set_krylov_solver_params(prm):
     prm['absolute_tolerance'] = 1e-10
-    prm['relative_tolerance'] = 1e-12
+    prm['relative_tolerance'] = 1e-14
     prm['maximum_iterations'] = 8000
     prm['error_on_nonconvergence'] = True
     prm['monitor_convergence'] = False

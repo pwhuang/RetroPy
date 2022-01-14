@@ -16,7 +16,6 @@ def set_krylov_solver_params(prm):
 class FlowManager(DarcyFlowUzawa):
     def set_fluid_properties(self):
         self.set_porosity(1.0)
-        self.set_permeability(0.5**2/12.0) # mm^2
         self.set_fluid_density(1e-3) # Initialization # g/mm^3
         self.set_fluid_viscosity(8.9e-4)  # Pa sec
         self.set_gravity([0.0, -9806.65]) # mm/sec
