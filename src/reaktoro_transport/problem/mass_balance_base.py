@@ -123,3 +123,7 @@ class MassBalanceBase:
     def _get_fluid_pH(self, idx):
         """The input idx should be the id of H+."""
         return -self.chem_prop.lnActivities().val[idx]/self.ln10
+
+    def _get_fluid_volume(self):
+        """In units of cubic meters."""
+        return self.chem_prop.fluidVolume().val
