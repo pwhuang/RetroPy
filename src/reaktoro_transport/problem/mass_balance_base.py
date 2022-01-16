@@ -35,6 +35,10 @@ class MassBalanceBase:
         for comp_name, idx in self.component_dict.items():
             self.ln_activity_dict['lna_'+comp_name] = idx
 
+    def initialize_fluid_pH(self):
+        self.fluid_pH = Function(self.DG0_space)
+        self.fluid_pH.rename('pH', 'fluid_pH')
+
     def initialize_Reaktoro(self, database='supcrt07.xml'):
         """
         """
@@ -62,7 +66,7 @@ class MassBalanceBase:
         self.chem_quant = rkt.ChemicalQuantity(self.chem_state)
         self.chem_prop = rkt.ChemicalProperties(self.chem_system)
 
-        self.ln10 = log(10.0)
+        self.one_over_ln10 = 1.0/log(10.0)
 
     def set_smart_equilibrium_solver(self, reltol=1e-3, amount_fraction_cutoff=1e-14,
                                      mole_fraction_cutoff=1e-14):
@@ -122,7 +126,7 @@ class MassBalanceBase:
 
     def _get_fluid_pH(self, idx):
         """The input idx should be the id of H+."""
-        return -self.chem_prop.lnActivities().val[idx]/self.ln10
+        return -self.chem_prop.lnActivities().val[idx]*self.one_over_ln10
 
     def _get_fluid_volume(self):
         """In units of cubic meters."""
