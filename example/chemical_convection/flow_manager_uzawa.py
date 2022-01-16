@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.problem import DarcyFlowUzawa
 from dolfin import Constant, Function, info, PETScKrylovSolver, PETScLUSolver
 from numpy import abs, max

@@ -6,7 +6,7 @@ class Problem(Problem):
         super().set_component_properties()
         self.set_molecular_diffusivity([1.33e-3, 2.03e-3, 9.31e-3, 5.28e-3]) #mm^2/sec
 
-problem = Problem(nx=31, ny=50)
+problem = Problem(nx=31, ny=50, const_diff=False)
 problem.generate_output_instance(sys.argv[1])
 problem.define_problem()
 

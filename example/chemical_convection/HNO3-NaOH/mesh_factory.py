@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.mesh import MarkedRectangleMesh
 from dolfin import SubDomain, DOLFIN_EPS, refine, MeshFunction, plot
 
@@ -10,7 +7,7 @@ class MeshFactory(MarkedRectangleMesh):
     def __init__(self):
         super().__init__()
 
-    def get_mesh_and_markers(self, nx=25, ny=90, mesh_type='triangle'):
+    def get_mesh_and_markers(self, nx, ny, mesh_type='triangle'):
         self.set_bottom_left_coordinates(coord_x = 0.0, coord_y = 0.0)
         self.set_top_right_coordinates(coord_x = 25.0, coord_y = 90.0)
         self.set_number_of_elements(nx, ny)
@@ -37,10 +34,3 @@ class MeshFactory(MarkedRectangleMesh):
         cell_middle.mark(cell_markers, 1)
 
         self.mesh = refine(self.mesh, cell_markers)
-
-# problem = MeshFactory()
-# mesh, bm, dm = problem.get_mesh_and_markers(nx=31, ny=50)
-#
-# plt.figure()
-# plot(mesh)
-# plt.show()

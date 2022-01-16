@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, '../../')
-
 from numpy import zeros, log, array, exp
 
 class ReactionManager:
@@ -9,10 +6,13 @@ class ReactionManager:
         self.set_smart_equilibrium_solver()
 
         self._set_temperature(298, 'K') # Isothermal problem
+
         self.initiaize_ln_activity()
+        self.initialize_fluid_pH()
 
         self.num_dof = self.get_num_dof_per_component()
         self.rho_temp = zeros(self.num_dof)
+        self.pH_temp = zeros(self.num_dof)
         self.lna_temp = zeros([self.num_dof, self.num_component+1])
         self.molar_density_temp = zeros([self.num_dof, self.num_component+1])
 
@@ -30,13 +30,15 @@ class ReactionManager:
             self.solve_chemical_equilibrium()
 
             self.rho_temp[i] = self._get_fluid_density()*1e-6  #g/mm3
+            self.pH_temp[i] = self._get_fluid_pH(self.H_idx)
             self.lna_temp[i] = self._get_species_log_activity_coeffs()
             self.molar_density_temp[i] = self._get_species_amounts()
 
-        self.fluid_density.vector()[:] = self.rho_temp.flatten()
+        self.fluid_density.vector()[:] = self.rho_temp
+        self.fluid_pH.vector()[:] = self.pH_temp
         self.ln_activity.vector()[:] = self.lna_temp[:, :-1].flatten()
         fluid_comp.vector()[:] = log(self.molar_density_temp[:, :-1].flatten())
-        self.solvent.vector()[:] = self.molar_density_temp[:,-1].flatten()
+        self.solvent.vector()[:] = self.molar_density_temp[:, -1].flatten()
 
     def solve_solvent_amount(self, fluid_comp_new):
         self.solvent.vector()[:] += \

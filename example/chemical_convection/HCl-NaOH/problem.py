@@ -1,5 +1,7 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
+import sys
+sys.path.insert(0, '../../')
 
 from mesh_factory import MeshFactory
 from chemical_convection.flow_manager_uzawa import FlowManager
@@ -15,8 +17,8 @@ class Problem(FlowManager, TransportManager, ReactionManager,
               MeshFactory, AuxVariables):
     """This class solves the chemically driven convection problem."""
 
-    def __init__(self, nx, ny):
-        TransportManager.__init__(self, *self.get_mesh_and_markers(nx, ny))
+    def __init__(self, nx, ny, const_diff):
+        TransportManager.__init__(self, *self.get_mesh_and_markers(nx, ny), const_diff)
         self.__MPI_rank = MPI.rank(MPI.comm_world)
 
     def set_component_properties(self):
@@ -32,6 +34,7 @@ class Problem(FlowManager, TransportManager, ReactionManager,
         self.set_component_fe_space()
         self.initialize_form()
 
+        self.H_idx = 2
         self.background_pressure = 101325 + 1e-3*9806.65*25 # Pa
 
         HCl_amounts = [1e-13, 1.0, 1.0, 1e-13, 54.17] # micro mol/mm^3 # mol/L
@@ -69,6 +72,12 @@ class Problem(FlowManager, TransportManager, ReactionManager,
                                        time_step=time,
                                        append=True)
 
+    def _save_fluid_pH(self, time):
+        self.xdmf_obj.write_checkpoint(self.fluid_pH,
+                                       self.fluid_pH.name(),
+                                       time_step=time,
+                                       append=True)
+
     def _save_log_activity_coeff(self, time):
         self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
 
@@ -76,6 +85,7 @@ class Problem(FlowManager, TransportManager, ReactionManager,
         super().save_to_file(time, is_saving_pv=True)
         self._save_solvent_molarity(time)
         self._save_fluid_density(time)
+        self._save_fluid_pH(time)
         self._save_log_activity_coeff(time)
         self._save_auxiliary_variables(time)
 

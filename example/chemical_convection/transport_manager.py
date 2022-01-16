@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, '../../')
-
 from reaktoro_transport.problem import TracerTransportProblemExp
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import GradientSolver, TransientNLSolver
@@ -20,29 +17,26 @@ def set_krylov_solver_params(prm):
 class TransportManager(TracerTransportProblemExp, DG0Kernel, TransientNLSolver,
                        GradientSolver):
 
-    def __init__(self, mesh, boundary_markers, domain_markers):
+    def __init__(self, mesh, boundary_markers, domain_markers, const_diff):
         TracerTransportProblemExp.__init__(self, mesh, boundary_markers, domain_markers)
+        self.is_same_diffusivity = const_diff
 
     def add_physics_to_form(self, u, kappa=Constant(1.0), f_id=0):
         self.set_advection_velocity()
 
         theta = Constant(0.5)
         one = Constant(1.0)
-        half = Constant(0.5)
 
         self.add_explicit_advection(u, kappa=one, marker=0, f_id=f_id)
-        #self.add_implicit_advection(kappa=one, marker=0, f_id=f_id)
-        #self.add_implicit_downwind_advection(kappa=half, marker=0, f_id=f_id)
-
-        #self.add_electric_field_advection(u, kappa=one, marker=0, f_id=f_id)
+        # self.add_electric_field_advection(u, kappa=one, marker=0, f_id=f_id)
 
         for component in self.component_dict.keys():
             self.add_implicit_diffusion(component, kappa=theta, marker=0)
             self.add_explicit_diffusion(component, u, kappa=one-theta, marker=0)
 
-        self.add_implicit_charge_balanced_diffusion(kappa=one-theta, marker=0)
-        #self.add_semi_implicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
-        self.add_explicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
+        if self.is_same_diffusivity==False:
+            self.add_implicit_charge_balanced_diffusion(kappa=theta, marker=0)
+            self.add_explicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
 
         self.evaluate_jacobian(self.get_forms()[0])
 

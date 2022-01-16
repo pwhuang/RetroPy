@@ -6,7 +6,7 @@ class Problem(Problem):
         super().set_component_properties()
         self.set_molecular_diffusivity([3.0e-3]*4) #mm^2/sec
 
-problem = Problem()
+problem = Problem(nx=25, ny=90, const_diff=True)
 problem.generate_output_instance(sys.argv[1])
 problem.define_problem()
 
@@ -18,4 +18,4 @@ problem.setup_transport_solver()
 problem.setup_auxiliary_solver()
 
 time_stamps = [3.0, 150.0, 700.0]
-problem.solve(dt_val=1e-1, endtime=1000.0, time_stamps=time_stamps)
+problem.solve(dt_val=1e-1, endtime=800.0, time_stamps=time_stamps)
