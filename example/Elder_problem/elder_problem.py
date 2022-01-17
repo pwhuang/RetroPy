@@ -56,7 +56,7 @@ class FlowManager(DarcyFlowMixedPoisson):
 
     def setup_flow_solver(self):
         self.set_pressure_fe_space('DG', 0)
-        self.set_velocity_fe_space('BDM', 1)
+        self.set_velocity_fe_space('RT', 1)
 
         self.set_fluid_properties()
         self.set_advection_velocity()
@@ -144,7 +144,7 @@ class ElderProblem(TransportManager, FlowManager, MeshFactory):
             self.solve_transport()
             self.solve_flow(target_residual=5e-10, max_steps=5)
 
-            self.save_to_file(time=(i+1)*dt_val)
+            self.save_to_file(time=(i+1)*dt_val, is_saving_pv=True)
 
 
 problem = ElderProblem(nx=60, ny=15)
