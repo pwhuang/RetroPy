@@ -5,7 +5,7 @@ import sys
 
 filepath, keys, t_id = sys.argv[1], sys.argv[2], sys.argv[3]
 
-f = h5py.File(filepath, 'r')
+f = h5py.File(filepath + '.h5', 'r')
 
 print(f.keys())
 
@@ -15,11 +15,11 @@ triangulation = f['Mesh']['mesh']['topology'][:]
 p_x = geometry[:,0]
 p_y = geometry[:,1]
 
-molarity = f[keys][f'{keys}_{t_id}']['vector'][:].flatten()
+scalar = f[keys][f'{keys}_{t_id}']['vector'][:].flatten()
 
 fig, ax = plt.subplots(1, 1, figsize=(6,6))
 
-cbar = ax.tripcolor(p_x, p_y, triangulation, molarity, cmap='viridis')
+cbar = ax.tripcolor(p_x, p_y, triangulation, scalar, cmap='viridis')
 ax.triplot(p_x, p_y, triangulation, c='w', lw=0.3, alpha=0.5)
 
 ax.set_aspect('equal')
