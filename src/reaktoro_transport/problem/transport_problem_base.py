@@ -144,7 +144,8 @@ class TransportProblemBase():
                                        append=is_appending)
 
     def save_fluid_velocity(self, time_step, is_appending):
-        self.xdmf_obj.write_checkpoint(self.fluid_velocity,
+        self.fluid_vel_to_save = interpolate(self.fluid_velocity, self.Vec_DG0_space)
+        self.xdmf_obj.write_checkpoint(self.fluid_vel_to_save,
                                        self.fluid_velocity.name(),
                                        time_step=time_step,
                                        append=is_appending)
