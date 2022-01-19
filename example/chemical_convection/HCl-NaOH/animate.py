@@ -7,15 +7,15 @@ import sys
 class Animate(AnimateDG0Function):
     def init_matplotlib(self):
         self.fig, ax = plt.subplots(1, 1, figsize=(3,5))
-        cbar = ax.tripcolor(p_x, p_y, triangulation, scalar_interp_list[0],
-                            cmap='viridis')
+        cbar = ax.tripcolor(self.p_x, self.p_y, self.triangulation,
+                            self.scalar_interp_list[0], cmap='viridis')
         #ax.triplot(p_x, p_y, triangulation, c='w', lw=0.3, alpha=0.4)
         ax.set_aspect('equal')
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="2%", pad=0.2)
 
-        fig.colorbar(cbar, cax=cax)
+        self.fig.colorbar(cbar, cax=cax)
         plt.tight_layout()
 
         return cbar

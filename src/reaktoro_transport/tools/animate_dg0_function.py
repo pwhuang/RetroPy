@@ -18,7 +18,7 @@ class AnimateDG0Function:
 
     def __init_mesh_geometry(self):
         geometry = self.file_handle['Mesh']['mesh']['geometry'][:]
-        triangulation = self.file_handle['Mesh']['mesh']['topology'][:]
+        self.triangulation = self.file_handle['Mesh']['mesh']['topology'][:]
 
         self.p_x = geometry[:,0]
         self.p_y = geometry[:,1]
@@ -27,7 +27,7 @@ class AnimateDG0Function:
         self.p_center_x = []
         self.p_center_y = []
 
-        for triang in triangulation:
+        for triang in self.triangulation:
             self.p_center_x.append(np.mean(self.p_x[triang]))
             self.p_center_y.append(np.mean(self.p_y[triang]))
 
@@ -36,7 +36,7 @@ class AnimateDG0Function:
 
         self.scalar_list = []
 
-        for t_id in t_ids:
+        for t_id in self.t_ids:
             self.scalar_list.append(self.file_handle[keys][f'{keys}_{t_id}']['vector'][:].flatten())
 
         self.scalar_list = np.array(self.scalar_list)
