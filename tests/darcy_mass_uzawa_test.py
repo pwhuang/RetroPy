@@ -21,7 +21,7 @@ class DarcyMassMixedPoissonTest(DarcyFlowUzawa, DarcyMassSourceBenchmark):
         self.set_boundary_conditions()
         self.set_mass_sources()
 
-        self.set_solver()
+        self.set_flow_solver_params()
         self.set_additional_parameters(r_val=1e1, omega_by_r=1.1)
         self.assemble_matrix()
 

@@ -21,7 +21,7 @@ class DarcyMassMixedPoissonTest(DarcyFlowMixedPoisson, DarcyMassSourceBenchmark)
         self.set_boundary_conditions()
         self.set_mass_sources()
 
-        self.set_solver('bicgstab', 'jacobi')
+        self.set_flow_solver_params('bicgstab', 'jacobi')
         self.set_additional_parameters(r_val=1e-2)
         self.assemble_matrix()
 

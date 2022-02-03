@@ -38,7 +38,7 @@ class FlowManager(DarcyFlowUzawa):
         #self.add_mass_source_to_residual_form([-(self.fluid_density - self._rho_old)/self.dt])
         self.set_velocity_bc([Constant([0.0, 0.0])]*4)
 
-        self.set_solver()
+        self.set_flow_solver_params()
         self.set_additional_parameters(r_val=1e6, omega_by_r=1.0)
         self.assemble_matrix()
 
@@ -62,7 +62,7 @@ class FlowManager(DarcyFlowUzawa):
 
         #info('Max velocity: ' + str( (self.fluid_velocity.vector().max() )))
 
-    def set_solver(self, **kwargs):
+    def set_flow_solver_params(self, **kwargs):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 

@@ -23,7 +23,7 @@ class DarcyMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_boundary_conditions(self)
         DarcyFlowBenchmark.set_momentum_sources(self)
 
-        self.set_solver('bicgstab', 'jacobi')
+        self.set_flow_solver_params('bicgstab', 'jacobi')
         self.set_additional_parameters(r_val=1e-1)
         self.assemble_matrix()
 

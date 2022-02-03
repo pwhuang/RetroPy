@@ -86,7 +86,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         self.__A = assemble(a)
         self.__b = PETScVector()
 
-    def set_solver(self, solver_type='mumps', preconditioner='ilu'):
+    def set_flow_solver_params(self, solver_type='mumps', preconditioner='ilu'):
         lu_solver_types = ['mumps', 'default', 'superlu', 'superlu_dist']
         iter_solver_types = ['gmres', 'minres', 'bicgstab', 'cg']
 

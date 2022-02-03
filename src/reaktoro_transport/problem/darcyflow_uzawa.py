@@ -91,7 +91,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         self.A_p = assemble(a_p)
         self.b_v, self.b_p = PETScVector(), PETScVector()
 
-    def set_solver(self, **kwargs):
+    def set_flow_solver_params(self, **kwargs):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 

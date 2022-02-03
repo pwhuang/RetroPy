@@ -73,7 +73,7 @@ class FlowManager(DarcyFlowMixedPoisson):
         self.add_momentum_source_to_residual_form([as_vector([Constant(0.0), self.fluid_components[0]])])
         self.set_velocity_bc([Constant([0.0, 0.0])]*5)
 
-        prm = self.set_solver(solver_type='bicgstab', preconditioner='none')
+        prm = self.set_flow_solver_params(solver_type='bicgstab', preconditioner='none')
         self.set_krylov_solver_params(prm)
         self.set_additional_parameters(r_val=5e-3, omega_by_r=1.0)
         self.assemble_matrix()

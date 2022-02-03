@@ -26,7 +26,7 @@ class DarcyUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_momentum_sources(self)
 
         self.set_additional_parameters(r_val=1.0, omega_by_r=1.2)
-        self.set_solver()
+        self.set_flow_solver_params()
         self.assemble_matrix()
 
 # nx is the mesh element in one direction.
