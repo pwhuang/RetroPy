@@ -10,7 +10,7 @@ from chemical_convection.reaction_manager import ReactionManager
 from chemical_convection.aux_variables import AuxVariables
 
 import numpy as np
-from dolfin import (info, DOLFIN_EPS, assemble, exp, begin, end, as_vector,
+from dolfin import (info, DOLFIN_EPS, assemble, exp, end, as_vector,
                     Expression, MPI)
 
 class Problem(FlowManager, TransportManager, ReactionManager,
@@ -127,6 +127,7 @@ class Problem(FlowManager, TransportManager, ReactionManager,
                 if (trial_count := trial_count + 1) >= max_trials:
                     raise RuntimeError('Reached max trial count. Abort!')
 
+                end() # Added to avoid unbalanced indentation in logs.
                 continue
 
             trial_count = 0
