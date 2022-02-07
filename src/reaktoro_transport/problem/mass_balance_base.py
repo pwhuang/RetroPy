@@ -26,6 +26,7 @@ class MassBalanceBase:
 
     def set_solvent_ic(self, init_expr: Expression):
         self.solvent = interpolate(init_expr, self.DG0_space)
+        self.solvent.rename(self.solvent_name, 'solvent')
         self._M_fraction = self._M/self.M_solvent
 
     def initiaize_ln_activity(self):
@@ -33,7 +34,7 @@ class MassBalanceBase:
         self.ln_activity_dict = {}
 
         for comp_name, idx in self.component_dict.items():
-            self.ln_activity_dict['lna_'+comp_name] = idx
+            self.ln_activity_dict[f'lna_{comp_name}'] = idx
 
     def initialize_fluid_pH(self):
         self.fluid_pH = Function(self.DG0_space)
@@ -74,8 +75,8 @@ class MassBalanceBase:
         try:
             rkt.SmartEquilibriumOptions()
         except:
-            warn('\n The installed Reaktoro version does not support ' + \
-                 'SmartEquilibriumSolver! \n EquilibriumSolver is used.')
+            warn("\nThe installed Reaktoro version does not support"
+                 "SmartEquilibriumSolver! EquilibriumSolver is used.")
             return
 
         self.chem_equi_solver = rkt.SmartEquilibriumSolver(self.chem_system)
