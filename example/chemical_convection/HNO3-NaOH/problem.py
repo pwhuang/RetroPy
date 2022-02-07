@@ -1,20 +1,15 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
-import sys
-sys.path.insert(0, '../../')
 
 from mesh_factory import MeshFactory
-from chemical_convection.flow_manager_uzawa import FlowManager
-from chemical_convection.transport_manager import TransportManager
-from chemical_convection.reaction_manager import ReactionManager
-from chemical_convection.aux_variables import AuxVariables
+from reaktoro_transport.manager import DarcyFlowManagerUzawa as FlowManager
+from reaktoro_transport.manager import TransportManager, ReactionManager
 
 import numpy as np
-from dolfin import (info, DOLFIN_EPS, assemble, exp, begin, end, as_vector,
-                    Expression, MPI)
+from dolfin import (info, end, Expression, MPI, Constant)
 
 class Problem(FlowManager, TransportManager, ReactionManager,
-              MeshFactory, AuxVariables):
+              MeshFactory):
     """This class solves the chemically driven convection problem."""
 
     def __init__(self, nx, ny, const_diff):
@@ -49,67 +44,77 @@ class Problem(FlowManager, TransportManager, ReactionManager,
         self.set_solvent_ic(Expression('x[1]<=45.0 ?' + str(NaOH_amounts[-1]) + ':' + str(HNO3_amounts[-1]) , degree=1))
 
     def set_fluid_properties(self):
-        super().set_fluid_properties()
+        self.set_porosity(1.0)
+        self.set_fluid_density(1e-3) # Initialization # g/mm^3
+        self.set_fluid_viscosity(8.9e-4)  # Pa sec
+        self.set_gravity([0.0, -9806.65]) # mm/sec
         self.set_permeability(1.2**2/12.0) # mm^2
+
+    def set_flow_ibc(self):
+        self.mark_flow_boundary(pressure = [],
+                                velocity = [self.marker_dict['top'], self.marker_dict['bottom'],
+                                            self.marker_dict['left'], self.marker_dict['right']])
+
+        self.set_pressure_bc([]) # Pa
+        self.set_pressure_ic(Constant(0.0))
+        self.set_velocity_bc([Constant([0.0, 0.0])]*4)
+
+    def solve_species_transport(self):
+        max_trials = 7
+
+        try:
+            self.solve_one_step()
+            is_solved = True
+        except:
+            self.assign_u0_to_u1()
+
+            if self.trial_count >= max_trials:
+                raise RuntimeError('Reached max trial count. Abort!')
+            end() # Added to avoid unbalanced indentation in logs.
+            is_solved = False
+
+        return is_solved
+
+    @staticmethod
+    def timestepper(dt_val, current_time, time_stamp):
+        min_dt, max_dt = 5e-2, 2.0
+
+        if (dt_val := dt_val*1.1) > max_dt:
+            dt_val = max_dt
+        elif dt_val < min_dt:
+            dt_val = min_dt
+        if dt_val > time_stamp - current_time:
+            dt_val = time_stamp - current_time
+
+        return dt_val
 
     def solve_initial_condition(self):
         self.assign_u0_to_u1()
         self._solve_chem_equi_over_dofs()
-
-    def set_advection_velocity(self):
-        self.advection_velocity = \
-        as_vector([self.fluid_velocity for i in range(self.num_component)])
-
-    def _save_solvent_molarity(self, time):
-        self.xdmf_obj.write_checkpoint(self.solvent,
-                                       self.solvent_name,
-                                       time_step=time,
-                                       append=True)
-
-    def _save_fluid_density(self, time):
-        self.xdmf_obj.write_checkpoint(self.fluid_density,
-                                       self.fluid_density.name(),
-                                       time_step=time,
-                                       append=True)
-
-    def _save_fluid_pH(self, time):
-        self.xdmf_obj.write_checkpoint(self.fluid_pH,
-                                       self.fluid_pH.name(),
-                                       time_step=time,
-                                       append=True)
-
-    def _save_log_activity_coeff(self, time):
-        self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
+        self.solve_flow(target_residual=1e-10, max_steps=30)
 
     def save_to_file(self, time):
         super().save_to_file(time, is_saving_pv=True)
-        self._save_solvent_molarity(time)
-        self._save_fluid_density(time)
-        self._save_fluid_pH(time)
-        self._save_log_activity_coeff(time)
-        self._save_auxiliary_variables(time)
+        self._save_function(time, self.solvent)
+        self._save_function(time, self.fluid_density)
+        self._save_function(time, self.fluid_pH)
+        self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
 
     def solve(self, dt_val=1.0, endtime=10.0, time_stamps=[]):
         self.solve_initial_condition()
-        self.solve_flow(target_residual=1e-10, max_steps=30)
-        #self.solve_projection()
-        self.solve_auxiliary_variables()
 
-        r_val = 3e6
         current_time = 0.0
-        min_dt = 5e-2
-        max_dt = 1.0
         timestep = 1
         saved_times = []
-
-        max_trials = 7
-        trial_count = 0
+        self.trial_count = 0
 
         time_stamps.append(endtime)
-        time_stamp = time_stamps.pop(0)
+        time_stamp_idx = 0
+        time_stamp = time_stamps[time_stamp_idx]
 
         self.save_to_file(time=current_time)
         saved_times.append(current_time)
+        save_interval = 1
 
         while current_time < endtime:
             if self.__MPI_rank==0:
@@ -118,47 +123,29 @@ class Problem(FlowManager, TransportManager, ReactionManager,
 
             self.set_dt(dt_val)
 
-            try:
-                self.solve_one_step()
-            except:
-                self.assign_u0_to_u1()
+            if self.solve_species_transport() is False:
                 dt_val = 0.7*dt_val
-
-                if (trial_count := trial_count + 1) >= max_trials:
-                    raise RuntimeError('Reached max trial count. Abort!')
-
-                end() # Added to avoid unbalanced indentation in logs.
+                self.trial_count += 1
                 continue
 
-            trial_count = 0
-
-            self.solve_solvent_amount(self.get_solution())
-
+            self.trial_count = 0
+            self.solve_solvent_transport()
             self._solve_chem_equi_over_dofs()
             self.assign_u1_to_u0()
 
             self.solve_flow(target_residual=1e-10, max_steps=20)
-            self.solve_auxiliary_variables()
 
             timestep += 1
-            current_time += dt_val
+            if (current_time := current_time + dt_val) >= time_stamp:
+                time_stamp_idx += 1
+                try:
+                    time_stamp = time_stamps[time_stamp_idx]
+                except:
+                    time_stamp = time_stamps[-1]
 
-            # Determine dt of the next time step.
-            # TODO: Simplify dt determination to a function.
+            dt_val = self.timestepper(dt_val, current_time, time_stamp)
 
-            if (dt_val := dt_val*1.1) > max_dt:
-                dt_val = max_dt
-
-            if dt_val < min_dt:
-                dt_val = min_dt
-
-            if (current_time + dt_val) > time_stamp:
-                dt_val = time_stamp - current_time
-
-                if time_stamps != []:
-                    time_stamp = time_stamps.pop(0)
-
-            if timestep%1 == 0:
+            if timestep % save_interval == 0:
                 self.save_to_file(time=current_time)
                 saved_times.append(current_time)
 

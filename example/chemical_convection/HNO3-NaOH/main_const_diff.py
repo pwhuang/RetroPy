@@ -12,10 +12,7 @@ problem.define_problem()
 
 problem.setup_flow_solver()
 problem.setup_reaction_solver()
-problem.setup_projection_solver()
 problem.setup_transport_solver()
-
-problem.setup_auxiliary_solver()
 
 time_stamps = [3.0, 150.0, 700.0]
 problem.solve(dt_val=1e-1, endtime=800.0, time_stamps=time_stamps)
