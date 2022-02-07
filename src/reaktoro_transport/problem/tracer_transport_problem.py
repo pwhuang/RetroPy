@@ -283,6 +283,10 @@ class TracerTransportProblem(TransportProblemBase,
 
         return True
 
+    def _save_function(self, time, func_to_save):
+        self.xdmf_obj.write_checkpoint(func_to_save, func_to_save.name(),
+                                       time_step=time, append=True)
+
     def _save_mixed_function(self, time, func_to_save, name_dict):
         is_appending = True
 
