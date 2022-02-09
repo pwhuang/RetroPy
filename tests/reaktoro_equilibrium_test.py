@@ -3,9 +3,13 @@ os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 
 from reaktoro_transport.problem import MassBalanceBase
+from reaktoro_transport.manager import ReactionManager
+
+class EquilibriumProblem(MassBalanceBase, ReactionManager):
+    pass
 
 try:
-    problem = MassBalanceBase()
+    problem = EquilibriumProblem()
     problem.set_components('Na+', 'Cl-', 'H+', 'OH-')
     problem.set_solvent('H2O(l)')
     problem.initialize_Reaktoro()
