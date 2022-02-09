@@ -7,6 +7,7 @@ setup(
     packages=['reaktoro_transport', 'reaktoro_transport.material',
               'reaktoro_transport.mesh', 'reaktoro_transport.physics',
               'reaktoro_transport.problem', 'reaktoro_transport.problem',
-              'reaktoro_transport.solver', 'reaktoro_transport.tools'],
+              'reaktoro_transport.solver', 'reaktoro_transport.tools',
+              'reaktoro_transport.manager'],
     package_dir={'': 'src'},
 )
