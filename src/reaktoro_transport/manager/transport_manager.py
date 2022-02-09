@@ -36,8 +36,7 @@ class TransportManager(TracerTransportProblemExp, DG0Kernel,
         self.evaluate_jacobian(self.get_forms()[0])
 
     def set_advection_velocity(self):
-        self.advection_velocity = \
-        as_vector([self.fluid_velocity for i in range(self.num_component)])
+        super().set_advection_velocity()
 
     def solve_solvent_transport(self):
         fluid_comp_old = self.fluid_components.vector()
