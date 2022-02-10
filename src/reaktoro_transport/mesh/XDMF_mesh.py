@@ -1,5 +1,4 @@
-from dolfin import Mesh, XDMFFile
-from . import *
+from dolfin import Mesh, XDMFFile, MPI, MeshFunction
 
 class XDMFMesh:
     """This class reads mesh in the XDMF format."""

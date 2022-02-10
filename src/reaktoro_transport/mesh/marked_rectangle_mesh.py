@@ -1,7 +1,8 @@
-from dolfin import RectangleMesh, MeshFunction, Point, DOLFIN_EPS, FunctionSpace
+from dolfin import (RectangleMesh, MeshFunction, Point, DOLFIN_EPS,
+                    FunctionSpace, MPI)
 from dolfin.cpp.mesh import CellType
 
-from . import *
+from . import MarkerCollection
 
 class MarkedRectangleMesh(MarkerCollection):
     """"""
@@ -74,8 +75,8 @@ class MarkedRectangleMesh(MarkerCollection):
         cr_space = FunctionSpace(self.mesh, 'CR', 1)
         cr_dof = cr_space.dofmap().dofs(self.mesh, 1)
 
-        coord_x = cr_space.tabulate_dof_coordinates()[cr_dof,0]
-        coord_y = cr_space.tabulate_dof_coordinates()[cr_dof,1]
+        coord_x = cr_space.tabulate_dof_coordinates()[cr_dof, 0]
+        coord_y = cr_space.tabulate_dof_coordinates()[cr_dof, 1]
 
         cb = ax.scatter(coord_x, coord_y,
                         c=self.boundary_markers.array(), cmap=colormap)

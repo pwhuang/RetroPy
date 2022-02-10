@@ -1,7 +1,5 @@
-from dolfin import IntervalMesh, MeshFunction, Point, DOLFIN_EPS, FunctionSpace
-from dolfin.cpp.mesh import CellType
-
-from . import *
+from dolfin import IntervalMesh, MeshFunction
+from . import MarkerCollection
 
 class MarkedLineMesh(MarkerCollection):
     """"""
