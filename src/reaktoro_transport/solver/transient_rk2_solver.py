@@ -8,7 +8,7 @@ class TransientRK2Solver:
     def set_solver_forms(self):
         self.__func_space = self.get_function_space()
 
-        self.__u0 = self.fluid_components
+        self.__u0 = self.get_fluid_components()
         self.__u1 = Function(self.comp_func_spaces)
         self.kappa = Constant(0.5)
         one = Constant(1.0)
@@ -23,18 +23,20 @@ class TransientRK2Solver:
 
     def generate_solver(self):
         self.__forms = self.get_forms()
+        __u0 = self.fluid_components
+        bcs = self.get_dirichlet_bcs()
 
         a1, L1 = lhs(self.__forms[0]), rhs(self.__forms[0])
         a2, L2 = lhs(self.__forms[1]), rhs(self.__forms[1])
 
-        problem1 = LinearVariationalProblem(a1, L1, self.__u1, self.get_dirichlet_bcs())
-        problem2 = LinearVariationalProblem(a2, L2, self.__u0, self.get_dirichlet_bcs())
+        problem1 = LinearVariationalProblem(a1, L1, self.__u1, bcs)
+        problem2 = LinearVariationalProblem(a2, L2, __u0, bcs)
 
         self.__solver1 = LinearVariationalSolver(problem1)
         self.__solver2 = LinearVariationalSolver(problem2)
 
     def get_solver_functions(self):
-        return self.__u0, self.__u1
+        return self.fluid_components, self.__u1
 
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
         prm = self.__solver1.parameters

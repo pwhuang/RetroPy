@@ -11,7 +11,7 @@ class TransientSolver:
         self.__func_space = self.get_function_space()
 
         self.__u0 = self.get_fluid_components()
-        self.__u1 = Function(self.comp_func_spaces)
+        self.__u1 = Function(self.__func_space)
 
         self.add_physics_to_form(self.__u0)
         self.add_time_derivatives(self.__u0)
@@ -43,6 +43,9 @@ class TransientSolver:
 
     def assign_u1_to_u0(self):
         self.fluid_components.assign(self.__u1)
+
+    def assign_u0_to_u1(self):
+        self.__u1.assign(self.fluid_components)
 
     def solve_transport(self, dt_val=1.0, timesteps=1):
         """"""

@@ -9,7 +9,7 @@ class TransientNLSolver(TransientSolver):
         self.__func_space = self.get_function_space()
 
         self.__u0 = self.get_fluid_components()
-        self.__u1 = Function(self.comp_func_spaces)
+        self.__u1 = Function(self.__func_space)
         self.__du = TrialFunction(self.__func_space)
         self._TransientSolver__u1 = self.__u1
 
@@ -59,6 +59,3 @@ class TransientNLSolver(TransientSolver):
         prm[nl_solver_type]['preconditioner'] = preconditioner
 
         set_default_solver_parameters(prm[nl_solver_type]['krylov_solver'])
-
-    def assign_u0_to_u1(self):
-        self.__u1.assign(self.fluid_components)
