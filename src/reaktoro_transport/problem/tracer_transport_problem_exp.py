@@ -22,7 +22,7 @@ class TracerTransportProblemExp(TracerTransportProblem):
 
         self.tracer_forms = [Constant(0.0)*inner(self.__w, u)*self.dx]*super().num_forms
 
-    def save_to_file(self, time: float, is_saving_pv=False):
+    def save_to_file(self, time: float, is_exponentiated=False, is_saving_pv=False):
         """"""
 
         try:
@@ -30,16 +30,21 @@ class TracerTransportProblemExp(TracerTransportProblem):
         except:
             return False
 
+        func_to_save = self.fluid_components
+
         is_appending = True
 
         if self.num_component==1:
-            self.output_assigner.assign(self.output_func_list[0], self.fluid_components)
+            self.output_assigner.assign(self.output_func_list[0], func_to_save)
         else:
-            self.output_assigner.assign(self.output_func_list, self.fluid_components)
+            self.output_assigner.assign(self.output_func_list, func_to_save)
 
         for key, i in self.component_dict.items():
-            self.output_func_list[i].vector()[:] = \
-            np.exp(self.output_func_list[i].vector())
+            if is_exponentiated:
+                pass
+            else:
+                self.output_func_list[i].vector()[:] = \
+                np.exp(self.output_func_list[i].vector())
 
             self.xdmf_obj.write_checkpoint(self.output_func_list[i], key,
                                            time_step=time,
@@ -60,4 +65,7 @@ class TracerTransportProblemExp(TracerTransportProblem):
         if np.any(self.fluid_components.vector() < DOLFIN_EPS):
             raise ValueError('fluid_components contains negative or zero values!')
 
+        self.logarithm_fluid_components()
+
+    def logarithm_fluid_components(self):
         self.fluid_components.vector()[:] = np.log(self.fluid_components.vector())
