@@ -77,6 +77,8 @@ class TracerTransportProblem(TransportProblemBase,
         return self.comp_func_spaces
 
     def get_fluid_components(self):
+        """Get the fluid components as ufl vector."""
+
         return as_vector([self.fluid_components[i] for i in range(self.num_component)])
 
     def initialize_form(self):
