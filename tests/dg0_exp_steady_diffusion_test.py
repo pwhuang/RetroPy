@@ -22,7 +22,6 @@ class DG0ExpSteadyDiffusionTest(TracerTransportProblemExp, DiffusionBenchmark,
 
         self.set_problem_bc()
 
-        TransientNLSolver.__init__(self)
         self.generate_solver()
         self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
 

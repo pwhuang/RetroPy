@@ -5,7 +5,9 @@ class TransientNLSolver(TransientSolver):
 
     num_forms = 1
 
-    def __init__(self):
+    def generate_solver(self, eval_jacobian=True):
+        """"""
+
         self.__func_space = self.get_function_space()
 
         self.__u0 = self.get_fluid_components()
@@ -14,11 +16,8 @@ class TransientNLSolver(TransientSolver):
         self._TransientSolver__u1 = self.__u1
 
         self.add_time_derivatives(self.__u0)
-
-    def generate_solver(self, eval_jacobian=True):
-        """"""
-
         self.add_physics_to_form(self.__u0)
+
         self.__forms = self.get_forms()
         self.__form = self.__forms[0]
 
@@ -34,7 +33,6 @@ class TransientNLSolver(TransientSolver):
         problem = NonlinearVariationalProblem(self.__form, self.__u1, bcs, J)
         self.__solver = NonlinearVariationalSolver(problem)
 
-        # Link to super class
         self._TransientSolver__solver = self.__solver
 
     def evaluate_jacobian(self, form):

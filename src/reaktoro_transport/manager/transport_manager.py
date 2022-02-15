@@ -9,9 +9,9 @@ class TransportManager(TracerTransportProblemExp, DG0Kernel,
                        TransientNLSolver):
     """Manages the default behavior of solving species transport."""
 
-    def __init__(self, mesh, boundary_markers, domain_markers, const_diff):
-        TracerTransportProblemExp.__init__(self, mesh, boundary_markers, domain_markers)
-        self.is_same_diffusivity = const_diff
+    def __init__(self, mesh, boundary_markers, domain_markers):
+        super().__init__(mesh, boundary_markers, domain_markers)
+        self.is_same_diffusivity = False
 
     def add_physics_to_form(self, u, theta_val=0.5, f_id=0):
         """
@@ -54,7 +54,6 @@ class TransportManager(TracerTransportProblemExp, DG0Kernel,
         # self._M_fraction)
 
     def setup_transport_solver(self):
-        TransientNLSolver.__init__(self)
         self.generate_solver(eval_jacobian=False)
         self.set_solver_parameters('gmres', 'amg')
 

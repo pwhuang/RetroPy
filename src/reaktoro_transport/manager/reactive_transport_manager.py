@@ -5,8 +5,8 @@ from dolfin import info, end, MPI
 class ReactiveTransportManager(TransportManager, ReactionManager):
     """Defines the default behavior of solving reactive transport problems."""
 
-    def __init__(self, nx, ny, const_diff):
-        TransportManager.__init__(self, *self.get_mesh_and_markers(nx, ny), const_diff)
+    def __init__(self, mesh, boundary_markers, domain_markers):
+        super().__init__(mesh, boundary_markers, domain_markers)
         self.__MPI_rank = MPI.rank(MPI.comm_world)
 
     def solve_species_transport(self):

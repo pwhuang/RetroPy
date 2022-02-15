@@ -27,7 +27,6 @@ class DG0ExpUpwindAdvectionTest(TracerTransportProblemExp, RotatingCone,
         self.add_implicit_advection(kappa, marker=0, f_id=f_id)
 
     def generate_solver(self):
-        TransientNLSolver.__init__(self)
         super().generate_solver()
         self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
 
