@@ -1,6 +1,10 @@
 from reaktoro_transport.problem import MassBalanceBase
+from reaktoro_transport.manager import ReactionManager
 
-init_cond = MassBalanceBase()
+class EquilibriumProblem(MassBalanceBase, ReactionManager):
+    pass
+
+init_cond = EquilibriumProblem()
 init_cond.set_components('Na+', 'NO3-', 'H+', 'OH-')
 init_cond.set_solvent('H2O(l)')
 
