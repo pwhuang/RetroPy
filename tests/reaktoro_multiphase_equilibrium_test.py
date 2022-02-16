@@ -6,18 +6,27 @@ from reaktoro_transport.problem import MassBalanceBase
 from reaktoro_transport.manager import ReactionManager
 
 class EquilibriumProblem(MassBalanceBase, ReactionManager):
-    pass
+    def set_chem_editor(self, database):
+        editor = super().set_chem_editor(database)
+        self.gaseous_phase = editor.addGaseousPhase(['CO2(g)'])
+
+        return editor
+
+    def set_activity_models(self):
+        self.aqueous_phase.setChemicalModelHKF()
+        self.aqueous_phase.setActivityModelDrummondCO2()
+        self.gaseous_phase.setChemicalModelPengRobinson()
 
 try:
     problem = EquilibriumProblem()
-    problem.set_components('Na+', 'Cl-', 'H+', 'OH-')
+    problem.set_components('Na+', 'Cl-', 'H+', 'OH-', 'CO2(aq)', 'CO3--', 'HCO3-')
     problem.H_idx = problem.component_dict['H+']
     problem.set_solvent('H2O(l)')
     problem.initialize_Reaktoro()
 
-    problem._set_temperature(298, 'K')
+    problem._set_temperature(298.15, 'K')
     problem._set_pressure(101325, 'Pa')
-    problem._set_species_amount([1.0, 1.0, 1e-15, 1e-15, 55.0])
+    problem._set_species_amount([1.0, 1.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 55.0, 1000.0])
 
     problem.solve_chemical_equilibrium()
 

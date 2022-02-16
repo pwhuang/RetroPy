@@ -16,6 +16,8 @@ class ReactionManager:
         self.initiaize_ln_activity()
         self.initialize_fluid_pH()
 
+        self.H_idx = self.component_dict['H+']
+
         num_dof = self.get_num_dof_per_component()
         self.rho_temp = zeros(num_dof)
         self.pH_temp = zeros(num_dof)
@@ -37,7 +39,7 @@ class ReactionManager:
             self.solve_chemical_equilibrium()
 
             self.rho_temp[i] = self._get_fluid_density()*1e-6  #g/mm3
-            self.pH_temp[i] = self._get_fluid_pH(self.H_idx)
+            self.pH_temp[i] = self._get_fluid_pH()
             self.lna_temp[i] = self._get_species_log_activity_coeffs()
             self.molar_density_temp[i] = self._get_species_amounts()
 
@@ -53,17 +55,8 @@ class ReactionManager:
         """
         """
 
-        editor = rkt.ChemicalEditor(rkt.Database(database))
-        aqueous_phase = editor.addAqueousPhase(list(self.component_dict.keys()) + [self.solvent_name])
-        aqueous_phase.setChemicalModelHKF()
-
-        #TODO: write an interface for setting activity models
-        # db = rkt.DebyeHuckelParams()
-        # db.setPHREEQC()
-        #
-        # aqueous_phase.setChemicalModelDebyeHuckel(db)
-        # aqueous_phase.setChemicalModelPitzerHMW()
-        # aqueous_phase.setChemicalModelIdeal()
+        editor = self.set_chem_editor(database)
+        self.set_activity_models()
 
         self.chem_system = rkt.ChemicalSystem(editor)
         self.num_chem_elements = self.chem_system.numElements()
@@ -77,6 +70,15 @@ class ReactionManager:
         self.chem_prop = rkt.ChemicalProperties(self.chem_system)
 
         self.one_over_ln10 = 1.0/log(10.0)
+
+    def set_activity_models(self):
+        self.aqueous_phase.setChemicalModelHKF()
+
+    def set_chem_editor(self, database):
+        editor = rkt.ChemicalEditor(rkt.Database(database))
+        self.aqueous_phase = editor.addAqueousPhase(list(self.component_dict.keys()) + [self.solvent_name])
+
+        return editor
 
     def set_smart_equilibrium_solver(self, reltol=1e-3, amount_fraction_cutoff=1e-14,
                                      mole_fraction_cutoff=1e-14):
@@ -134,9 +136,8 @@ class ReactionManager:
         """The unit of density is kg/m3."""
         return self.chem_prop.phaseDensities().val[0]
 
-    def _get_fluid_pH(self, idx):
-        """The input idx should be the id of H+."""
-        return -self.chem_prop.lnActivities().val[idx]*self.one_over_ln10
+    def _get_fluid_pH(self):
+        return -self.chem_prop.lnActivities().val[self.H_idx]*self.one_over_ln10
 
     def _get_fluid_volume(self):
         """In units of cubic meters."""

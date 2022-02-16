@@ -34,5 +34,10 @@ class MassBalanceBase:
             self.ln_activity_dict[f'lna_{comp_name}'] = idx
 
     def initialize_fluid_pH(self):
+        try:
+            self.component_dict['H+']
+        except:
+            raise Exception('H+ does not exist in the chemcial system.')
+
         self.fluid_pH = Function(self.DG0_space)
         self.fluid_pH.rename('pH', 'fluid_pH')
