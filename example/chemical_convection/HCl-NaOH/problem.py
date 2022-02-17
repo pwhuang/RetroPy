@@ -27,7 +27,6 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory):
         self.set_component_fe_space()
         self.initialize_form()
 
-        self.H_idx = 2
         self.background_pressure = 101325 + 1e-3*9806.65*25 # Pa
 
         HCl_amounts = [1e-13, 1.0, 1.0, 1e-13, 54.17] # micro mol/mm^3 # mol/L

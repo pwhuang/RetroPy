@@ -4,7 +4,7 @@ from problem import Problem
 class Problem(Problem):
     def set_component_properties(self):
         super().set_component_properties()
-        self.set_molecular_diffusivity([3.0e-3]*4) #mm^2/sec
+        self.set_molecular_diffusivity([3.0e-3]*self.num_component) #mm^2/sec
 
 problem = Problem(nx=62, ny=100, const_diff=True)
 problem.generate_output_instance(sys.argv[1])
