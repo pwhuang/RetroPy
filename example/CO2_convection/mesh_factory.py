@@ -5,24 +5,26 @@ from dolfin import (SubDomain, DOLFIN_EPS, refine, MeshFunction, assemble,
 from dolfin import FunctionSpace, TestFunction, FacetArea, Measure
 import numpy as np
 
-class MeshFactory(XDMFMesh, MarkedRectangleMesh):
+class MeshFactory(MarkedRectangleMesh):
     def __init__(self):
         super().__init__()
 
-    def get_mesh_and_markers(self, filepath):
-        try:
-            self.read_mesh(filepath)
-        except:
-            raise Exception('filepath does not contain any mesh.'
-                            'Please run generate_mesh.py ')
+    def get_mesh_and_markers(self, nx, ny):
+        # try:
+        #     self.read_mesh(filepath)
+        # except:
+        #     raise Exception('filepath does not contain any mesh.'
+        #                     'Please run generate_mesh.py ')
 
         self.set_bottom_left_coordinates(coord_x = 0.0, coord_y = 0.0)
-        self.set_top_right_coordinates(coord_x = 165.0, coord_y = 210.0)
+        self.set_top_right_coordinates(coord_x = 100.0, coord_y = 50.0)
+        self.set_number_of_elements(nx, ny)
+        self.set_mesh_type('triangle')
 
+        self.generate_mesh('crossed')
         #self.refine_mesh()
         self.boundary_markers, self.marker_dict = self.generate_boundary_markers()
-        self.set_boundary_markers(self.boundary_markers)
-
+        #self.set_boundary_markers(self.boundary_markers)
         domain_markers = self.generate_domain_markers()
 
         return self.mesh, self.boundary_markers, domain_markers

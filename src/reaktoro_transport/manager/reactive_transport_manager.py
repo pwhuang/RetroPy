@@ -8,6 +8,7 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
     def __init__(self, mesh, boundary_markers, domain_markers):
         super().__init__(mesh, boundary_markers, domain_markers)
         self.__MPI_rank = MPI.rank(MPI.comm_world)
+        self.set_flow_residual(1e-10)
 
     def solve_species_transport(self):
         max_trials = 7
@@ -38,11 +39,14 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
 
         return dt_val
 
+    def set_flow_residual(self, residual):
+        self.flow_residual = residual
+
     def solve_initial_condition(self):
         self.assign_u0_to_u1()
 
         # updates the pressure assuming constant density
-        self.solve_flow(target_residual=1e-10, max_steps=50)
+        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
 
         fluid_comp = np.exp(self.get_solution().vector()[:].reshape(-1, self.num_component))
         pressure = self.fluid_pressure.vector()[:] + self.background_pressure
@@ -50,14 +54,14 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
         self._assign_chem_equi_results()
 
         # updates the pressure and velocity using the density at equilibrium
-        self.solve_flow(target_residual=1e-10, max_steps=50)
+        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
 
     def save_to_file(self, time):
         super().save_to_file(time, is_exponentiated=True, is_saving_pv=True)
         self._save_function(time, self.solvent)
         self._save_function(time, self.fluid_density)
         self._save_function(time, self.fluid_pH)
-        self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
+        # self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
 
     def solve(self, dt_val=1.0, endtime=10.0, time_stamps=[]):
         current_time = 0.0
@@ -95,7 +99,7 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
             pressure = self.fluid_pressure.vector()[:] + self.background_pressure
             self._solve_chem_equi_over_dofs(pressure, fluid_comp)
             self._assign_chem_equi_results()
-            self.solve_flow(target_residual=1e-10, max_steps=20)
+            self.solve_flow(target_residual=self.flow_residual, max_steps=20)
 
             timestep += 1
 

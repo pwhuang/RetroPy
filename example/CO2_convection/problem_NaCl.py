@@ -28,8 +28,8 @@ class BoundaryEquilibriumProblem(MassBalanceBase, ReactionManager):
         self.gaseous_phase.setChemicalModelPengRobinson()
 
 class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
-    def __init__(self, filepath, const_diff):
-        super().__init__(*self.get_mesh_and_markers(filepath))
+    def __init__(self, nx, ny, const_diff):
+        super().__init__(*self.get_mesh_and_markers(nx, ny))
         self.is_same_diffusivity = const_diff
         self.total_gaseous_CO2_amount = 1e5 # mols
 
@@ -66,17 +66,17 @@ class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
 class Problem(ReactiveTransportManager, FlowManager):
     """This class solves the CO2 convection problem."""
 
-    def __init__(self, filepath, const_diff):
-        super().__init__(filepath, const_diff)
+    def __init__(self, nx, ny, const_diff):
+        super().__init__(nx, ny, const_diff)
         self.set_flow_residual(5e-10)
 
     def set_component_properties(self):
-        self.set_molar_mass([6.941, 1.0, 17.0, 44.01, 60.009, 61.0168]) #g/mol
+        self.set_molar_mass([22.99, 35.453, 1.0, 17.0, 44.01, 60.009, 61.0168]) #g/mol
         self.set_solvent_molar_mass(18.0)
-        self.set_charge([1.0, 1.0, -1.0, 0.0, -2.0, -1.0])
+        self.set_charge([1.0, -1.0, 1.0, -1.0, 0.0, -2.0, -1.0])
 
     def define_problem(self):
-        self.set_components('Li+', 'H+', 'OH-', 'CO2(aq)', 'CO3--', 'HCO3-')
+        self.set_components('Na+', 'Cl-', 'H+', 'OH-', 'CO2(aq)', 'CO3--', 'HCO3-')
         self.set_solvent('H2O(l)')
         self.set_component_properties()
 
@@ -85,22 +85,22 @@ class Problem(ReactiveTransportManager, FlowManager):
 
         self.background_pressure = 101325 + 1e-3*9806.65*60 # Pa
 
-        LiOH_amounts = [0.1, 1e-15, 0.1, 1e-15, 1e-15, 1e-15, 55.343] # micro mol/mm^3 # mol/L
+        NaCl_amounts = [2.0, 2.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 53.010] # micro mol/mm^3 # mol/L
 
         init_expr_list = []
 
         for i in range(self.num_component):
-            init_expr_list.append(str(LiOH_amounts[i]))
+            init_expr_list.append(str(NaCl_amounts[i]))
 
         self.set_component_ics(Expression(init_expr_list, degree=1))
-        self.set_solvent_ic(Expression(str(LiOH_amounts[-1]), degree=1))
+        self.set_solvent_ic(Expression(str(NaCl_amounts[-1]), degree=1))
 
     def set_fluid_properties(self):
         self.set_porosity(1.0)
         self.set_fluid_density(1e-3) # Initialization # g/mm^3
-        self.set_fluid_viscosity(8.9e-4)  # Pa sec
+        self.set_fluid_viscosity(1.32e-3)  # Pa sec
         self.set_gravity([0.0, -9806.65]) # mm/sec
-        self.set_permeability(0.5**2/12.0) # mm^2
+        self.set_permeability(1.0**2/12.0) # mm^2
 
     def set_flow_ibc(self):
         self.mark_flow_boundary(pressure = [],
@@ -113,7 +113,7 @@ class Problem(ReactiveTransportManager, FlowManager):
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
-        min_dt, max_dt = 5e-3, 1.5
+        min_dt, max_dt = 5e-3, 3.0
 
         if (dt_val := dt_val*1.1) > max_dt:
             dt_val = max_dt
