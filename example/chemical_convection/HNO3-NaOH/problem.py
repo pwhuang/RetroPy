@@ -27,7 +27,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory):
         self.set_component_fe_space()
         self.initialize_form()
 
-        self.background_pressure = 101325 + 1e-3*9806.65*45 # Pa
+        self.background_pressure = 1e5 + 1e-3*9806.65*45 # Pa
 
         HNO3_amounts = [1e-15, 1.5, 1.5, 1e-13, 52.712] # micro mol/mm^3
         NaOH_amounts = [1.4, 1e-15, 1e-15, 1.4, 55.361]
@@ -42,7 +42,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory):
 
     def set_fluid_properties(self):
         self.set_porosity(1.0)
-        self.set_fluid_density(1e-3) # Initialization # g/mm^3
+        self.set_fluid_density((1.232e-3 + 0.933e-3)*0.5) # Initialization # g/mm^3
         self.set_fluid_viscosity(8.9e-4)  # Pa sec
         self.set_gravity([0.0, -9806.65]) # mm/sec
         self.set_permeability(1.2**2/12.0) # mm^2

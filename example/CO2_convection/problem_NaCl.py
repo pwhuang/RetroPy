@@ -39,7 +39,7 @@ class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
 
         self.aux_equi_problem.initialize_Reaktoro()
         self.aux_equi_problem._set_temperature(298.15, 'K')
-        self.aux_equi_problem._set_pressure(101325, 'Pa')
+        self.aux_equi_problem._set_pressure(1e5, 'Pa')
 
     def set_dof_idx(self):
         self.boundary_cell_idx, self.dof_idx = self.mark_inflow_boundary_cells()
@@ -83,7 +83,7 @@ class Problem(ReactiveTransportManager, FlowManager):
         self.set_component_fe_space()
         self.initialize_form()
 
-        self.background_pressure = 101325 + 1e-3*9806.65*60 # Pa
+        self.background_pressure = 1e5 + 1e-3*9806.65*25.0 # Pa
 
         NaCl_amounts = [2.0, 2.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 53.010] # micro mol/mm^3 # mol/L
 

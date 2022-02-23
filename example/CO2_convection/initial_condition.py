@@ -10,7 +10,7 @@ init_cond.set_solvent('H2O(l)')
 
 init_cond.initialize_Reaktoro()
 init_cond._set_temperature(298.15, 'K')
-init_cond._set_pressure(1.0, 'atm')
+init_cond._set_pressure(1e5, 'Pa')
 init_cond._set_species_amount([0.01, 1e-15, 0.01, 55.345])
 
 init_cond.solve_chemical_equilibrium()
@@ -28,7 +28,7 @@ init_cond.set_solvent('H2O(l)')
 
 init_cond.initialize_Reaktoro()
 init_cond._set_temperature(298.15, 'K')
-init_cond._set_pressure(1.0, 'atm')
+init_cond._set_pressure(1e5, 'Pa')
 init_cond._set_species_amount([2.0, 2.0, 1e-15, 1e-15, 53.010])
 
 init_cond.solve_chemical_equilibrium()

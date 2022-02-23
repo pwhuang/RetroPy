@@ -39,7 +39,7 @@ class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
 
         self.aux_equi_problem.initialize_Reaktoro()
         self.aux_equi_problem._set_temperature(298.15, 'K')
-        self.aux_equi_problem._set_pressure(101325, 'Pa')
+        self.aux_equi_problem._set_pressure(1e5, 'Pa')
 
     def set_dof_idx(self):
         self.boundary_cell_idx, self.dof_idx = self.mark_inflow_boundary_cells()
@@ -83,7 +83,7 @@ class Problem(ReactiveTransportManager, FlowManager):
         self.set_component_fe_space()
         self.initialize_form()
 
-        self.background_pressure = 101325 + 1e-3*9806.65*60 # Pa
+        self.background_pressure = 1e5 + 1e-3*9806.65*25.0 # Pa
 
         LiOH_amounts = [0.1, 1e-15, 0.1, 1e-15, 1e-15, 1e-15, 55.343] # micro mol/mm^3 # mol/L
 
@@ -98,7 +98,7 @@ class Problem(ReactiveTransportManager, FlowManager):
     def set_fluid_properties(self):
         self.set_porosity(1.0)
         self.set_fluid_density(1e-3) # Initialization # g/mm^3
-        self.set_fluid_viscosity(8.9e-4)  # Pa sec
+        self.set_fluid_viscosity(0.893e-3)  # Pa sec
         self.set_gravity([0.0, -9806.65]) # mm/sec
         self.set_permeability(0.5**2/12.0) # mm^2
 
