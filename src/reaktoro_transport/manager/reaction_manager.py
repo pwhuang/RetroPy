@@ -38,13 +38,13 @@ class ReactionManager:
             self._set_species_amount(list(fluid_comp[i]) + [self.solvent.vector()[i]])
             self.solve_chemical_equilibrium()
 
-            self.rho_temp[i] = self._get_fluid_density()*1e-6  #g/mm3
+            self.rho_temp[i] = self._get_fluid_density()
             self.pH_temp[i] = self._get_fluid_pH()
             self.lna_temp[i] = self._get_species_log_activity_coeffs()
             self.molar_density_temp[i] = self._get_species_amounts()
 
     def _assign_chem_equi_results(self):
-        self.fluid_density.vector()[:] = self.rho_temp
+        self.fluid_density.vector()[:] = self.rho_temp*1e-6  #kg/m3 -> g/mm3
         self.fluid_pH.vector()[:] = self.pH_temp
         self.ln_activity.vector()[:] = self.lna_temp[:, :-1].flatten()
 
