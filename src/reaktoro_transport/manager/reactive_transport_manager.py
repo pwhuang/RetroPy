@@ -67,6 +67,7 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
         current_time = 0.0
         timestep = 1
         saved_times = []
+        flow_residuals = []
         self.trial_count = 0
 
         time_stamps.append(endtime)
@@ -78,6 +79,7 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
         self.logarithm_fluid_components()
 
         saved_times.append(current_time)
+        flow_residuals.append(self.get_flow_residual())
         save_interval = 1
 
         while current_time < endtime:
@@ -115,8 +117,11 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
             if timestep % save_interval == 0:
                 self.save_to_file(time=current_time)
                 saved_times.append(current_time)
+                flow_residuals.append(self.get_flow_residual())
+
 
             self.logarithm_fluid_components()
 
         if self.__MPI_rank==0:
-            np.save(self.output_file_name, np.array(saved_times), allow_pickle=False)
+            np.save(self.output_file_name + '_time', np.array(saved_times), allow_pickle=False)
+            np.save(self.output_file_name + '_flow_res', np.array(flow_residuals), allow_pickle=False)
