@@ -71,8 +71,8 @@ class Problem(ReactiveTransportManager, FlowManager):
         self.set_flow_residual(5e-10)
 
     def set_component_properties(self):
-        self.set_molar_mass([6.941, 1.0, 17.0, 44.01, 60.009, 61.0168]) #g/mol
-        self.set_solvent_molar_mass(18.0)
+        self.set_molar_mass([6.941, 1.00794, 17.00734, 44.0095, 60.0089, 61.01684]) #g/mol
+        self.set_solvent_molar_mass(18.0153)
         self.set_charge([1.0, 1.0, -1.0, 0.0, -2.0, -1.0])
 
     def define_problem(self):

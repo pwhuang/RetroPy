@@ -15,8 +15,8 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory):
         self.is_same_diffusivity = const_diff
 
     def set_component_properties(self):
-        self.set_molar_mass([22.99, 35.453, 1.0, 17.0]) #g/mol
-        self.set_solvent_molar_mass(18.0)
+        self.set_molar_mass([22.98977, 35.453, 1.00794, 17.00734]) #g/mol
+        self.set_solvent_molar_mass(18.0153)
         self.set_charge([1.0, -1.0, 1.0, -1.0])
 
     def define_problem(self):
