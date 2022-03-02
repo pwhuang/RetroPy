@@ -28,8 +28,8 @@ class BoundaryEquilibriumProblem(MassBalanceBase, ReactionManager):
         self.gaseous_phase.setChemicalModelPengRobinson()
 
 class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
-    def __init__(self, filepath, const_diff):
-        super().__init__(*self.get_mesh_and_markers(filepath))
+    def __init__(self, nx, ny, const_diff):
+        super().__init__(*self.get_mesh_and_markers(nx, ny))
         self.is_same_diffusivity = const_diff
         self.total_gaseous_CO2_amount = 1e5 # mols
 
@@ -58,7 +58,7 @@ class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
 
             self.aux_equi_problem.solve_chemical_equilibrium()
 
-            self.rho_temp[i] = self.aux_equi_problem._get_fluid_density()*1e-6  #g/mm3
+            self.rho_temp[i] = self.aux_equi_problem._get_fluid_density()
             self.pH_temp[i] = self.aux_equi_problem._get_fluid_pH()
             self.lna_temp[i] = self.aux_equi_problem._get_species_log_activity_coeffs()[:-1]
             self.molar_density_temp[i] = self.aux_equi_problem._get_species_amounts()[:-1]
@@ -66,8 +66,8 @@ class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
 class Problem(ReactiveTransportManager, FlowManager):
     """This class solves the CO2 convection problem."""
 
-    def __init__(self, filepath, const_diff):
-        super().__init__(filepath, const_diff)
+    def __init__(self, nx, ny, const_diff):
+        super().__init__(nx, ny, const_diff)
         self.set_flow_residual(5e-10)
 
     def set_component_properties(self):
@@ -85,7 +85,7 @@ class Problem(ReactiveTransportManager, FlowManager):
 
         self.background_pressure = 1e5 + 1e-3*9806.65*25.0 # Pa
 
-        LiOH_amounts = [0.1, 1e-15, 0.1, 1e-15, 1e-15, 1e-15, 55.343] # micro mol/mm^3 # mol/L
+        LiOH_amounts = [0.01, 1e-15, 0.01, 1e-15, 1e-15, 1e-15, 55.345] # micro mol/mm^3 # mol/L
 
         init_expr_list = []
 

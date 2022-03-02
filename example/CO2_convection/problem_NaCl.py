@@ -58,7 +58,7 @@ class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
 
             self.aux_equi_problem.solve_chemical_equilibrium()
 
-            self.rho_temp[i] = self.aux_equi_problem._get_fluid_density()*1e-6  #g/mm3
+            self.rho_temp[i] = self.aux_equi_problem._get_fluid_density()
             self.pH_temp[i] = self.aux_equi_problem._get_fluid_pH()
             self.lna_temp[i] = self.aux_equi_problem._get_species_log_activity_coeffs()[:-1]
             self.molar_density_temp[i] = self.aux_equi_problem._get_species_amounts()[:-1]

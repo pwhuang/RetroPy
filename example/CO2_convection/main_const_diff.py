@@ -6,14 +6,14 @@ class Problem(Problem):
         super().set_component_properties()
         self.set_molecular_diffusivity([3.0e-3]*self.num_component)
 
-problem = Problem(nx=200, ny=100, const_diff=False)
+problem = Problem(nx=100, ny=50, const_diff=True)
 problem.generate_output_instance(sys.argv[1])
 
 problem.define_problem()
-problem.setup_flow_solver(r_val=5e6, omega_by_r=1.0)
+problem.setup_flow_solver(r_val=8e6, omega_by_r=1.0)
 problem.setup_reaction_solver()
 problem.setup_auxiliary_reaction_solver()
 problem.setup_transport_solver()
 
 time_stamps = [780.0]
-problem.solve(dt_val=1e-1, endtime=960.0, time_stamps=time_stamps)
+problem.solve(dt_val=3e-2, endtime=960.0, time_stamps=time_stamps)

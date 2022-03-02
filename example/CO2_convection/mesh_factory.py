@@ -24,7 +24,6 @@ class MeshFactory(MarkedRectangleMesh):
         self.generate_mesh('crossed')
         #self.refine_mesh()
         self.boundary_markers, self.marker_dict = self.generate_boundary_markers()
-        #self.set_boundary_markers(self.boundary_markers)
         domain_markers = self.generate_domain_markers()
 
         return self.mesh, self.boundary_markers, domain_markers
