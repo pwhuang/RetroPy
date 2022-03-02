@@ -107,7 +107,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
     def solve_flow(self, target_residual: float, max_steps: int):
         steps = 0
 
-        while (residual := self.get_residual()) > target_residual\
+        while (residual := self.get_flow_residual()) > target_residual\
                and steps < max_steps:
 
             if (MPI.rank(MPI.comm_world)==0):

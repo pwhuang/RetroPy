@@ -40,7 +40,7 @@ for nx in list_of_nx:
     v_err_norms.append(velocity_error_norm)
     element_diameters.append(problem.get_mesh_characterisitic_length())
 
-    print(problem.get_residual())
+    print(problem.get_flow_residual())
 
 
 convergence_rate_p = convergence_rate(p_err_norms, element_diameters)

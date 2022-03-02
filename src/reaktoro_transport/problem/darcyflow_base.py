@@ -81,7 +81,7 @@ class DarcyFlowBase(FluidProperty):
         for source in sources:
             self.residual_momentum_form -= inner(v, source)*self.dx
 
-    def get_residual(self):
+    def get_flow_residual(self):
         """"""
 
         u0 = self.fluid_velocity
