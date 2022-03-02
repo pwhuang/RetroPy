@@ -16,6 +16,7 @@ init_cond._set_species_amount([0.01, 1e-15, 0.01, 55.345])
 init_cond.solve_chemical_equilibrium()
 
 print(f"The LiOH solution (0.01M) has the volume of {init_cond._get_fluid_volume()*1e3} Liters.")
+print(f"The LiOH solution has the density of {init_cond._get_fluid_density()} kg/m3.")
 
 init_cond._set_species_amount([0.1, 1e-15, 0.1, 55.343])
 init_cond.solve_chemical_equilibrium()
