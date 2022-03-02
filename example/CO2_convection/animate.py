@@ -12,14 +12,14 @@ class Animate(AnimateDG0Function):
         scalar_min = np.min(self.scalar_to_animate.flatten())
         scalar_max = np.max(self.scalar_to_animate.flatten())
 
-        self.fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+        self.fig, ax = plt.subplots(1, 1, figsize=(10, 3))
         cbar = ax.tripcolor(self.p_x, self.p_y, self.triangulation,
                             self.scalar_to_animate[0], cmap='Spectral',
                             vmin=scalar_min, vmax=scalar_max)
         #ax.triplot(p_x, p_y, triangulation, c='w', lw=0.3, alpha=0.4)
         ax.set_aspect('equal')
-        ax.set_xlim(0.0, 120.0)
-        ax.set_ylim(0.0, 120.0)
+        ax.set_xlim(0.0, 86.0)
+        ax.set_ylim(0.0, 25.0)
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='3%', pad='5%')
@@ -52,4 +52,4 @@ if is_preview==1:
     plt.show()
 else:
     ani.init_animation()
-    ani.save_animation(out_path, dpi=600)
+    ani.save_animation(out_path, dpi=300)
