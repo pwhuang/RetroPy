@@ -22,17 +22,15 @@ class TracerTransportProblemExp(TracerTransportProblem):
 
         self.tracer_forms = [Constant(0.0)*inner(self.__w, u)*self.dx]*super().num_forms
 
-    def save_to_file(self, time: float, is_exponentiated=False, is_saving_pv=False):
+    def save_to_file(self, time, is_exponentiated=False, is_saving_pv=False):
         """"""
 
         try:
-            self.xdmf_obj
+            self.outputter
         except:
             return False
 
         func_to_save = self.fluid_components
-
-        is_appending = True
 
         if self.num_component==1:
             self.output_assigner.assign(self.output_func_list[0], func_to_save)
@@ -46,13 +44,11 @@ class TracerTransportProblemExp(TracerTransportProblem):
                 self.output_func_list[i].vector()[:] = \
                 np.exp(self.output_func_list[i].vector())
 
-            self.xdmf_obj.write_checkpoint(self.output_func_list[i], key,
-                                           time_step=time,
-                                           append=is_appending)
+            self.write_function(self.output_func_list[i], key, time)
 
         if is_saving_pv:
-            self.save_fluid_pressure(time, is_appending)
-            self.save_fluid_velocity(time, is_appending)
+            self.save_fluid_pressure(time)
+            self.save_fluid_velocity(time)
 
         return True
 

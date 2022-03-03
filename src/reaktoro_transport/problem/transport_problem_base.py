@@ -2,7 +2,7 @@ from . import *
 from ..mesh import MarkerCollection
 from numpy import array
 
-class TransportProblemBase():
+class TransportProblemBase:
     """Base class for all problems that use FeNiCs."""
 
     def set_mesh(self, mesh, option='cell_centered', periodic_bcs=None):
@@ -137,39 +137,14 @@ class TransportProblemBase():
                 obj.write_checkpoint(func, func.name(),
                                      time_step=0, append=True)
 
-    def save_fluid_pressure(self, time_step, is_appending):
-        self.xdmf_obj.write_checkpoint(self.fluid_pressure,
-                                       self.fluid_pressure.name(),
-                                       time_step=time_step,
-                                       append=is_appending)
+    def save_fluid_pressure(self, time_step):
+        self.write_function(self.fluid_pressure, self.fluid_pressure.name(),
+                            time_step)
 
-    def save_fluid_velocity(self, time_step, is_appending):
+    def save_fluid_velocity(self, time_step):
         self.fluid_vel_to_save = interpolate(self.fluid_velocity, self.Vec_DG0_space)
-        self.xdmf_obj.write_checkpoint(self.fluid_vel_to_save,
-                                       self.fluid_velocity.name(),
-                                       time_step=time_step,
-                                       append=is_appending)
-
-    def generate_output_instance(self, file_name: str):
-        self.output_file_name = file_name
-
-        self.xdmf_obj = XDMFFile(MPI.comm_world, file_name + '.xdmf')
-        self.xdmf_obj.write(self.mesh)
-
-        self.xdmf_obj.parameters['flush_output'] = True
-        self.xdmf_obj.parameters['functions_share_mesh'] = True
-        self.xdmf_obj.parameters['rewrite_function_mesh'] = False
-
-        return True
-
-    def delete_output_instance(self):
-        try:
-            self.xdmf_obj
-        except:
-            return False
-
-        self.xdmf_obj.close()
-        return True
+        self.write_function(self.fluid_vel_to_save, self.fluid_velocity.name(),
+                            time_step)
 
     @staticmethod
     def set_default_solver_parameters(prm):

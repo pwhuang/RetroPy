@@ -4,6 +4,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from mesh_factory import MeshFactory
 from reaktoro_transport.manager import DarcyFlowManagerUzawa as FlowManager
 from reaktoro_transport.manager import ReactiveTransportManager
+from reaktoro_transport.manager import HDF5Manager as OutputManager
 
 from reaktoro_transport.problem import MassBalanceBase
 from reaktoro_transport.manager import ReactionManager
@@ -63,7 +64,7 @@ class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
             self.lna_temp[i] = self.aux_equi_problem._get_species_log_activity_coeffs()[:-1]
             self.molar_density_temp[i] = self.aux_equi_problem._get_species_amounts()[:-1]
 
-class Problem(ReactiveTransportManager, FlowManager):
+class Problem(ReactiveTransportManager, FlowManager, OutputManager):
     """This class solves the CO2 convection problem."""
 
     def __init__(self, nx, ny, const_diff):

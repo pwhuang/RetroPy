@@ -58,9 +58,9 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
 
     def save_to_file(self, time):
         super().save_to_file(time, is_exponentiated=True, is_saving_pv=True)
-        self._save_function(time, self.solvent)
-        self._save_function(time, self.fluid_density)
-        self._save_function(time, self.fluid_pH)
+        self.write_function(self.solvent, self.solvent.name(), time)
+        self.write_function(self.fluid_density, self.fluid_density.name(), time)
+        self.write_function(self.fluid_pH, self.fluid_pH.name(), time)
         # self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
 
     def solve(self, dt_val=1.0, endtime=10.0, time_stamps=[]):
@@ -81,6 +81,7 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
         saved_times.append(current_time)
         flow_residuals.append(self.get_flow_residual())
         save_interval = 1
+        flush_interval = 25
 
         while current_time < endtime:
             if self.__MPI_rank==0:
@@ -119,6 +120,8 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
                 saved_times.append(current_time)
                 flow_residuals.append(self.get_flow_residual())
 
+            if timestep % flush_interval == 0:
+                self.flush_output()
 
             self.logarithm_fluid_components()
 
