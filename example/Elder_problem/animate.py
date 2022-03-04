@@ -12,10 +12,13 @@ class Animate(AnimateDG0Function):
 
         self.fig, ax = plt.subplots(1, 1, figsize=(8, 2))
         cbar = ax.tripcolor(self.p_x, self.p_y, self.triangulation,
-                            self.scalar_to_animate[-1], cmap='Spectral_r',
+                            self.scalar_to_animate[0], cmap='Spectral_r',
                             vmin=scalar_min, vmax=scalar_max)
 
         #ax.triplot(p_x, p_y, triangulation, c='w', lw=0.3, alpha=0.4)
+        self.time_unit = ' (-)'
+        ax.set_title(f'time = {self.times_to_animate[0]:.3f}' + self.time_unit)
+
         ax.set_aspect('equal')
         ax.set_xlim(0.0, 4.0)
         ax.set_ylim(0.0, 1.0)
@@ -27,7 +30,7 @@ class Animate(AnimateDG0Function):
         #ax.axis('off')
         plt.tight_layout()
 
-        return cbar
+        return cbar, ax
 
 in_path, out_path, keys = 'elder_problem', 'elder_problem_temp.mp4', 'Temp'
 t_start_id, t_end_id = 0, 49
@@ -39,6 +42,7 @@ ani.open(in_path)
 ani.load_scalar_function(keys, t_start_id, t_end_id)
 ani.interpolate_over_time()
 ani.init_matplotlib()
+ani.set_time_scale(scaling_factor=1.0, unit=' (-)')
 
 if is_preview==1:
     plt.show()

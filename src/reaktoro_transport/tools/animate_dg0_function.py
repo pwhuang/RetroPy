@@ -46,7 +46,7 @@ class AnimateDG0Function:
         endtime = self.times[-1]
         duration = (endtime - starttime)/self.playback_rate
 
-        total_frames = int(self.fps*duration)
+        total_frames = int(np.ceil(self.fps*duration))
         self.times_to_animate = np.linspace(starttime, endtime, total_frames)
         self.frame_id = np.arange(0, total_frames)
 
@@ -57,15 +57,20 @@ class AnimateDG0Function:
     def init_matplotlib(self):
         pass
 
+    def set_time_scale(self, scaling_factor, unit):
+        self.scaling_factor = scaling_factor
+        self.time_unit = unit
+
     def init_animation(self):
-        cbar = self.init_matplotlib()
+        cbar, ax = self.init_matplotlib()
 
         def init():
-            return cbar,
+            return cbar, ax
 
         def update(i):
             cbar.set_array(self.scalar_to_animate[i])
-            return cbar,
+            ax.set_title(f'time = {self.times_to_animate[i]*self.scaling_factor:.3f}' + self.time_unit)
+            return cbar, ax
 
         self.ani = FuncAnimation(self.fig, update, frames=self.frame_id,
                                  init_func=init, repeat=False, cache_frame_data=False)
