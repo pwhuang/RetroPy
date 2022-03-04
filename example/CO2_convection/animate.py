@@ -28,7 +28,7 @@ class Animate(AnimateDG0Function):
         ax.axis('off')
         plt.tight_layout()
 
-        return cbar
+        return cbar, ax
 
     def generate_color_map(self):
         colors = np.load('../../pH_colormap.npy')
