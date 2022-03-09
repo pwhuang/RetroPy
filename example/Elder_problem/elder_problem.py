@@ -5,10 +5,11 @@ from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.problem import TracerTransportProblem, DarcyFlowMixedPoisson
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import TransientSolver
+from reaktoro_transport.manager import XDMFManager
 
-from dolfin import Constant, Function
-from dolfin import SubDomain, near, DOLFIN_EPS
+from dolfin import (Constant, Function, MPI, SubDomain, near, DOLFIN_EPS)
 from ufl import as_vector
+import numpy as np
 
 class MeshFactory(MarkedRectangleMesh):
     class BottomHalfBoundary(SubDomain):
@@ -122,7 +123,7 @@ class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
         self.solve_one_step()
         self.assign_u1_to_u0()
 
-class ElderProblem(TransportManager, FlowManager, MeshFactory):
+class ElderProblem(TransportManager, FlowManager, MeshFactory, XDMFManager):
     """
     This is an example of solving the Elder problem using the Boussinesq approx-
     imation. Note that we set the fluid density to 1, and utilize the
@@ -139,12 +140,17 @@ class ElderProblem(TransportManager, FlowManager, MeshFactory):
 
     def solve(self, dt_val=1.0, timesteps=1):
         self.set_dt(dt_val)
+        saved_times = []
 
         for i in range(timesteps):
             self.solve_transport()
             self.solve_flow(target_residual=5e-10, max_steps=5)
 
             self.save_to_file(time=(i+1)*dt_val, is_saving_pv=True)
+            saved_times.append((i+1)*dt_val)
+
+        if MPI.rank(MPI.comm_world)==0:
+            np.save(self.output_file_name + '_time', np.array(saved_times), allow_pickle=False)
 
 
 problem = ElderProblem(nx=60, ny=15)

@@ -267,37 +267,27 @@ class TracerTransportProblem(TransportProblemBase,
     def get_dirichlet_bcs(self):
         return self.__dirichlet_bcs
 
-    def save_to_file(self, time: float, is_saving_pv=False):
+    def save_to_file(self, time, is_saving_pv=False):
         """"""
 
         try:
-            self.xdmf_obj
+            self.outputter
         except:
             return False
-
-        is_appending = True
 
         self._save_mixed_function(time, self.fluid_components, self.component_dict)
 
         if is_saving_pv:
-            self.save_fluid_pressure(time, is_appending)
-            self.save_fluid_velocity(time, is_appending)
+            self.save_fluid_pressure(time)
+            self.save_fluid_velocity(time)
 
         return True
 
-    def _save_function(self, time, func_to_save):
-        self.xdmf_obj.write_checkpoint(func_to_save, func_to_save.name(),
-                                       time_step=time, append=True)
-
     def _save_mixed_function(self, time, func_to_save, name_dict):
-        is_appending = True
-
         if self.num_component==1:
             self.output_assigner.assign(self.output_func_list[0], func_to_save)
         else:
             self.output_assigner.assign(self.output_func_list, func_to_save)
 
         for key, i in name_dict.items():
-            self.xdmf_obj.write_checkpoint(self.output_func_list[i], key,
-                                           time_step=time,
-                                           append=is_appending)
+            self.write_function(self.output_func_list[i], key, time)

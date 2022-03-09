@@ -17,9 +17,13 @@ class Animate(AnimateDG0Function):
                             self.scalar_to_animate[0], cmap='Spectral',
                             vmin=scalar_min, vmax=scalar_max)
         #ax.triplot(p_x, p_y, triangulation, c='w', lw=0.3, alpha=0.4)
-        ax.set_aspect('equal')
+
+        self.time_unit = ' min'
+        ax.set_title(f'time = {self.times_to_animate[0]/60.0:.3f}' + self.time_unit)
+
         ax.set_xlim(0.0, 51.0)
         ax.set_ylim(12.0, 37.0)
+        ax.set_aspect('equal')
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='3%', pad='5%')
@@ -28,7 +32,7 @@ class Animate(AnimateDG0Function):
         ax.axis('off')
         plt.tight_layout()
 
-        return cbar
+        return cbar, ax
 
     def generate_color_map(self):
         colors = np.load('../../pH_colormap.npy')
@@ -47,9 +51,10 @@ ani.open(in_path)
 ani.load_scalar_function(keys, t_start_id, t_end_id)
 ani.interpolate_over_time()
 ani.init_matplotlib()
+ani.set_time_scale(scaling_factor=1.0/60.0, unit=' minutes')
 
 if is_preview==1:
     plt.show()
 else:
     ani.init_animation()
-    ani.save_animation(out_path, dpi=200)
+    ani.save_animation(out_path, dpi=300)

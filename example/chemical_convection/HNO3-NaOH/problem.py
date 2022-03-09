@@ -4,10 +4,11 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from mesh_factory import MeshFactory
 from reaktoro_transport.manager import DarcyFlowManagerUzawa as FlowManager
 from reaktoro_transport.manager import ReactiveTransportManager
+from reaktoro_transport.manager import HDF5Manager as OutputManager
 
 from dolfin import Expression, Constant
 
-class Problem(ReactiveTransportManager, FlowManager, MeshFactory):
+class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager):
     """This class solves the chemically driven convection problem."""
 
     def __init__(self, nx, ny, const_diff):

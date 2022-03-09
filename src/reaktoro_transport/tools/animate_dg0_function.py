@@ -11,7 +11,7 @@ class AnimateDG0Function:
 
     def open(self, filepath):
         self.file_handle = h5py.File(f'{filepath}.h5', 'r')
-        self.times = np.load(f'{filepath}.npy')
+        self.times = np.load(f'{filepath}_time.npy')
 
         print(self.times.shape)
         self.__init_mesh_geometry()
@@ -42,10 +42,13 @@ class AnimateDG0Function:
         self.scalar_list = np.array(self.scalar_list)
 
         self.times = self.times[t_start_id:t_end_id+1]
-        duration = (self.times[t_end_id] - self.times[t_start_id])/self.playback_rate
-        self.total_frames = int(self.fps*duration)
-        self.times_to_animate = np.linspace(self.times[t_start_id], self.times[t_end_id], self.total_frames)
-        self.t_id_animate = np.arange(0, self.times_to_animate.shape[0])
+        starttime = self.times[0]
+        endtime = self.times[-1]
+        duration = (endtime - starttime)/self.playback_rate
+
+        total_frames = int(np.ceil(self.fps*duration))
+        self.times_to_animate = np.linspace(starttime, endtime, total_frames)
+        self.frame_id = np.arange(0, total_frames)
 
     def interpolate_over_time(self):
         lin_interp = interp1d(self.times, self.scalar_list.T, kind='linear')
@@ -54,17 +57,22 @@ class AnimateDG0Function:
     def init_matplotlib(self):
         pass
 
+    def set_time_scale(self, scaling_factor, unit):
+        self.scaling_factor = scaling_factor
+        self.time_unit = unit
+
     def init_animation(self):
-        cbar = self.init_matplotlib()
+        cbar, ax = self.init_matplotlib()
 
         def init():
-            return cbar,
+            return cbar, ax
 
         def update(i):
             cbar.set_array(self.scalar_to_animate[i])
-            return cbar,
+            ax.set_title(f'time = {self.times_to_animate[i]*self.scaling_factor:.3f}' + self.time_unit)
+            return cbar, ax
 
-        self.ani = FuncAnimation(self.fig, update, frames=self.t_id_animate,
+        self.ani = FuncAnimation(self.fig, update, frames=self.frame_id,
                                  init_func=init, repeat=False, cache_frame_data=False)
 
     def save_animation(self, filepath, dpi):

@@ -3,6 +3,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 
 from reaktoro_transport.physics import DG0Kernel, FluxLimiterCollection
 from reaktoro_transport.solver import TransientSolver
+from reaktoro_transport.manager import XDMFManager
 
 from benchmarks import RotatingCone
 
@@ -10,7 +11,8 @@ from dolfin import Constant, assemble, Function
 from math import isclose
 from ufl import tanh
 
-class DG0ImplicitFluxLimitAdvectionTest(RotatingCone, DG0Kernel, TransientSolver):
+class DG0ImplicitFluxLimitAdvectionTest(RotatingCone, DG0Kernel,
+                                        TransientSolver, XDMFManager):
     def __init__(self, nx, is_output=False):
         super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
