@@ -41,16 +41,16 @@ class MarkedRectangleMesh(MarkerCollection):
 
         return self.mesh
 
-    def generate_boundary_markers(self):
+    def generate_boundary_markers(self, boundary_eps=1e-8):
         self.boundary_markers = MeshFunction('size_t', self.mesh,
                                              dim=self.mesh.geometric_dimension()-1)
 
         self.boundary_markers.set_all(0)
 
-        right_marker = self.RightBoundary(self.xmax)
-        top_marker = self.TopBoundary(self.ymax)
-        left_marker = self.LeftBoundary(self.xmin)
-        bottom_marker = self.BottomBoundary(self.ymin)
+        right_marker = self.RightBoundary(self.xmax, boundary_eps)
+        top_marker = self.TopBoundary(self.ymax, boundary_eps)
+        left_marker = self.LeftBoundary(self.xmin, boundary_eps)
+        bottom_marker = self.BottomBoundary(self.ymin, boundary_eps)
 
         right_marker.mark(self.boundary_markers, 1)
         top_marker.mark(self.boundary_markers, 2)
@@ -69,7 +69,7 @@ class MarkedRectangleMesh(MarkerCollection):
 
         return self.domain_markers
 
-    def plot_boundary_markers(self, ax, colormap='Blues'):
+    def plot_boundary_markers(self, ax, s=20, colormap='Blues'):
         """Plots boundary markers given matplotlib AxesSubpot instance."""
 
         cr_space = FunctionSpace(self.mesh, 'CR', 1)
@@ -79,6 +79,6 @@ class MarkedRectangleMesh(MarkerCollection):
         coord_y = cr_space.tabulate_dof_coordinates()[cr_dof, 1]
 
         cb = ax.scatter(coord_x, coord_y,
-                        c=self.boundary_markers.array(), cmap=colormap)
+                        c=self.boundary_markers.array(), cmap=colormap, s=s)
 
         return cb

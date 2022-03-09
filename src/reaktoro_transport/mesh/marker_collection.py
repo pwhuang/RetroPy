@@ -5,52 +5,58 @@ class MarkerCollection:
     """This class collects simple boundary marker instances."""
 
     class LeftBoundary(SubDomain):
-        def __init__(self, xmin):
+        def __init__(self, xmin, boundary_eps=1e-8):
             super().__init__()
             self.xmin = xmin
+            self.boundary_eps = boundary_eps
 
         def inside(self, x, on_boundary):
-            return on_boundary and near(x[0], self.xmin, DOLFIN_EPS)
+            return on_boundary and near(x[0], self.xmin, self.boundary_eps)
 
     class RightBoundary(SubDomain):
-        def __init__(self, xmax):
+        def __init__(self, xmax, boundary_eps=1e-8):
             super().__init__()
             self.xmax = xmax
+            self.boundary_eps = boundary_eps
 
         def inside(self, x, on_boundary):
-            return on_boundary and near(x[0], self.xmax, DOLFIN_EPS)
+            return on_boundary and near(x[0], self.xmax, self.boundary_eps)
 
     class BottomBoundary(SubDomain):
-        def __init__(self, ymin):
+        def __init__(self, ymin, boundary_eps=1e-8):
             super().__init__()
             self.ymin = ymin
+            self.boundary_eps = boundary_eps
 
         def inside(self, x, on_boundary):
-            return on_boundary and near(x[1], self.ymin, DOLFIN_EPS)
+            return on_boundary and near(x[1], self.ymin, self.boundary_eps)
 
     class TopBoundary(SubDomain):
-        def __init__(self, ymax):
+        def __init__(self, ymax, boundary_eps=1e-8):
             super().__init__()
             self.ymax = ymax
+            self.boundary_eps = boundary_eps
 
         def inside(self, x, on_boundary):
-            return on_boundary and near(x[1], self.ymax, DOLFIN_EPS)
+            return on_boundary and near(x[1], self.ymax, self.boundary_eps)
 
     class FrontBoundary(SubDomain):
-        def __init__(self, zmin):
+        def __init__(self, zmin, boundary_eps=1e-8):
             super().__init__()
             self.zmin = zmin
+            self.boundary_eps = boundary_eps
 
         def inside(self, x, on_boundary):
-            return on_boundary and near(x[2], self.zmin, DOLFIN_EPS)
+            return on_boundary and near(x[2], self.zmin, self.boundary_eps)
 
     class BackBoundary(SubDomain):
-        def __init__(self, zmax):
+        def __init__(self, zmax, boundary_eps=1e-8):
             super().__init__()
             self.zmax = zmax
+            self.boundary_eps = boundary_eps
 
         def inside(self, x, on_boundary):
-            return on_boundary and near(x[2], self.zmax, DOLFIN_EPS)
+            return on_boundary and near(x[2], self.zmax, self.boundary_eps)
 
     class AllBoundary(SubDomain):
         def __init__(self):
