@@ -1,4 +1,5 @@
 from . import *
+from ufl.operators import Dn
 
 class StokesFlowUzawa(TransportProblemBase):
     """This class utilizes the Augmented Lagrangian Uzawa method to solve
@@ -43,7 +44,7 @@ class StokesFlowUzawa(TransportProblemBase):
 
         n = self.n
 
-        self.r = Constant(0.0)
+        self.__r = Constant(0.0)
         self.omega = Constant(1.0)
 
         # Shorthand for domain integrals
@@ -51,7 +52,7 @@ class StokesFlowUzawa(TransportProblemBase):
 
         self.form_update_velocity = inner(grad(v), grad(u))*dx \
                                     - inner(p0, div(v))*dx \
-                                    + self.r*inner(div(v), div(u))*dx
+                                    + self.__r*inner(div(v), div(u))*dx
 
         self.form_update_pressure = q*p*dx - q*p0*dx \
                                     + self.omega*q*div(u1)*dx
@@ -62,20 +63,17 @@ class StokesFlowUzawa(TransportProblemBase):
         for i, marker in enumerate(self.__boundary_dict['inlet']):
             self.form_update_velocity += \
             Constant(pressure_bc_val[i])*inner(n, v)*ds(marker) \
-            - dot(n, dot(grad(u), v))*ds(marker)
+            - inner(dot(grad(u0), n), v)*ds(marker)
 
             self.residual_momentum_form += \
             Constant(pressure_bc_val[i])*inner(n, v)*ds(marker) \
-            - dot(n, dot(grad(u0), v))*ds(marker)
+            - inner(dot(grad(u0), n), v)*ds(marker)
 
-    def set_uzawa_parameters(self, r_val: float, omega_val: float):
-        """When r = 0, it converges for omega < 2. Try 1.5 first.
-        For 0 < omega < 2r, the augmented system converges.
-        One can choose r >> 1.
-        """
+    def set_additional_parameters(self, r_val: float, omega_by_r: float):
+        """For 0 < omega/r < 2, the augmented system converges."""
 
-        self.r.assign(r_val)
-        self.omega.assign(omega_val)
+        self.__r.assign(r_val)
+        self.omega.assign(r_val*omega_by_r)
 
     def set_velocity_bc(self, velocity_bc_val: list):
         """
@@ -119,7 +117,7 @@ class StokesFlowUzawa(TransportProblemBase):
         # Or, TODO: make this method more user friendly.
 
         self.solver_v = PETScLUSolver('mumps')
-        self.solver_p = PETScKrylovSolver('gmres', 'amg')
+        self.solver_p = PETScKrylovSolver('gmres', 'jacobi')
 
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters
@@ -163,3 +161,9 @@ class StokesFlowUzawa(TransportProblemBase):
         self.fluid_pressure.assign(self.__p0)
 
         return self.__u0, self.__p0
+
+    def get_flow_rate(self, surface_id):
+        return abs(assemble(dot(self.fluid_velocity, self.n)*self.ds(surface_id)))
+
+    def get_surface_area(self, surface_id):
+        return assemble(Constant(1.0)*self.ds(surface_id))
