@@ -3,43 +3,49 @@ from scipy.interpolate import interp1d
 
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 import h5py
+from dolfin import (FunctionSpace, Function, Mesh, HDF5File, XDMFFile, MPI,
+                    interpolate, project, avg, jump, TestFunction, dS, assemble)
 
 class AnimateDG0Function:
-    def __init__(self, fps=30, playback_rate=1.0):
+    def __init__(self, fps=30, playback_rate=1.0, file_type='xdmf'):
         self.fps = fps
         self.playback_rate = playback_rate
+
+        if file_type not in (supported_types:=['xdmf', 'hdf5']):
+            raise NameError(f'Only supports {supported_types}.')
+        self.file_type = file_type
 
     def open(self, filepath):
         self.file_handle = h5py.File(f'{filepath}.h5', 'r')
         self.times = np.load(f'{filepath}_time.npy')
 
+        self.hdf5_handle = HDF5File(MPI.comm_world, f'{filepath}.h5', 'r')
+        self.xdmf_handle = XDMFFile(MPI.comm_world, f'{filepath}_mesh.xdmf')
         print(self.times.shape)
         self.__init_mesh_geometry()
 
     def __init_mesh_geometry(self):
-        geometry = self.file_handle['Mesh']['mesh']['geometry'][:]
-        self.triangulation = self.file_handle['Mesh']['mesh']['topology'][:]
+        self.mesh = Mesh()
+        self.xdmf_handle.read(self.mesh)
+        self.xdmf_handle.close()
 
-        self.p_x = geometry[:,0]
-        self.p_y = geometry[:,1]
+        self.px = self.mesh.coordinates()[:,0]
+        self.py = self.mesh.coordinates()[:,1]
+        self.triangulation = self.mesh.cells()
 
         # Generate barycentric center of the triangles
         self.p_center_x = []
         self.p_center_y = []
 
         for triang in self.triangulation:
-            self.p_center_x.append(np.mean(self.p_x[triang]))
-            self.p_center_y.append(np.mean(self.p_y[triang]))
+            self.p_center_x.append(np.mean(self.px[triang]))
+            self.p_center_y.append(np.mean(self.py[triang]))
 
-    def load_scalar_function(self, keys, t_start_id, t_end_id):
+        self.p_center_x = np.array(self.p_center_x).flatten()
+        self.p_center_y = np.array(self.p_center_y).flatten()
+
+    def set_times_to_plot(self, t_start_id, t_end_id):
         self.t_ids = np.arange(t_start_id, t_end_id+1)
-
-        self.scalar_list = []
-
-        for t_id in self.t_ids:
-            self.scalar_list.append(self.file_handle[keys][f'{keys}_{t_id}']['vector'][:].flatten())
-
-        self.scalar_list = np.array(self.scalar_list)
 
         self.times = self.times[t_start_id:t_end_id+1]
         starttime = self.times[0]
@@ -49,6 +55,52 @@ class AnimateDG0Function:
         total_frames = int(np.ceil(self.fps*duration))
         self.times_to_animate = np.linspace(starttime, endtime, total_frames)
         self.frame_id = np.arange(0, total_frames)
+
+    def load_scalar_function(self, keys):
+        self.scalar_list = []
+
+        if self.file_type == 'xdmf':
+            for t_id in self.t_ids:
+                self.scalar_list.append(self.file_handle[keys][f'{keys}_{t_id}']['vector'][:].flatten())
+
+        elif self.file_type == 'hdf5':
+            for t_id in self.t_ids:
+                self.scalar_list.append(self.file_handle[f'{keys}'][f'vector_{t_id}'][:].flatten())
+
+        self.scalar_list = np.array(self.scalar_list)
+
+    def load_vector_function(self, keys):
+        self.vector_list = []
+
+        if self.file_type == 'xdmf':
+            for t_id in self.t_ids:
+                self.vector_list.append(self.file_handle[keys][f'{keys}_{t_id}']['vector'][:].flatten())
+
+        elif self.file_type == 'hdf5':
+            for t_id in self.t_ids:
+                self.vector_list.append(self.file_handle[f'{keys}'][f'vector_{t_id}'][:])
+
+        self.vector_list = np.array(self.vector_list)
+        self.vector_x = self.vector_list.reshape(len(self.t_ids), -1, 2)[:, :, 0]
+        self.vector_y = self.vector_list.reshape(len(self.t_ids), -1, 2)[:, :, 1]
+
+    def interpolate_over_space(self, scalar_list):
+        interpolated_scalar = []
+        DG_space = FunctionSpace(self.mesh, 'DG', 0)
+        CR_space = FunctionSpace(self.mesh, 'CR', 1)
+
+        self.px_CR = CR_space.tabulate_dof_coordinates()[:, 0]
+        self.py_CR = CR_space.tabulate_dof_coordinates()[:, 1]
+
+        w = TestFunction(CR_space)
+        DG_func = Function(DG_space)
+        CR_func = Function(CR_space)
+
+        for t_id in self.t_ids:
+            DG_func.vector()[:] = scalar_list[t_id]
+            interpolated_scalar.append(project(DG_func, CR_space).vector()[:])
+
+        return np.array(interpolated_scalar)
 
     def interpolate_over_time(self):
         lin_interp = interp1d(self.times, self.scalar_list.T, kind='linear')
@@ -67,12 +119,12 @@ class AnimateDG0Function:
         def init():
             return cbar, ax
 
-        def update(i):
+        def update_animation(i):
             cbar.set_array(self.scalar_to_animate[i])
             ax.set_title(f'time = {self.times_to_animate[i]*self.scaling_factor:.3f}' + self.time_unit)
             return cbar, ax
 
-        self.ani = FuncAnimation(self.fig, update, frames=self.frame_id,
+        self.ani = FuncAnimation(self.fig, update_animation, frames=self.frame_id,
                                  init_func=init, repeat=False, cache_frame_data=False)
 
     def save_animation(self, filepath, dpi):

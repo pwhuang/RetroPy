@@ -5,7 +5,7 @@ from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.problem import TracerTransportProblem, DarcyFlowMixedPoisson
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import TransientSolver
-from reaktoro_transport.manager import XDMFManager
+from reaktoro_transport.manager import HDF5Manager as OutputManager
 
 from dolfin import (Constant, Function, MPI, SubDomain, near, DOLFIN_EPS)
 from ufl import as_vector
@@ -117,13 +117,13 @@ class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
 
     def setup_transport_solver(self):
         self.generate_solver()
-        self.set_solver_parameters('gmres', 'amg')
+        self.set_solver_parameters('gmres', 'jacobi')
 
     def solve_transport(self):
         self.solve_one_step()
         self.assign_u1_to_u0()
 
-class ElderProblem(TransportManager, FlowManager, MeshFactory, XDMFManager):
+class ElderProblem(TransportManager, FlowManager, MeshFactory, OutputManager):
     """
     This is an example of solving the Elder problem using the Boussinesq approx-
     imation. Note that we set the fluid density to 1, and utilize the
@@ -144,7 +144,7 @@ class ElderProblem(TransportManager, FlowManager, MeshFactory, XDMFManager):
 
         for i in range(timesteps):
             self.solve_transport()
-            self.solve_flow(target_residual=5e-10, max_steps=5)
+            self.solve_flow(target_residual=5e-10, max_steps=10)
 
             self.save_to_file(time=(i+1)*dt_val, is_saving_pv=True)
             saved_times.append((i+1)*dt_val)
