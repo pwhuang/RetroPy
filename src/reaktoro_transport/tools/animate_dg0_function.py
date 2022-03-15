@@ -2,9 +2,10 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from matplotlib.animation import FuncAnimation, FFMpegWriter
+from matplotlib.tri import Triangulation
 import h5py
 from dolfin import (FunctionSpace, Function, Mesh, HDF5File, XDMFFile, MPI,
-                    interpolate, project, avg, jump, TestFunction, dS, assemble)
+                    project, TestFunction)
 
 class AnimateDG0Function:
     def __init__(self, fps=30, playback_rate=1.0, file_type='xdmf'):
@@ -31,18 +32,19 @@ class AnimateDG0Function:
 
         self.px = self.mesh.coordinates()[:,0]
         self.py = self.mesh.coordinates()[:,1]
-        self.triangulation = self.mesh.cells()
+        self.triang = self.mesh.cells()
 
         # Generate barycentric center of the triangles
-        self.p_center_x = []
-        self.p_center_y = []
+        self.px_center = []
+        self.py_center = []
 
-        for triang in self.triangulation:
-            self.p_center_x.append(np.mean(self.px[triang]))
-            self.p_center_y.append(np.mean(self.py[triang]))
+        for triang in self.triang:
+            self.px_center.append(np.mean(self.px[triang]))
+            self.py_center.append(np.mean(self.py[triang]))
 
-        self.p_center_x = np.array(self.p_center_x).flatten()
-        self.p_center_y = np.array(self.p_center_y).flatten()
+        self.px_center = np.array(self.px_center).flatten()
+        self.py_center = np.array(self.py_center).flatten()
+        self.triang_center = Triangulation(self.px_center, self.py_center)
 
     def set_times_to_plot(self, t_start_id, t_end_id):
         self.t_ids = np.arange(t_start_id, t_end_id+1)
@@ -91,6 +93,7 @@ class AnimateDG0Function:
 
         self.px_CR = CR_space.tabulate_dof_coordinates()[:, 0]
         self.py_CR = CR_space.tabulate_dof_coordinates()[:, 1]
+        self.triang_CR = Triangulation(self.px_CR, self.py_CR).triangles
 
         w = TestFunction(CR_space)
         DG_func = Function(DG_space)
@@ -102,9 +105,17 @@ class AnimateDG0Function:
 
         return np.array(interpolated_scalar)
 
-    def interpolate_over_time(self):
-        lin_interp = interp1d(self.times, self.scalar_list.T, kind='linear')
-        self.scalar_to_animate = lin_interp(self.times_to_animate).T
+    def average_over_triangles(self, scalar_list):
+        interpolated_scalar = []
+
+        for t_id in self.t_ids:
+            interpolated_scalar.append(scalar_list[t_id][self.triang_CR].mean(axis=1))
+
+        return np.array(interpolated_scalar)
+
+    def interpolate_over_time(self, scalar_list):
+        lin_interp = interp1d(self.times, scalar_list.T, kind='linear')
+        return lin_interp(self.times_to_animate).T
 
     def init_matplotlib(self):
         pass
@@ -113,19 +124,13 @@ class AnimateDG0Function:
         self.scaling_factor = scaling_factor
         self.time_unit = unit
 
+    def update_animation(self, i):
+        self.cbar.set_array(self.scalar_to_animate[i])
+        self.ax.set_title(f'time = {self.times_to_animate[i]*self.scaling_factor:.3f}' + self.time_unit)
+
     def init_animation(self):
-        cbar, ax = self.init_matplotlib()
-
-        def init():
-            return cbar, ax
-
-        def update_animation(i):
-            cbar.set_array(self.scalar_to_animate[i])
-            ax.set_title(f'time = {self.times_to_animate[i]*self.scaling_factor:.3f}' + self.time_unit)
-            return cbar, ax
-
-        self.ani = FuncAnimation(self.fig, update_animation, frames=self.frame_id,
-                                 init_func=init, repeat=False, cache_frame_data=False)
+        self.ani = FuncAnimation(self.fig, self.update_animation, frames=self.frame_id,
+                                 repeat=False, cache_frame_data=False, blit=False)
 
     def save_animation(self, filepath, dpi):
         movie_writer = FFMpegWriter(fps=self.fps, codec='h264')
