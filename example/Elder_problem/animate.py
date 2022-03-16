@@ -13,8 +13,8 @@ class Animate(AnimateDG0Function):
         self.scalar_min, self.scalar_max = 0.0, 1.0
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(12, 3))
-        self.cbar = self.ax.tripcolor(self.px_CR, self.py_CR, self.triang_CR, self.scalar_to_animate[0], cmap='Spectral_r',
-                            vmin=self.scalar_min, vmax=self.scalar_max, shading='flat')#, levels=11)
+        self.collection = self.ax.tripcolor(self.triang_CR, self.scalar_to_animate[0], cmap='Spectral_r',
+                                            vmin=self.scalar_min, vmax=self.scalar_max, shading='flat')#, levels=11)
 
         ani.init_vector_plot(0)
 
@@ -28,7 +28,7 @@ class Animate(AnimateDG0Function):
         divider = make_axes_locatable(self.ax)
         cax = divider.append_axes('right', size='3%', pad='5%')
 
-        self.fig.colorbar(self.cbar, cax=cax)
+        self.fig.colorbar(self.collection, cax=cax)
         plt.tight_layout()
 
     def init_vector_plot(self, i):
@@ -55,13 +55,11 @@ class Animate(AnimateDG0Function):
 
             self.stpset.lines.remove()
             for art in self.ax.get_children():
-                if not isinstance(art, FancyArrowPatch):
-                    continue
-                art.remove()
+                if isinstance(art, FancyArrowPatch):
+                    art.remove()
 
             self.stpset = self.ax.streamplot(self.xx, self.yy, vx, vy, color='w',
                                              linewidth=0.5, arrowsize=0.5, density=2.0)
-                                             #start_points=self.seed_points.T)
 
 in_path, out_path, keys = 'elder_problem', 'elder_problem_temp.mp4', 'Temp'
 t_start_id, t_end_id = 0, 49

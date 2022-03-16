@@ -93,7 +93,7 @@ class AnimateDG0Function:
 
         self.px_CR = CR_space.tabulate_dof_coordinates()[:, 0]
         self.py_CR = CR_space.tabulate_dof_coordinates()[:, 1]
-        self.triang_CR = Triangulation(self.px_CR, self.py_CR).triangles
+        self.triang_CR = Triangulation(self.px_CR, self.py_CR)
 
         w = TestFunction(CR_space)
         DG_func = Function(DG_space)
@@ -109,7 +109,7 @@ class AnimateDG0Function:
         interpolated_scalar = []
 
         for t_id in self.t_ids:
-            interpolated_scalar.append(scalar_list[t_id][self.triang_CR].mean(axis=1))
+            interpolated_scalar.append(scalar_list[t_id][self.triang_CR.triangles].mean(axis=1))
 
         return np.array(interpolated_scalar)
 
@@ -125,7 +125,7 @@ class AnimateDG0Function:
         self.time_unit = unit
 
     def update_animation(self, i):
-        self.cbar.set_array(self.scalar_to_animate[i])
+        self.collection.set_array(self.scalar_to_animate[i])
         self.ax.set_title(f'time = {self.times_to_animate[i]*self.scaling_factor:.3f}' + self.time_unit)
 
     def init_animation(self):
