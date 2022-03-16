@@ -17,7 +17,7 @@ class MeshFactory(MarkedRectangleMesh):
         #                     'Please run generate_mesh.py ')
 
         self.set_bottom_left_coordinates(coord_x = 0.0, coord_y = 0.0)
-        self.set_top_right_coordinates(coord_x = 100.0, coord_y = 50.0)
+        self.set_top_right_coordinates(coord_x = 100.0, coord_y = 40.0)
         self.set_number_of_elements(nx, ny)
         self.set_mesh_type('triangle')
 
@@ -39,8 +39,7 @@ class MeshFactory(MarkedRectangleMesh):
         cell_markers = MeshFunction('bool', self.mesh, dim=self.mesh.geometric_dimension())
         cell_markers.set_all(1)
         #where_to_refine().mark(cell_markers, 1)
-
-        self.mesh = refine(self.mesh, cell_markers)
+        #self.mesh = refine(self.mesh, cell_markers)
 
     def mark_inflow_boundary_cells(self):
         ds = Measure('ds', domain=self.mesh, subdomain_data=self.boundary_markers)

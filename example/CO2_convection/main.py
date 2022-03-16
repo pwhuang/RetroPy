@@ -7,7 +7,7 @@ class Problem(Problem):
         self.set_molecular_diffusivity([1.029e-3, 9.311e-3, 5.273e-3,
                                         2.045e-3, 0.804e-3, 1.101e-3]) #mm^2/sec
 
-problem = Problem(nx=100, ny=50, const_diff=False)
+problem = Problem(nx=300, ny=120, const_diff=False)
 problem.generate_output_instance(sys.argv[1])
 
 problem.define_problem()
