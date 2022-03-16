@@ -25,12 +25,12 @@ class DarcyUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
         DarcyFlowBenchmark.set_boundary_conditions(self)
         DarcyFlowBenchmark.set_momentum_sources(self)
 
-        self.set_additional_parameters(r_val=1.0, omega_by_r=1.2)
+        self.set_additional_parameters(r_val=5e1, omega_by_r=1.0)
         self.set_flow_solver_params()
         self.assemble_matrix()
 
 # nx is the mesh element in one direction.
-list_of_nx = [10, 20]
+list_of_nx = [10, 15]
 element_diameters = []
 p_err_norms = []
 v_err_norms = []

@@ -39,11 +39,12 @@ class DarcyFlowManagerUzawa(ABC, DarcyFlowUzawa):
 
     def set_flow_solver_params(self):
         self.solver_v = PETScLUSolver('mumps')
-        self.solver_p = PETScKrylovSolver('gmres', 'jacobi')
+        self.solver_p = PETScKrylovSolver('gmres', 'none')
 
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters
 
+        prm_v['symmetric'] = True
         self.__set_krylov_solver_params(prm_p)
 
     def __set_krylov_solver_params(self, prm):

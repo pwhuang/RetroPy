@@ -14,7 +14,7 @@ class DarcyMassMixedPoissonTest(DarcyFlowUzawa, DarcyMassSourceBenchmark):
         DarcyFlowUzawa.__init__(self, *self.get_mesh_and_markers(nx))
 
         self.set_pressure_fe_space('DG', 0)
-        self.set_velocity_fe_space('BDM', 1)
+        self.set_velocity_fe_space('RT', 1)
         self.get_solution()
 
         self.set_material_properties()
@@ -22,7 +22,7 @@ class DarcyMassMixedPoissonTest(DarcyFlowUzawa, DarcyMassSourceBenchmark):
         self.set_mass_sources()
 
         self.set_flow_solver_params()
-        self.set_additional_parameters(r_val=1e1, omega_by_r=1.1)
+        self.set_additional_parameters(r_val=5e1, omega_by_r=1.0)
         self.assemble_matrix()
 
 # nx is the mesh element in one direction.

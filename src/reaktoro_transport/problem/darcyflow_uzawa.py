@@ -84,10 +84,10 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         F_velocity = self.form_update_velocity
         F_pressure = self.form_update_pressure
 
-        a_v, self.L_v = lhs(F_velocity), rhs(F_velocity)
+        self.a_v, self.L_v = lhs(F_velocity), rhs(F_velocity)
         a_p, self.L_p = lhs(F_pressure), rhs(F_pressure)
 
-        self.A_v = assemble(a_v)
+        self.A_v = assemble(self.a_v)
         self.A_p = assemble(a_p)
         self.b_v, self.b_p = PETScVector(), PETScVector()
 
@@ -95,13 +95,13 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
-        self.solver_v = PETScKrylovSolver('bicgstab', 'jacobi')
-        self.solver_p = PETScKrylovSolver('gmres', 'amg')
+        self.solver_v = PETScLUSolver('mumps')
+        self.solver_p = PETScKrylovSolver('gmres', 'none')
 
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters
 
-        TransportProblemBase.set_default_solver_parameters(prm_v)
+        prm_v['symmetric'] = True
         TransportProblemBase.set_default_solver_parameters(prm_p)
 
     def solve_flow(self, target_residual: float, max_steps: int):
@@ -113,10 +113,8 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             if (MPI.rank(MPI.comm_world)==0):
                 info('Darcy flow residual = ' + str(residual))
 
-            assemble(self.L_v, tensor=self.b_v)
-            for bc in self.velocity_bc:
-                bc.apply(self.A_v, self.b_v)
-
+            assemble_system(self.a_v, self.L_v, self.velocity_bc,
+                            A_tensor=self.A_v, b_tensor=self.b_v)
             self.solver_v.solve(self.A_v, self.__u1.vector(), self.b_v)
 
             assemble(self.L_p, tensor=self.b_p)
