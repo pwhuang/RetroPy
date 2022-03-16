@@ -5,7 +5,7 @@ from reaktoro_transport.mesh import MarkedRectangleMesh
 from reaktoro_transport.problem import TracerTransportProblem, DarcyFlowUzawa
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import TransientSolver
-from reaktoro_transport.manager import XDMFManager as OutputManager
+from reaktoro_transport.manager import HDF5Manager as OutputManager
 
 from dolfin import (Constant, Function, MPI, SubDomain, near, DOLFIN_EPS)
 from ufl import as_vector
