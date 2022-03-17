@@ -30,7 +30,8 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
     def timestepper(dt_val, current_time, time_stamp):
         min_dt, max_dt = 1e-2, 1.0
 
-        if (dt_val := dt_val*1.1) > max_dt:
+        dt_val = dt_val*1.1
+        if dt_val > max_dt:
             dt_val = max_dt
         elif dt_val < min_dt:
             dt_val = min_dt
@@ -106,7 +107,8 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
 
             timestep += 1
 
-            if (current_time := current_time + dt_val) >= time_stamp:
+            current_time = current_time + dt_val
+            if current_time >= time_stamp:
                 time_stamp_idx += 1
                 try:
                     time_stamp = time_stamps[time_stamp_idx]

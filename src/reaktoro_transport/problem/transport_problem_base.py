@@ -86,7 +86,7 @@ class TransportProblemBase:
     def set_periodic_bcs(self, bcs=None):
         self.periodic_bcs = bcs
 
-    def set_velocity_vector_fe_space(self, fe_space: str, fe_degree: int):
+    def set_velocity_vector_fe_space(self, fe_space, fe_degree):
         self.velocity_finite_element = VectorElement(fe_space,
                                                      self.mesh.cell_name(),
                                                      fe_degree)
@@ -98,7 +98,7 @@ class TransportProblemBase:
         self.fluid_velocity = Function(self.velocity_func_space)
         self.fluid_velocity.rename('velocity', 'fluid velocity')
 
-    def set_velocity_fe_space(self, fe_space: str, fe_degree: int):
+    def set_velocity_fe_space(self, fe_space, fe_degree):
         self.velocity_finite_element = FiniteElement(fe_space,
                                                      self.mesh.cell_name(),
                                                      fe_degree)
@@ -110,7 +110,7 @@ class TransportProblemBase:
         self.fluid_velocity = Function(self.velocity_func_space)
         self.fluid_velocity.rename('velocity', 'fluid velocity')
 
-    def set_pressure_fe_space(self, fe_space: str, fe_degree: int):
+    def set_pressure_fe_space(self, fe_space, fe_degree):
         self.pressure_finite_element = FiniteElement(fe_space,
                                                      self.mesh.cell_name(),
                                                      fe_degree)
@@ -128,7 +128,7 @@ class TransportProblemBase:
     def get_fluid_pressure(self):
         return self.fluid_pressure
 
-    def quick_save(self, file_name: str):
+    def quick_save(self, file_name):
         """"""
         with XDMFFile(file_name + '.xdmf') as obj:
             obj.parameters['flush_output'] = True

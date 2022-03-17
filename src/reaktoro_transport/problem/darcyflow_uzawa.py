@@ -107,8 +107,8 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
     def solve_flow(self, target_residual: float, max_steps: int):
         steps = 0
 
-        while (residual := self.get_flow_residual()) > target_residual\
-               and steps < max_steps:
+        residual = self.get_flow_residual()
+        while residual > target_residual and steps < max_steps:
 
             if (MPI.rank(MPI.comm_world)==0):
                 info('Darcy flow residual = ' + str(residual))
@@ -124,6 +124,8 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
             self.__u0.assign(self.__u1)
             self.__p0.assign(self.__p1)
+
+            residual = self.get_flow_residual()
 
         if (MPI.rank(MPI.comm_world)==0):
             info('Steps used: ' + str(steps))
