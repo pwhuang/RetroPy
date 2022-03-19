@@ -58,6 +58,10 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
         self.set_pressure_ic(Constant(0.0))
         self.set_velocity_bc([Constant([0.0, 0.0])]*4)
 
+    def setup_transport_solver(self):
+        self.generate_solver(eval_jacobian=False)
+        self.set_solver_parameters('gmres', 'hypre_euclid')
+
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
         min_dt, max_dt = 1e-3, 0.1
