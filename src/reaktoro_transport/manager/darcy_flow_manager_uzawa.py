@@ -44,7 +44,7 @@ class DarcyFlowManagerUzawa(ABC, DarcyFlowUzawa):
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters
 
-        prm_v['symmetric'] = True
+        # prm_v['symmetric'] = True
         self.__set_krylov_solver_params(prm_p)
 
     def __set_krylov_solver_params(self, prm):

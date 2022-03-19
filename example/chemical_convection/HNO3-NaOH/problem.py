@@ -14,6 +14,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
     def __init__(self, nx, ny, const_diff):
         super().__init__(*self.get_mesh_and_markers(nx, ny))
         self.is_same_diffusivity = const_diff
+        self.set_flow_residual(5e-10)
 
     def set_component_properties(self):
         self.set_molar_mass([22.98977, 62.0049, 1.00794, 17.00734]) #g/mol
@@ -43,8 +44,8 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
 
     def set_fluid_properties(self):
         self.set_porosity(1.0)
-        self.set_fluid_density((1.232e-3 + 0.933e-3)*0.5) # Initialization # g/mm^3
-        self.set_fluid_viscosity(8.9e-4)  # Pa sec
+        self.set_fluid_density(1e-3) # Initialization # g/mm^3
+        self.set_fluid_viscosity((1.232e-3 + 0.933e-3)*0.5)  # Pa sec
         self.set_gravity([0.0, -9806.65]) # mm/sec
         self.set_permeability(1.2**2/12.0) # mm^2
 
@@ -59,7 +60,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
-        min_dt, max_dt = 1e-2, 0.2
+        min_dt, max_dt = 1e-3, 0.1
 
         if (dt_val := dt_val*1.1) > max_dt:
             dt_val = max_dt
