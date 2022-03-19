@@ -84,7 +84,7 @@ class Problem(ReactiveTransportManager, FlowManager, OutputManager):
         self.set_component_fe_space()
         self.initialize_form()
 
-        self.background_pressure = 1e5 + 1e-3*9806.65*25.0 # Pa
+        self.background_pressure = 1e5 + 1e-3*9806.65*20.0 # Pa
 
         LiOH_amounts = [0.01, 1e-15, 0.01, 1e-15, 1e-15, 1e-15, 55.345] # micro mol/mm^3 # mol/L
 
