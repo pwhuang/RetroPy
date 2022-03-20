@@ -6,7 +6,7 @@ from reaktoro_transport.manager import DarcyFlowManagerUzawa as FlowManager
 from reaktoro_transport.manager import ReactiveTransportManager
 from reaktoro_transport.manager import HDF5Manager as OutputManager
 
-from dolfin import Expression, Constant
+from dolfin import Expression, Constant, PETScOptions
 
 class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager):
     """This class solves the chemically driven convection problem."""
@@ -60,7 +60,10 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
 
     def setup_transport_solver(self):
         self.generate_solver(eval_jacobian=False)
-        self.set_solver_parameters('gmres', 'hypre_euclid')
+        self.set_solver_parameters('bicgstab', 'amg')
+        PETScOptions.set("pc_hypre_boomeramg_strong_threshold", 0.4)
+        PETScOptions.set("pc_hypre_boomeramg_truncfactor", 0.0)
+        #PETScOptions.set("pc_hypre_boomeramg_print_statistics", 1)
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
