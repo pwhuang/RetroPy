@@ -113,8 +113,10 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             if (MPI.rank(MPI.comm_world)==0):
                 info('Darcy flow residual = ' + str(residual))
 
-            assemble_system(self.a_v, self.L_v, self.velocity_bc,
-                            A_tensor=self.A_v, b_tensor=self.b_v)
+            assemble(self.L_v, tensor=self.b_v)
+            for bc in self.velocity_bc:
+                bc.apply(self.A_v, self.b_v)
+
             self.solver_v.solve(self.A_v, self.__u1.vector(), self.b_v)
 
             assemble(self.L_p, tensor=self.b_p)
