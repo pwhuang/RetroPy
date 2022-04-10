@@ -71,6 +71,8 @@ class AnimateDG0Function:
 
         self.scalar_list = np.array(self.scalar_list)
 
+        return self.scalar_list
+
     def load_vector_function(self, keys):
         self.vector_list = []
 
@@ -86,6 +88,8 @@ class AnimateDG0Function:
         self.vector_x = self.vector_list.reshape(len(self.t_ids), -1, 2)[:, :, 0]
         self.vector_y = self.vector_list.reshape(len(self.t_ids), -1, 2)[:, :, 1]
 
+        return self.vector_x, self.vector_y
+
     def interpolate_over_space(self, scalar_list):
         interpolated_scalar = []
         DG_space = FunctionSpace(self.mesh, 'DG', 0)
@@ -99,8 +103,8 @@ class AnimateDG0Function:
         DG_func = Function(DG_space)
         CR_func = Function(CR_space)
 
-        for t_id in self.t_ids:
-            DG_func.vector()[:] = scalar_list[t_id]
+        for scalar in scalar_list:
+            DG_func.vector()[:] = scalar
             interpolated_scalar.append(project(DG_func, CR_space).vector()[:])
 
         return np.array(interpolated_scalar)
@@ -108,8 +112,8 @@ class AnimateDG0Function:
     def average_over_triangles(self, scalar_list):
         interpolated_scalar = []
 
-        for t_id in self.t_ids:
-            interpolated_scalar.append(scalar_list[t_id][self.triang_CR.triangles].mean(axis=1))
+        for scalar in scalar_list:
+            interpolated_scalar.append(scalar[self.triang_CR.triangles].mean(axis=1))
 
         return np.array(interpolated_scalar)
 
