@@ -1,104 +1,69 @@
 from . import *
-from ufl.operators import Dn
 
-class StokesFlowUzawa(TransportProblemBase):
+class StokesFlowUzawa(TransportProblemBase, StokesFlowBase):
     """This class utilizes the Augmented Lagrangian Uzawa method to solve
     the pressure and velocity of the Stokes equation.
     """
 
-    def set_pressure_ic(self, init_cond_pressure: Expression):
-        """Sets up the initial condition of pressure."""
-        self.init_cond_pressure = init_cond_pressure
-
-    def mark_flow_boundary(self, **kwargs):
-        """This method gives boundary markers physical meaning.
-
-        Keywords
-        --------
-        inlet : Sets the boundary flow rate.
-        noslip : Sets the boundary to no-slip boundary condition.
-        velocity_bc : User defined velocity boundary condition.
-        """
-
-        self.__boundary_dict = kwargs
-
-    def set_form_and_pressure_bc(self, pressure_bc_val: list):
+    def generate_form(self):
         """Sets up the FeNiCs Form of Stokes flow."""
 
         V = self.velocity_func_space
         Q = self.pressure_func_space
 
-        u, p = TrialFunction(V), TrialFunction(Q)
-        v, q = TestFunction(V), TestFunction(Q)
+        self.__u, self.__p = TrialFunction(V), TrialFunction(Q)
+        self.__v, self.__q = TestFunction(V), TestFunction(Q)
 
-        self.__u0, self.__u1 = Function(V), Function(V)
-        self.__p0 = interpolate(self.init_cond_pressure, Q)
-        self.__p1 = Function(Q)
+        u, p = self.__u, self.__p
+        v, q = self.__v, self.__q
+
+        self.__u0 = self.fluid_velocity
+        self.fluid_pressure.assign(interpolate(self.init_cond_pressure, Q))
+        self.__p0 = self.fluid_pressure
+        self.__u1 ,self.__p1 = Function(V), Function(Q)
 
         u0, u1, p0, p1 = self.__u0, self.__u1, self.__p0, self.__p1
-
-        u0.rename('velocity', 'fluid velocity')
-        p0.rename('pressure', 'fluid pressure')
-
-        self.functions_to_save = [p0, u0]
-
-        n = self.n
+        mu, rho, g = self._mu, self._rho, self._g
 
         self.__r = Constant(0.0)
         self.omega = Constant(1.0)
+        r, omega = self.__r, self.omega
 
-        # Shorthand for domain integrals
+        n = self.n
         dx, ds = self.dx, self.ds
 
-        self.form_update_velocity = inner(grad(v), grad(u))*dx \
+        self.form_update_velocity = mu*inner(grad(v), grad(u))*dx \
+                                    + r*inner(div(v), div(rho*u))*dx \
                                     - inner(p0, div(v))*dx \
-                                    + self.__r*inner(div(v), div(u))*dx
+                                    - inner(v, rho*g)*dx
 
-        self.form_update_pressure = q*p*dx - q*p0*dx \
-                                    + self.omega*q*div(u1)*dx
+        self.form_update_pressure = q*(p-p0)*dx + omega*q*div(rho*u1)*dx
 
-        self.residual_momentum_form = (inner(grad(u0), grad(v)) - div(v)*p0)*dx
-        self.residual_mass_form = q*div(u0)*dx
-
-        for i, marker in enumerate(self.__boundary_dict['inlet']):
+        for i, marker in enumerate(self.stokes_boundary_dict['inlet']):
             self.form_update_velocity += \
-            Constant(pressure_bc_val[i])*inner(n, v)*ds(marker) \
-            - inner(dot(grad(u0), n), v)*ds(marker)
+            + inner(self.pressure_bc[i]*n, v)*ds(marker) \
+            - mu*inner(dot(grad(u0), n), v)*ds(marker)
 
-            self.residual_momentum_form += \
-            Constant(pressure_bc_val[i])*inner(n, v)*ds(marker) \
-            - inner(dot(grad(u0), n), v)*ds(marker)
+        self.generate_residual_form()
+
+    def add_mass_source(self, sources: list):
+        q, v, r, omega = self.__q, self.__v, self.__r, self.omega
+
+        for source in sources:
+            self.form_update_velocity -= r*inner(div(v), source)*self.dx
+            self.form_update_pressure -= q*omega*source*self.dx
+
+    def add_momentum_source(self, sources: list):
+        v = self.__v
+
+        for source in sources:
+            self.form_update_velocity -= inner(v, source)*self.dx
 
     def set_additional_parameters(self, r_val: float, omega_by_r: float):
         """For 0 < omega/r < 2, the augmented system converges."""
 
         self.__r.assign(r_val)
         self.omega.assign(r_val*omega_by_r)
-
-    def set_velocity_bc(self, velocity_bc_val: list):
-        """
-        Arguments
-        ---------
-        velocity_bc_val : list of Constants,
-                          e.g., [Constant((1.0, -1.0)), Constant((0.0, -2.0))]
-        """
-
-        if self.mesh.geometric_dimension()==2:
-            noslip = Constant((0.0, 0.0))
-        elif self.mesh.geometric_dimension()==3:
-            noslip = Constant((0.0, 0.0, 0.0))
-
-        self.velocity_bc = []
-
-        for marker in self.__boundary_dict['noslip']:
-            self.velocity_bc.append(DirichletBC(self.velocity_func_space,
-                                                noslip,
-                                                self.boundary_markers, marker))
-
-        for i, marker in enumerate(self.__boundary_dict['velocity_bc']):
-            self.velocity_bc.append(DirichletBC(self.velocity_func_space,
-                                                velocity_bc_val[i],
-                                                self.boundary_markers, marker))
 
     def assemble_matrix(self):
         """"""
@@ -112,36 +77,27 @@ class StokesFlowUzawa(TransportProblemBase):
         self.A_p = assemble(a_p)
         self.b_v, self.b_p = PETScVector(), PETScVector()
 
-    def set_solver(self):
+    def set_flow_solver_params(self):
         # Users can override this method.
         # Or, TODO: make this method more user friendly.
 
         self.solver_v = PETScLUSolver('mumps')
-        self.solver_p = PETScKrylovSolver('gmres', 'jacobi')
+        self.solver_p = PETScKrylovSolver('gmres', 'none')
 
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters
 
         TransportProblemBase.set_default_solver_parameters(prm_p)
 
-    def get_residual(self):
-        """"""
-        residual_momentum = assemble(self.residual_momentum_form)
-        residual_mass = assemble(self.residual_mass_form)
-
-        for bc in self.velocity_bc:
-            bc.apply(residual_momentum, self.__u0.vector())
-
-        residual = residual_momentum.norm('l2')
-        residual += residual_mass.norm('l2')
-
-        return residual
-
     def solve_flow(self, target_residual: float, max_steps: int):
         """"""
         steps = 0
 
-        while(self.get_residual() > target_residual and steps < max_steps):
+        residual = self.get_flow_residual()
+        while(residual > target_residual and steps < max_steps):
+            if (MPI.rank(MPI.comm_world)==0):
+                info('Stokes flow residual = ' + str(residual))
+
             assemble(self.L_v, tensor=self.b_v)
 
             for bc in self.velocity_bc:
@@ -155,10 +111,12 @@ class StokesFlowUzawa(TransportProblemBase):
             self.__u0.assign(self.__u1)
             self.__p0.assign(self.__p1)
 
+            residual = self.get_flow_residual()
+
             steps+=1
 
-        self.fluid_velocity.assign(self.__u0)
-        self.fluid_pressure.assign(self.__p0)
+        if (MPI.rank(MPI.comm_world)==0):
+            info('Steps used: ' + str(steps))
 
         return self.__u0, self.__p0
 
