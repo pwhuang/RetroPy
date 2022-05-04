@@ -1,4 +1,5 @@
 from .darcy_flow_manager_uzawa import DarcyFlowManagerUzawa
+from .stokes_flow_manager_uzawa import StokesFlowManagerUzawa
 from .reaction_manager import ReactionManager
 from .transport_manager import TransportManager
 from .reactive_transport_manager import ReactiveTransportManager
