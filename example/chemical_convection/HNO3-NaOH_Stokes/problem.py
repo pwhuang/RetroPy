@@ -4,9 +4,121 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from mesh_factory import MeshFactory
 from reaktoro_transport.manager import StokesFlowManagerUzawa as FlowManager
 from reaktoro_transport.manager import ReactiveTransportManager
-from reaktoro_transport.manager import XDMFManager as OutputManager
+from reaktoro_transport.manager import HDF5Manager as OutputManager
 
-from dolfin import Expression, Constant, PETScOptions
+from dolfin import (Expression, Constant, PETScOptions, interpolate, Function,
+                    project, info)
+import numpy as np
+
+class ReactiveTransportManager(ReactiveTransportManager):
+    def add_physics_to_form(self, u, theta_val=0.5, f_id=0):
+        """
+        Explicit upwind advection and Crank-Nicolson diffusion.
+        """
+
+        self.set_advection_velocity()
+
+        theta = Constant(theta_val)
+        one = Constant(1.0)
+
+        self.add_explicit_advection(u, kappa=theta, marker=0, f_id=f_id)
+        self.add_implicit_advection(kappa=theta, marker=0, f_id=f_id)
+
+        for component in self.component_dict.keys():
+            self.add_implicit_diffusion(component, kappa=theta, marker=0)
+            self.add_explicit_diffusion(component, u, kappa=one-theta, marker=0)
+
+        if self.is_same_diffusivity==False:
+            self.add_implicit_charge_balanced_diffusion(kappa=theta, marker=0)
+            self.add_explicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
+
+        self.evaluate_jacobian(self.get_forms()[0])
+
+    def solve_initial_condition(self):
+        self.assign_u0_to_u1()
+
+        # updates the pressure assuming constant density
+        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
+
+        self.fluid_pressure_DG = Function(self.DG0_space)
+
+        fluid_comp = np.exp(self.get_solution().vector()[:].reshape(-1, self.num_component))
+
+        self.fluid_pressure_DG.vector()[:] = interpolate(self.fluid_pressure, self.DG0_space).vector()[:]
+        pressure = self.fluid_pressure_DG.vector()[:] + self.background_pressure
+        self._solve_chem_equi_over_dofs(pressure, fluid_comp)
+        self._assign_chem_equi_results()
+
+        # updates the pressure and velocity using the density at equilibrium
+        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
+
+    def solve(self, dt_val=1.0, endtime=10.0, time_stamps=[]):
+        current_time = 0.0
+        timestep = 1
+        saved_times = []
+        flow_residuals = []
+        self.trial_count = 0
+
+        time_stamps.append(endtime)
+        time_stamp_idx = 0
+        time_stamp = time_stamps[time_stamp_idx]
+
+        self.solve_initial_condition()
+        self.save_to_file(time=current_time)
+        self.logarithm_fluid_components()
+
+        saved_times.append(current_time)
+        flow_residuals.append(self.get_flow_residual())
+        save_interval = 1
+        flush_interval = 25
+
+        while current_time < endtime:
+            if self.__MPI_rank==0:
+                info(f"timestep = {timestep}, dt = {dt_val:.6f}, "\
+                     f"current_time = {current_time:.6f}\n")
+
+            self.set_dt(dt_val)
+
+            if self.solve_species_transport() is False:
+                dt_val = 0.7*dt_val
+                self.trial_count += 1
+                continue
+
+            self.trial_count = 0
+            self.solve_solvent_transport()
+
+            fluid_comp = np.exp(self.get_solution().vector()[:].reshape(-1, self.num_component))
+            self.fluid_pressure_DG.vector()[:] = interpolate(self.fluid_pressure, self.DG0_space).vector()[:]
+            pressure = self.fluid_pressure_DG.vector()[:] + self.background_pressure
+            self._solve_chem_equi_over_dofs(pressure, fluid_comp)
+            self._assign_chem_equi_results()
+            self.solve_flow(target_residual=self.flow_residual, max_steps=20)
+
+            timestep += 1
+
+            current_time = current_time + dt_val
+            if current_time >= time_stamp:
+                time_stamp_idx += 1
+                try:
+                    time_stamp = time_stamps[time_stamp_idx]
+                except:
+                    time_stamp = time_stamps[-1]
+
+            dt_val = self.timestepper(dt_val, current_time, time_stamp)
+
+            if timestep % save_interval == 0:
+                self.save_to_file(time=current_time)
+                saved_times.append(current_time)
+                flow_residuals.append(self.get_flow_residual())
+
+            if timestep % flush_interval == 0:
+                self.flush_output()
+
+            self.logarithm_fluid_components()
+
+        if self.__MPI_rank==0:
+            np.save(self.output_file_name + '_time', np.array(saved_times), allow_pickle=False)
+            np.save(self.output_file_name + '_flow_res', np.array(flow_residuals), allow_pickle=False)
 
 class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager):
     """This class solves the chemically driven convection problem."""
@@ -29,7 +141,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
         self.set_component_fe_space()
         self.initialize_form()
 
-        self.background_pressure = 1e5 + 1e-3*9806.65*9 # Pa
+        self.background_pressure = 1e5 + 1e-3*9806.65*0.5 # Pa
 
         HNO3_amounts = [1e-15, 1.5, 1.5, 1e-13, 52.712] # micro mol/mm^3
         NaOH_amounts = [1.4, 1e-15, 1e-15, 1.4, 55.361]
@@ -37,10 +149,10 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
         init_expr_list = []
 
         for i in range(self.num_component):
-            init_expr_list.append('x[1]<=9.0 ?' + str(NaOH_amounts[i]) + ':' + str(HNO3_amounts[i]))
+            init_expr_list.append('x[1]<=2.5 ?' + str(NaOH_amounts[i]) + ':' + str(HNO3_amounts[i]))
 
         self.set_component_ics(Expression(init_expr_list, degree=1))
-        self.set_solvent_ic(Expression('x[1]<=9.0 ?' + str(NaOH_amounts[-1]) + ':' + str(HNO3_amounts[-1]) , degree=1))
+        self.set_solvent_ic(Expression('x[1]<=2.5 ?' + str(NaOH_amounts[-1]) + ':' + str(HNO3_amounts[-1]) , degree=1))
 
     def set_fluid_properties(self):
         self.set_fluid_density(1e-3) # Initialization # g/mm^3
@@ -52,7 +164,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
 
         self.set_pressure_bc([]) # Pa
         self.set_pressure_ic(Constant(0.0))
-        self.set_velocity_bc([Constant([0.0, 0.0])])
+        self.set_velocity_bc([])
 
     def setup_transport_solver(self):
         self.generate_solver(eval_jacobian=False)
@@ -63,9 +175,9 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
-        min_dt, max_dt = 1e-3, 0.1
+        min_dt, max_dt = 1e-3, 0.4
 
-        if (dt_val := dt_val*1.1) > max_dt:
+        if (dt_val := dt_val*1.05) > max_dt:
             dt_val = max_dt
         elif dt_val < min_dt:
             dt_val = min_dt
@@ -73,3 +185,12 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
             dt_val = time_stamp - current_time
 
         return dt_val
+
+    def set_flow_fe_space(self):
+        self.set_pressure_fe_space('DG', 1)
+        self.set_velocity_vector_fe_space('CG', 2)
+
+    def save_fluid_velocity(self, time_step):
+        #self.fluid_vel_to_save = interpolate(self.fluid_velocity, self.Vec_DG0_space)
+        self.write_function(self.fluid_velocity, self.fluid_velocity.name(),
+                            time_step)
