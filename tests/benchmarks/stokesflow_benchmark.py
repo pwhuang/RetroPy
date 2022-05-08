@@ -41,8 +41,8 @@ class StokesFlowBenchmark:
                                                self.marker_dict['left'], self.marker_dict['right']],
                                 noslip = [])
 
-        self.set_pressure_bc([Expression(('exp(x[1])*sin(M_PI*x[0])'), degree=1)])
         self.generate_form()
+        self.set_pressure_bc([Expression(('exp(x[1])*sin(M_PI*x[0])'), degree=1)]*2)
         self.set_velocity_bc([Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1)]*4)
 
     def set_momentum_sources(self):

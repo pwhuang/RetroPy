@@ -8,7 +8,8 @@ from reaktoro_transport.solver import TransientSolver
 from reaktoro_transport.manager import XDMFManager as OutputManager
 
 from dolfin import (Constant, Function, MPI, SubDomain, near, DOLFIN_EPS,
-                    MeshFunction, PETScLUSolver, PETScKrylovSolver)
+                    MeshFunction, PETScLUSolver, PETScKrylovSolver,
+                    VectorElement, FunctionSpace)
 from ufl import as_vector
 import numpy as np
 
@@ -63,26 +64,26 @@ class FlowManager(StokesFlowUzawa):
         self.set_gravity([0.0, 0.0])
 
     def setup_flow_solver(self):
-        self.set_pressure_fe_space('DG', 0)
-        self.set_velocity_vector_fe_space('CR', 1)
+        self.set_pressure_fe_space('DG', 1)
+        self.set_velocity_vector_fe_space('CG', 2)
 
         self.set_fluid_properties()
         self.set_advection_velocity()
+
+        self.generate_form()
 
         self.mark_flow_boundary(inlet = [], noslip = self.marker_dict.values(),
                                 velocity_bc = [])
 
         self.set_pressure_ic(Constant(0.0))
         self.set_pressure_bc([])
-        self.generate_form()
-        self.generate_residual_form()
+        self.set_velocity_bc([])
 
         self.add_momentum_source([as_vector([Constant(0.0), self.fluid_components[0]])])
         self.add_momentum_source_to_residual_form([as_vector([Constant(0.0), self.fluid_components[0]])])
-        self.set_velocity_bc([])
 
         self.set_flow_solver_params()
-        self.set_additional_parameters(r_val=5e2, omega_by_r=1.0)
+        self.set_additional_parameters(r_val=5e3, omega_by_r=1.0)
         self.assemble_matrix()
 
     def set_flow_solver_params(self):
@@ -99,7 +100,7 @@ class FlowManager(StokesFlowUzawa):
         prm['relative_tolerance'] = 1e-12
         prm['maximum_iterations'] = 8000
         prm['error_on_nonconvergence'] = True
-        prm['monitor_convergence'] = True
+        prm['monitor_convergence'] = False
         prm['nonzero_initial_guess'] = True
 
 class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
@@ -109,7 +110,7 @@ class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
     def set_component_properties(self):
         self.set_molecular_diffusivity([1.0])
 
-    def define_problem(self, Rayleigh_number=1e6):
+    def define_problem(self, Rayleigh_number=5e5):
         self.set_components('Temp')
         self.set_component_properties()
         self.mark_component_boundary(**{'Temp': [self.marker_dict['top'], self.marker_dict['bottom_inner']]})

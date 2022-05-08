@@ -1,4 +1,5 @@
 from . import *
+import ufl
 
 class StokesFlowUzawa(TransportProblemBase, StokesFlowBase):
     """This class utilizes the Augmented Lagrangian Uzawa method to solve
@@ -7,6 +8,8 @@ class StokesFlowUzawa(TransportProblemBase, StokesFlowBase):
 
     def generate_form(self):
         """Sets up the FeNiCs Form of Stokes flow."""
+
+        self.generate_residual_form()
 
         V = self.velocity_func_space
         Q = self.pressure_func_space
@@ -18,7 +21,6 @@ class StokesFlowUzawa(TransportProblemBase, StokesFlowBase):
         v, q = self.__v, self.__q
 
         self.__u0 = self.fluid_velocity
-        self.fluid_pressure.assign(interpolate(self.init_cond_pressure, Q))
         self.__p0 = self.fluid_pressure
         self.__u1 ,self.__p1 = Function(V), Function(Q)
 
@@ -30,21 +32,49 @@ class StokesFlowUzawa(TransportProblemBase, StokesFlowBase):
         r, omega = self.__r, self.omega
 
         n = self.n
-        dx, ds = self.dx, self.ds
+        dx, ds, dS = self.dx, self.ds, self.dS(0)
+
+        # alpha = Constant(0.0)
+        # a_stab = Constant(0.0)
+        #
+        # h = CellDiameter(self.mesh)
+        # h2 = ufl.Min(h("+"), h("-"))
+        #
+        # def tensor_jump(v, n):
+        #     return ufl.outer(v, n)("+") + ufl.outer(v, n)("-")
+        #
+        # stab = (
+        #     mu * (a_stab / h2) * inner(tensor_jump(u, n), tensor_jump(v, n)) * dS
+        #     - mu * inner(avg(grad(u)), tensor_jump(v, n)) * dS
+        #     - mu * inner(avg(grad(v)), tensor_jump(u, n)) * dS
+        # )
 
         self.form_update_velocity = mu*inner(grad(v), grad(u))*dx \
                                     + r*inner(div(v), div(rho*u))*dx \
                                     - inner(p0, div(v))*dx \
                                     - inner(v, rho*g)*dx
+        #                             + stab #+ inner(v, (u - u0))*dx
+        #
+        # for marker in self.stokes_boundary_dict['noslip']:
+        #     self.form_update_velocity += (alpha/h * inner(outer(v, n), outer(u, n)) * ds(marker)
+        #      - inner(grad(u), outer(v, n)) * ds(marker)
+        #      - inner(grad(v), outer(u, n)) * ds(marker))
 
         self.form_update_pressure = q*(p-p0)*dx + omega*q*div(rho*u1)*dx
 
+    def set_pressure_bc(self, pressure_bc):
+        super().set_pressure_bc(pressure_bc)
+
+        v = self.__v
+        n = self.n
+        ds = self.ds
+        mu = self._mu
+        u0 = self.__u0
+
         for i, marker in enumerate(self.stokes_boundary_dict['inlet']):
             self.form_update_velocity += \
-            + inner(self.pressure_bc[i]*n, v)*ds(marker) \
+            inner(self.pressure_bc[i]*n, v)*ds(marker) \
             - mu*inner(dot(grad(u0), n), v)*ds(marker)
-
-        self.generate_residual_form()
 
     def add_mass_source(self, sources: list):
         q, v, r, omega = self.__q, self.__v, self.__r, self.omega
@@ -93,7 +123,7 @@ class StokesFlowUzawa(TransportProblemBase, StokesFlowBase):
         """"""
         steps = 0
 
-        residual = self.get_flow_residual()
+        residual = 1.0 + self.get_flow_residual()
         while(residual > target_residual and steps < max_steps):
             if (MPI.rank(MPI.comm_world)==0):
                 info('Stokes flow residual = ' + str(residual))
@@ -114,6 +144,9 @@ class StokesFlowUzawa(TransportProblemBase, StokesFlowBase):
             residual = self.get_flow_residual()
 
             steps+=1
+
+        if (MPI.rank(MPI.comm_world)==0):
+            info('Stokes flow residual = ' + str(residual))
 
         if (MPI.rank(MPI.comm_world)==0):
             info('Steps used: ' + str(steps))

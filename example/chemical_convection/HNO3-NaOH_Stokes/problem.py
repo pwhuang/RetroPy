@@ -4,7 +4,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from mesh_factory import MeshFactory
 from reaktoro_transport.manager import StokesFlowManagerUzawa as FlowManager
 from reaktoro_transport.manager import ReactiveTransportManager
-from reaktoro_transport.manager import HDF5Manager as OutputManager
+from reaktoro_transport.manager import XDMFManager as OutputManager
 
 from dolfin import (Expression, Constant, PETScOptions, interpolate, Function,
                     project, info)
@@ -21,7 +21,7 @@ class ReactiveTransportManager(ReactiveTransportManager):
         theta = Constant(theta_val)
         one = Constant(1.0)
 
-        self.add_explicit_advection(u, kappa=theta, marker=0, f_id=f_id)
+        self.add_explicit_advection(u, kappa=one-theta, marker=0, f_id=f_id)
         self.add_implicit_advection(kappa=theta, marker=0, f_id=f_id)
 
         for component in self.component_dict.keys():
@@ -92,7 +92,7 @@ class ReactiveTransportManager(ReactiveTransportManager):
             pressure = self.fluid_pressure_DG.vector()[:] + self.background_pressure
             self._solve_chem_equi_over_dofs(pressure, fluid_comp)
             self._assign_chem_equi_results()
-            self.solve_flow(target_residual=self.flow_residual, max_steps=20)
+            self.solve_flow(target_residual=self.flow_residual, max_steps=10)
 
             timestep += 1
 
@@ -120,13 +120,39 @@ class ReactiveTransportManager(ReactiveTransportManager):
             np.save(self.output_file_name + '_time', np.array(saved_times), allow_pickle=False)
             np.save(self.output_file_name + '_flow_res', np.array(flow_residuals), allow_pickle=False)
 
+    def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
+        prm = self.get_solver_parameters()
+
+        prm['nonlinear_solver'] = 'snes'
+        nl_solver_type = 'snes_solver'
+
+        prm[nl_solver_type]['absolute_tolerance'] = 1e-11
+        prm[nl_solver_type]['relative_tolerance'] = 1e-13
+        prm[nl_solver_type]['solution_tolerance'] = 1e-18
+        prm[nl_solver_type]['maximum_iterations'] = 50
+        prm['snes_solver']['method'] = 'newtonls'
+        prm['snes_solver']['line_search'] = 'bt'
+        prm['newton_solver']['relaxation_parameter'] = 0.1
+        prm[nl_solver_type]['linear_solver'] = linear_solver
+        prm[nl_solver_type]['preconditioner'] = preconditioner
+
+        self.__set_krylov_solver_params(prm[nl_solver_type]['krylov_solver'])
+
+    def __set_krylov_solver_params(self, prm):
+        prm['absolute_tolerance'] = 1e-13
+        prm['relative_tolerance'] = 1e-12
+        prm['maximum_iterations'] = 2000
+        prm['error_on_nonconvergence'] = False
+        prm['monitor_convergence'] = False
+        prm['nonzero_initial_guess'] = True
+        prm['divergence_limit'] = 1e6
+
 class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager):
     """This class solves the chemically driven convection problem."""
 
     def __init__(self, const_diff):
         super().__init__(*self.get_mesh_and_markers())
         self.is_same_diffusivity = const_diff
-        self.set_flow_residual(5e-10)
 
     def set_component_properties(self):
         self.set_molar_mass([22.98977, 62.0049, 1.00794, 17.00734]) #g/mol
@@ -175,7 +201,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
-        min_dt, max_dt = 1e-3, 0.4
+        min_dt, max_dt = 1e-3, 0.5
 
         if (dt_val := dt_val*1.05) > max_dt:
             dt_val = max_dt

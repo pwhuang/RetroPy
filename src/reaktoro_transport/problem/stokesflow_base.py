@@ -8,6 +8,26 @@ class StokesFlowBase(FluidProperty):
         self.set_boundary_markers(boundary_markers)
         self.set_domain_markers(domain_markers)
 
+    def __init_function_space(self):
+        func_space_list = [self.velocity_finite_element,
+                           self.pressure_finite_element]
+
+        self.mixed_func_space = FunctionSpace(self.mesh,
+                                              MixedElement(func_space_list))
+
+    def __init_function_assigner(self):
+        self.velocity_assigner = FunctionAssigner(self.velocity_func_space,
+                                                  self.mixed_func_space.sub(0))
+
+        self.pressure_assigner = FunctionAssigner(self.pressure_func_space,
+                                                  self.mixed_func_space.sub(1))
+
+        self.mixed_v_assigner = FunctionAssigner(self.mixed_func_space.sub(0),
+                                                 self.velocity_func_space)
+
+        self.mixed_p_assigner = FunctionAssigner(self.mixed_func_space.sub(1),
+                                                 self.pressure_func_space)
+
     def mark_flow_boundary(self, **kwargs):
         """This method gives boundary markers physical meaning.
 
@@ -23,9 +43,21 @@ class StokesFlowBase(FluidProperty):
     def set_pressure_ic(self, init_cond_pressure: Expression):
         """Sets up the initial condition of pressure."""
         self.init_cond_pressure = init_cond_pressure
+        self.fluid_pressure.assign(interpolate(init_cond_pressure, self.pressure_func_space))
 
     def set_pressure_bc(self, pressure_bc):
         self.pressure_bc = pressure_bc
+
+        v = self.__v
+        n = self.n
+        ds = self.ds
+        mu = self._mu
+        u0 = self.__U1.sub(0)
+
+        for i, marker in enumerate(self.stokes_boundary_dict['inlet']):
+            self.residual_momentum_form += \
+            self.pressure_bc[i]*inner(n, v)*ds(marker) \
+            - mu*inner(dot(grad(u0), n), v)*ds(marker)
 
     def set_velocity_bc(self, velocity_bc_val: list):
         """
@@ -52,30 +84,55 @@ class StokesFlowBase(FluidProperty):
                                                 velocity_bc_val[i],
                                                 self.boundary_markers, marker))
 
+        self.mixed_vel_bc = []
+        self.mixed_pres_bc = []
+
+        for marker in self.stokes_boundary_dict['noslip']:
+            self.mixed_vel_bc.append(DirichletBC(self.mixed_func_space.sub(0), noslip,
+                                                 self.boundary_markers, marker))
+
+        for i, marker in enumerate(self.stokes_boundary_dict['velocity_bc']):
+            self.mixed_vel_bc.append(DirichletBC(self.mixed_func_space.sub(0),
+                                                 velocity_bc_val[i],
+                                                 self.boundary_markers, marker))
+
     def generate_residual_form(self):
         """"""
+        self.__init_function_space()
+        self.__init_function_assigner()
 
-        V = self.velocity_func_space
-        Q = self.pressure_func_space
+        W = self.mixed_func_space
 
-        self.__v, self.__q = TestFunction(V), TestFunction(Q)
+        (self.__u, self.__p) = TrialFunctions(W)
+        (self.__v, self.__q) = TestFunctions(W)
 
+        self.__U0 = Function(W)
+        self.__U1 = Function(W)
+
+        #self.__U0.vector()[:] = 1.0
+
+        # V = self.velocity_func_space
+        # Q = self.pressure_func_space
+        #
+        # self.__v, self.__q = TestFunction(V), TestFunction(Q)
+
+        #self.__v, self.__q = self.__U0.sub(0), self.__U0.sub(1)
+        u, p = self.__u, self.__p
         v, q = self.__v, self.__q
-        u0, p0 = self.fluid_velocity, self.fluid_pressure
+        #u0, p0 = self.fluid_velocity, self.fluid_pressure
+        u0, p0 = self.__U1.sub(0), self.__U1.sub(1)
 
         mu, rho, g = self._mu, self._rho, self._g
 
         n = self.n
         dx, ds = self.dx, self.ds
 
-        self.residual_momentum_form = (mu*inner(grad(u0), grad(v)) - inner(p0, div(v)))*dx
+        self.residual_momentum_form = mu*inner(grad(v), grad(u))*dx - inner(div(v), p)*dx
         self.residual_momentum_form -= inner(v, rho*g)*dx
-        self.residual_mass_form = q*div(rho*u0)*dx
+        self.residual_momentum_form += q*div(rho*u)*dx
 
-        for i, marker in enumerate(self.stokes_boundary_dict['inlet']):
-            self.residual_momentum_form += \
-            self.pressure_bc[i]*inner(n, v)*ds(marker) \
-            - mu*inner(dot(grad(u0), n), v)*ds(marker)
+        self.__A = PETScMatrix()
+        self.__b = PETScVector()
 
     def add_mass_source_to_residual_form(self, sources: list):
         q = self.__q
@@ -92,15 +149,38 @@ class StokesFlowBase(FluidProperty):
     def get_flow_residual(self):
         """"""
 
-        u0 = self.fluid_velocity
+        self.__rmf, self.__L = lhs(self.residual_momentum_form), rhs(self.residual_momentum_form)
+        #u0, p0 = self.fluid_velocity, self.fluid_pressure
 
-        residual_momentum = assemble(self.residual_momentum_form)
-        residual_mass = assemble(self.residual_mass_form)
+        # self.velocity_assigner.assign(self.__U0.sub(0), self.fluid_velocity)
+        # self.pressure_assigner.assign(self.__U0.sub(1), self.fluid_pressure)
+        self.mixed_v_assigner.assign(self.__U1.sub(0), self.fluid_velocity)
+        self.mixed_p_assigner.assign(self.__U1.sub(1), self.fluid_pressure)
 
-        for bc in self.velocity_bc:
-            bc.apply(residual_momentum, u0.vector())
+        assemble_system(self.__rmf, self.__L, self.mixed_vel_bc, A_tensor=self.__A, b_tensor=self.__b)
+        # assemble(self.__rmf, tensor=self.__A)
+        # assemble(self.__L, tensor=self.__b)
 
-        residual = residual_momentum.norm('l2')
-        residual += residual_mass.norm('l2')
+        # for bc in self.mixed_vel_bc:
+        #     #bc.apply(self.__A, self.__b)
+        #     bc.apply(self.__U1.vector())
+
+        #self.__U0.vector()[:] = 1.0
+        # for bc in self.mixed_vel_bc:
+        #     bc.apply(self.__U0.vector())
+
+        #action(self.residual_momentum_form, self.__U1)
+
+        #residual_momentum = assemble(self.residual_momentum_form)
+
+        # for bc in self.mixed_vel_bc:
+        #     bc.apply(residual_momentum, self.__U0.vector())
+        #residual_mass = assemble(self.residual_mass_form)
+
+        #residual = residual_momentum.norm('l2')
+        #residual = abs(residual_momentum)
+        #residual += residual_mass.norm('l2')
+        #print((self.__A*self.__x - self.__b).get_local()[:])
+        residual = (self.__A*self.__U1.vector() - self.__b).norm('l2')
 
         return residual

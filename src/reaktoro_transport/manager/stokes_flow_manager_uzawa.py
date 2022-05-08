@@ -7,12 +7,10 @@ class StokesFlowManagerUzawa(ABC, StokesFlowUzawa):
 
     def setup_flow_solver(self, r_val=1e6, omega_by_r=1.0):
         self.set_flow_fe_space()
-        self.set_flow_ibc()
-
         self.set_fluid_properties()
-
         self.generate_form()
-        self.generate_residual_form()
+
+        self.set_flow_ibc()
 
         self.set_flow_solver_params()
         self.set_additional_parameters(r_val=r_val, omega_by_r=omega_by_r)

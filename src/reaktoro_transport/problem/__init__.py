@@ -15,6 +15,7 @@ from .tracer_transport_problem_exp import TracerTransportProblemExp
 
 from .stokesflow_base import StokesFlowBase
 from .stokesflow_uzawa import StokesFlowUzawa
+from .stokesflow_mixedpoisson import StokesFlowMixedPoisson
 
 from .darcyflow_base import DarcyFlowBase
 from .darcyflow_uzawa import DarcyFlowUzawa
