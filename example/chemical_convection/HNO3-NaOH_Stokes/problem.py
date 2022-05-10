@@ -21,24 +21,31 @@ class ReactiveTransportManager(ReactiveTransportManager):
         theta = Constant(theta_val)
         one = Constant(1.0)
 
+        #self.add_implicit_advection(kappa=one, marker=0, f_id=f_id)
+        #self.add_explicit_advection(u, kappa=one, marker=0, f_id=f_id)
+
         self.add_explicit_advection(u, kappa=one-theta, marker=0, f_id=f_id)
         self.add_implicit_advection(kappa=theta, marker=0, f_id=f_id)
 
         for component in self.component_dict.keys():
             self.add_implicit_diffusion(component, kappa=theta, marker=0)
             self.add_explicit_diffusion(component, u, kappa=one-theta, marker=0)
+            #self.add_implicit_diffusion(component, kappa=theta, marker=0)
+            #self.add_explicit_diffusion(component, u, kappa=one, marker=0)
 
         if self.is_same_diffusivity==False:
             self.add_implicit_charge_balanced_diffusion(kappa=theta, marker=0)
             self.add_explicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
+            #self.add_implicit_charge_balanced_diffusion(kappa=one, marker=0)
+            #self.add_implicit_charge_balanced_diffusion(u, kappa=one, marker=0)
 
-        self.evaluate_jacobian(self.get_forms()[0])
+        #self.evaluate_jacobian(self.get_forms()[0])
 
     def solve_initial_condition(self):
         self.assign_u0_to_u1()
 
         # updates the pressure assuming constant density
-        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
+        #self.solve_flow(target_residual=self.flow_residual, max_steps=50)
 
         self.fluid_pressure_DG = Function(self.DG0_space)
 
@@ -50,7 +57,7 @@ class ReactiveTransportManager(ReactiveTransportManager):
         self._assign_chem_equi_results()
 
         # updates the pressure and velocity using the density at equilibrium
-        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
+        #self.solve_flow(target_residual=self.flow_residual, max_steps=50)
 
     def solve(self, dt_val=1.0, endtime=10.0, time_stamps=[]):
         current_time = 0.0
@@ -79,12 +86,15 @@ class ReactiveTransportManager(ReactiveTransportManager):
 
             self.set_dt(dt_val)
 
+            #info(str(self.calculate_jacobian_norm()))
+
             if self.solve_species_transport() is False:
                 dt_val = 0.7*dt_val
                 self.trial_count += 1
                 continue
 
             self.trial_count = 0
+
             self.solve_solvent_transport()
 
             fluid_comp = np.exp(self.get_solution().vector()[:].reshape(-1, self.num_component))
@@ -121,31 +131,56 @@ class ReactiveTransportManager(ReactiveTransportManager):
             np.save(self.output_file_name + '_flow_res', np.array(flow_residuals), allow_pickle=False)
 
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
-        prm = self.get_solver_parameters()
+        opts = self.get_solver_parameters()
 
-        prm['nonlinear_solver'] = 'snes'
-        nl_solver_type = 'snes_solver'
+        #opts['snes_view'] = None
+        opts['snes_monitor'] = None
+        opts['snes_linesearch_monitor'] = None
+        opts['snes_converged_reason'] = None
+        opts['snes_type'] = 'newtonls'
+        opts['snes_linesearch_type'] = 'bt'
+        opts['snes_linesearch_alpha'] = 1e-2
+        opts['snes_linesearch_minlambda'] = 1e-5
+        opts['snes_linesearch_setorder'] = 3
+        #opts['snes_tr_delta0'] = 1.0
+        #opts['snes_qn_type'] = 'lbfgs'
+        #opts['snes_fd'] = None
+        #opts['snes_mf'] = None
 
-        prm[nl_solver_type]['absolute_tolerance'] = 1e-11
-        prm[nl_solver_type]['relative_tolerance'] = 1e-13
-        prm[nl_solver_type]['solution_tolerance'] = 1e-18
-        prm[nl_solver_type]['maximum_iterations'] = 50
-        prm['snes_solver']['method'] = 'newtonls'
-        prm['snes_solver']['line_search'] = 'bt'
-        prm['newton_solver']['relaxation_parameter'] = 0.1
-        prm[nl_solver_type]['linear_solver'] = linear_solver
-        prm[nl_solver_type]['preconditioner'] = preconditioner
+        #opts['ksp_monitor_true_residual'] = None
+        opts['ksp_max_it'] = 500
+        opts['ksp_rtol'] = 1e-12
+        opts['ksp_atol'] = 1e-14
+        opts['ksp_converged_reason'] = None
+        #opts['ksp_monitor_singular_value'] = None
 
-        self.__set_krylov_solver_params(prm[nl_solver_type]['krylov_solver'])
+        opts['pc_hypre_boomeramg_strong_threshold'] = 0.25
+        opts['pc_hypre_boomeramg_truncfactor'] = 0.0
+        opts['pc_hypre_boomeramg_print_statistics'] = 0
 
-    def __set_krylov_solver_params(self, prm):
-        prm['absolute_tolerance'] = 1e-13
-        prm['relative_tolerance'] = 1e-12
-        prm['maximum_iterations'] = 2000
-        prm['error_on_nonconvergence'] = False
-        prm['monitor_convergence'] = False
-        prm['nonzero_initial_guess'] = True
-        prm['divergence_limit'] = 1e6
+        self.snes.setFromOptions()
+
+        self.snes.setTolerances(rtol=1e-10, atol=1e-12, stol=1e-10, max_it=100)
+        self.snes.getKSP().setType('gmres')
+        self.snes.getKSP().setInitialGuessNonzero(True)
+        self.snes.getKSP().getPC().setType('hypre')
+        self.snes.getKSP().getPC().setHYPREType('boomeramg')
+
+        #self.snes.getKSP().getPC().setGAMGType('agg')
+
+        # assert snes.getConvergedReason() > 0
+        # assert snes.getIterationNumber() < 6
+
+        # self.__set_krylov_solver_params(prm[nl_solver_type]['krylov_solver'])
+
+    # def __set_krylov_solver_params(self, prm):
+    #     prm['absolute_tolerance'] = 1e-13
+    #     prm['relative_tolerance'] = 1e-12
+    #     prm['maximum_iterations'] = 2000
+    #     prm['error_on_nonconvergence'] = False
+    #     prm['monitor_convergence'] = False
+    #     prm['nonzero_initial_guess'] = True
+    #     prm['divergence_limit'] = 1e6
 
 class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager):
     """This class solves the chemically driven convection problem."""
@@ -175,10 +210,10 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
         init_expr_list = []
 
         for i in range(self.num_component):
-            init_expr_list.append('x[1]<=2.5 ?' + str(NaOH_amounts[i]) + ':' + str(HNO3_amounts[i]))
+            init_expr_list.append('x[1]<=1.0 ?' + str(NaOH_amounts[i]) + ':' + str(HNO3_amounts[i]))
 
         self.set_component_ics(Expression(init_expr_list, degree=1))
-        self.set_solvent_ic(Expression('x[1]<=2.5 ?' + str(NaOH_amounts[-1]) + ':' + str(HNO3_amounts[-1]) , degree=1))
+        self.set_solvent_ic(Expression('x[1]<=1.0 ?' + str(NaOH_amounts[-1]) + ':' + str(HNO3_amounts[-1]) , degree=1))
 
     def set_fluid_properties(self):
         self.set_fluid_density(1e-3) # Initialization # g/mm^3
@@ -193,11 +228,11 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
         self.set_velocity_bc([])
 
     def setup_transport_solver(self):
-        self.generate_solver(eval_jacobian=False)
+        self.generate_solver(eval_jacobian=True)
         self.set_solver_parameters('bicgstab', 'amg')
-        PETScOptions.set("pc_hypre_boomeramg_strong_threshold", 0.4)
-        PETScOptions.set("pc_hypre_boomeramg_truncfactor", 0.0)
-        PETScOptions.set("pc_hypre_boomeramg_print_statistics", 0)
+        # PETScOptions.set("pc_hypre_boomeramg_strong_threshold", 0.4)
+        # PETScOptions.set("pc_hypre_boomeramg_truncfactor", 0.0)
+        # PETScOptions.set("pc_hypre_boomeramg_print_statistics", 0)
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
