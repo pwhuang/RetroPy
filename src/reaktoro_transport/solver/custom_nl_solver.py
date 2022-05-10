@@ -16,7 +16,6 @@ class CustomNLSolver(TransientSolver):
         self.__u1 = Function(self.__func_space)
         self.__du = TrialFunction(self.__func_space)
 
-
         self.add_time_derivatives(self.__u0)
         self.add_physics_to_form(self.__u0)
 
@@ -26,14 +25,15 @@ class CustomNLSolver(TransientSolver):
         self.__form = action(self.__form, self.__u1)
 
         if eval_jacobian==True:
-            self.evaluate_jacobian(self.jacobian_forms[0])
+            self.jacobian = derivative(self.__form, self.__u1, self.__du)
+            #self.evaluate_jacobian(self.jacobian_form)
 
         self._TransientSolver__u1 = self.__u1
 
         b = PETScVector()
         J_mat = PETScMatrix()
 
-        self._dummy_u = self.__u1.copy(deepcopy=True)
+        self._dummy_u = Function(self.__func_space)
 
         self.snes = PETSc.SNES().create(MPI.comm_world)
         self.snes.setFunction(self.__F, b.vec())
@@ -48,10 +48,11 @@ class CustomNLSolver(TransientSolver):
     def __F(self, snes, x, F):
         F = PETScVector(F)
         u = self.__u1
-        #self._dummy_u.vector()[:] = np.exp(u.vector()[:])
-        self._dummy_u.vector()[:] = u.vector()[:]
+        u.vector()[:] = np.exp(u.vector()[:])
+        #self._dummy_u.assign(u)
 
-        x.copy(self._dummy_u.vector().vec())
+        #x.getArray()[:] = np.exp(u.vector()[:])
+        x.copy(u.vector().vec())
         u.vector().apply("")
 
         assemble(self.__form, tensor=F)
@@ -62,11 +63,12 @@ class CustomNLSolver(TransientSolver):
     def __J(self, snes, x, J, P):
         J = PETScMatrix(J)
         u = self.__u1
+        #u.vector()[:] = np.exp(u.vector()[:])
         #self._dummy_u.vector()[:] = np.exp(u.vector()[:])
-        self._dummy_u.vector()[:] = u.vector()[:]
+        #self._dummy_u.assign(u)
 
-        x.copy(self._dummy_u.vector().vec())
-        u.vector().apply("")
+        # x.copy(u.vector().vec())
+        # u.vector().apply("")
 
         assemble(self.jacobian, tensor=J)
 
@@ -76,8 +78,7 @@ class CustomNLSolver(TransientSolver):
     def solve_one_step(self):
         self.snes.solve(None, self.__u1.vector().vec())
 
-    # def solve_one_step(self):
-    #     self.__solver.solve(self.__problem, self.__u1.vector())
+        return self.snes.getConvergedReason() > 0
 
     def evaluate_jacobian(self, form):
         self.jacobian = derivative(action(form, self.__u1), self.__u1, self.__du)
@@ -92,15 +93,14 @@ class CustomNLSolver(TransientSolver):
         opts['snes_monitor'] = None
         opts['snes_linesearch_monitor'] = None
         opts['snes_converged_reason'] = None
+        opts['snes_type'] = 'newtonls'
         opts['snes_linesearch'] = 'bt'
         #opts['snes_fd'] = None
 
-        #opts['ksp_type'] = 'bcgs'
-        #opts['ksp_monitor_true_residual'] = None
+        opts['ksp_monitor_true_residual'] = None
         opts['ksp_max_it'] = 500
         opts['ksp_rtol'] = 1e-12
         opts['ksp_atol'] = 1e-14
-        #opts['ksp_pc_type'] = 'lu'
         opts['ksp_converged_reason'] = None
 
         opts['pc_hypre_boomeramg_strong_threshold'] = 0.4
@@ -109,23 +109,8 @@ class CustomNLSolver(TransientSolver):
 
         self.snes.setFromOptions()
 
-        self.snes.setTolerances(rtol=1e-10, atol=1e-12, max_it=5)
+        self.snes.setTolerances(rtol=1e-10, atol=1e-12, max_it=50)
         self.snes.getKSP().setType('bcgs')
         self.snes.getKSP().getPC().setType('hypre')
         self.snes.getKSP().getPC().setHYPREType('boomeramg')
         #self.snes.getKSP().getPC().setGAMGType('agg')
-
-
-        # prm['nonlinear_solver'] = 'snes'
-        #
-        # nl_solver_type = 'snes_solver'
-        #
-        # prm[nl_solver_type]['absolute_tolerance'] = 1e-10
-        # prm[nl_solver_type]['relative_tolerance'] = 1e-14
-        # prm[nl_solver_type]['maximum_iterations'] = 50
-        # prm['snes_solver']['method'] = 'newtonls'
-        # prm['snes_solver']['line_search'] = 'bt'
-        # prm[nl_solver_type]['linear_solver'] = linear_solver
-        # prm[nl_solver_type]['preconditioner'] = preconditioner
-        #
-        # set_default_solver_parameters(prm[nl_solver_type]['krylov_solver'])

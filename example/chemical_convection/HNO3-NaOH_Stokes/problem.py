@@ -7,7 +7,7 @@ from reaktoro_transport.manager import ReactiveTransportManager
 from reaktoro_transport.manager import XDMFManager as OutputManager
 
 from dolfin import (Expression, Constant, PETScOptions, interpolate, Function,
-                    project, info)
+                    project, info, end)
 import numpy as np
 
 class ReactiveTransportManager(ReactiveTransportManager):
@@ -45,7 +45,7 @@ class ReactiveTransportManager(ReactiveTransportManager):
         self.assign_u0_to_u1()
 
         # updates the pressure assuming constant density
-        #self.solve_flow(target_residual=self.flow_residual, max_steps=50)
+        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
 
         self.fluid_pressure_DG = Function(self.DG0_space)
 
@@ -57,7 +57,25 @@ class ReactiveTransportManager(ReactiveTransportManager):
         self._assign_chem_equi_results()
 
         # updates the pressure and velocity using the density at equilibrium
-        #self.solve_flow(target_residual=self.flow_residual, max_steps=50)
+        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
+
+    def solve_species_transport(self):
+        max_trials = 7
+
+        try:
+            is_solved = self.solve_one_step()
+
+            if is_solved is False:
+                raise RuntimeError('SNES solve does not converge.')
+        except:
+            self.assign_u0_to_u1()
+
+            if self.trial_count >= max_trials:
+                raise RuntimeError('Reached max trial count. Abort!')
+            end() # Added to avoid unbalanced indentation in logs.
+            is_solved = False
+
+        return is_solved
 
     def solve(self, dt_val=1.0, endtime=10.0, time_stamps=[]):
         current_time = 0.0
@@ -85,8 +103,6 @@ class ReactiveTransportManager(ReactiveTransportManager):
                      f"current_time = {current_time:.6f}\n")
 
             self.set_dt(dt_val)
-
-            #info(str(self.calculate_jacobian_norm()))
 
             if self.solve_species_transport() is False:
                 dt_val = 0.7*dt_val
@@ -151,20 +167,20 @@ class ReactiveTransportManager(ReactiveTransportManager):
         opts['ksp_max_it'] = 500
         opts['ksp_rtol'] = 1e-12
         opts['ksp_atol'] = 1e-14
-        opts['ksp_converged_reason'] = None
+        #opts['ksp_converged_reason'] = None
         #opts['ksp_monitor_singular_value'] = None
 
-        opts['pc_hypre_boomeramg_strong_threshold'] = 0.25
-        opts['pc_hypre_boomeramg_truncfactor'] = 0.0
-        opts['pc_hypre_boomeramg_print_statistics'] = 0
+        # opts['pc_hypre_boomeramg_strong_threshold'] = 0.25
+        # opts['pc_hypre_boomeramg_truncfactor'] = 0.0
+        # opts['pc_hypre_boomeramg_print_statistics'] = 0
 
         self.snes.setFromOptions()
 
-        self.snes.setTolerances(rtol=1e-10, atol=1e-12, stol=1e-10, max_it=100)
-        self.snes.getKSP().setType('gmres')
+        self.snes.setTolerances(rtol=1e-15, atol=1e-15, stol=1e-10, max_it=100)
+        self.snes.getKSP().setType('fgmres')
         self.snes.getKSP().setInitialGuessNonzero(True)
-        self.snes.getKSP().getPC().setType('hypre')
-        self.snes.getKSP().getPC().setHYPREType('boomeramg')
+        self.snes.getKSP().getPC().setType('gamg')
+        #self.snes.getKSP().getPC().setHYPREType('boomeramg')
 
         #self.snes.getKSP().getPC().setGAMGType('agg')
 
@@ -210,10 +226,10 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
         init_expr_list = []
 
         for i in range(self.num_component):
-            init_expr_list.append('x[1]<=1.0 ?' + str(NaOH_amounts[i]) + ':' + str(HNO3_amounts[i]))
+            init_expr_list.append('x[1]<=2.5 ?' + str(NaOH_amounts[i]) + ':' + str(HNO3_amounts[i]))
 
         self.set_component_ics(Expression(init_expr_list, degree=1))
-        self.set_solvent_ic(Expression('x[1]<=1.0 ?' + str(NaOH_amounts[-1]) + ':' + str(HNO3_amounts[-1]) , degree=1))
+        self.set_solvent_ic(Expression('x[1]<=2.5 ?' + str(NaOH_amounts[-1]) + ':' + str(HNO3_amounts[-1]) , degree=1))
 
     def set_fluid_properties(self):
         self.set_fluid_density(1e-3) # Initialization # g/mm^3
