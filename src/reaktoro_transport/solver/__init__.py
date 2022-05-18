@@ -20,3 +20,4 @@ from .projection_solver import ProjectionSolver
 from .gradient_solver import GradientSolver
 from .electric_field_solver import ElectricFieldSolver
 from .transient_nl_solver import TransientNLSolver
+from .custom_nl_solver import CustomNLSolver

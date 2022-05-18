@@ -26,7 +26,6 @@ class CustomNLSolver(TransientSolver):
 
         if eval_jacobian==True:
             self.jacobian = derivative(self.__form, self.__u1, self.__du)
-            #self.evaluate_jacobian(self.jacobian_form)
 
         self._TransientSolver__u1 = self.__u1
 
@@ -38,20 +37,11 @@ class CustomNLSolver(TransientSolver):
         self.snes = PETSc.SNES().create(MPI.comm_world)
         self.snes.setFunction(self.__F, b.vec())
         self.snes.setJacobian(self.__J, J_mat.mat())
-        #self.snes.setVariableBounds((self.__u1.vector()-40).vec(), (self.__u1.vector()+30).vec())
-
-        # bcs = self.get_dirichlet_bcs()
-        # self.__problem = NonlinearVariationalProblem(self.__form, self.__u1, bcs, J)
-        # self.__solver = PETScSNESSolver(MPI.comm_world, nls_type='default')
-        # self._TransientSolver__solver = self.__solver
 
     def __F(self, snes, x, F):
         F = PETScVector(F)
         u = self.__u1
         u.vector()[:] = np.exp(u.vector()[:])
-        #self._dummy_u.assign(u)
-
-        #x.getArray()[:] = np.exp(u.vector()[:])
         x.copy(u.vector().vec())
         u.vector().apply("")
 
@@ -63,12 +53,9 @@ class CustomNLSolver(TransientSolver):
     def __J(self, snes, x, J, P):
         J = PETScMatrix(J)
         u = self.__u1
-        #u.vector()[:] = np.exp(u.vector()[:])
-        #self._dummy_u.vector()[:] = np.exp(u.vector()[:])
-        #self._dummy_u.assign(u)
-
-        # x.copy(u.vector().vec())
-        # u.vector().apply("")
+        u.vector()[:] = np.exp(u.vector()[:])
+        x.copy(u.vector().vec())
+        u.vector().apply("")
 
         assemble(self.jacobian, tensor=J)
 
@@ -85,7 +72,6 @@ class CustomNLSolver(TransientSolver):
 
     def get_solver_parameters(self):
         return PETSc.Options()
-        #return self.__solver.parameters
 
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
         opts = self.get_solver_parameters()
@@ -95,7 +81,6 @@ class CustomNLSolver(TransientSolver):
         opts['snes_converged_reason'] = None
         opts['snes_type'] = 'newtonls'
         opts['snes_linesearch'] = 'bt'
-        #opts['snes_fd'] = None
 
         opts['ksp_monitor_true_residual'] = None
         opts['ksp_max_it'] = 500
@@ -113,4 +98,3 @@ class CustomNLSolver(TransientSolver):
         self.snes.getKSP().setType('bcgs')
         self.snes.getKSP().getPC().setType('hypre')
         self.snes.getKSP().getPC().setHYPREType('boomeramg')
-        #self.snes.getKSP().getPC().setGAMGType('agg')
