@@ -4,11 +4,13 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from mesh_factory import MeshFactory
 from reaktoro_transport.manager import DarcyFlowManagerUzawa as FlowManager
 from reaktoro_transport.manager import ReactiveTransportManager
-from reaktoro_transport.manager import HDF5Manager as OutputManager
+from reaktoro_transport.manager import XDMFManager as OutputManager
+from reaktoro_transport.solver import TransientNLSolver
 
 from dolfin import Expression, Constant, PETScOptions
 
-class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager):
+class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
+              TransientNLSolver):
     """This class solves the chemically driven convection problem."""
 
     def __init__(self, nx, ny, const_diff):
@@ -67,7 +69,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
-        min_dt, max_dt = 1e-3, 0.1
+        min_dt, max_dt = 1e-3, 1.0
 
         if (dt_val := dt_val*1.1) > max_dt:
             dt_val = max_dt

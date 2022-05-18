@@ -5,10 +5,12 @@ from mesh_factory import MeshFactory
 from reaktoro_transport.manager import DarcyFlowManagerUzawa as FlowManager
 from reaktoro_transport.manager import ReactiveTransportManager
 from reaktoro_transport.manager import HDF5Manager as OutputManager
+from reaktoro_transport.solver import TransientNLSolver
 
 from dolfin import Expression, Constant
 
-class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager):
+class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
+              TransientNLSolver):
     """This class solves the chemically driven convection problem."""
 
     def __init__(self, nx, ny, const_diff):

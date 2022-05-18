@@ -6,6 +6,8 @@ from reaktoro_transport.manager import StokesFlowManagerUzawa as FlowManager
 from reaktoro_transport.manager import ReactiveTransportManager
 from reaktoro_transport.manager import XDMFManager as OutputManager
 
+from reaktoro_transport.solver import CustomNLSolver
+
 from dolfin import (Expression, Constant, PETScOptions, interpolate, Function,
                     project, info, end)
 import numpy as np
@@ -13,7 +15,7 @@ import numpy as np
 class ReactiveTransportManager(ReactiveTransportManager):
     def add_physics_to_form(self, u, theta_val=0.5, f_id=0):
         """
-        Explicit upwind advection and Crank-Nicolson diffusion.
+        Crank-Nicolson advection and diffusion.
         """
 
         self.set_advection_velocity()
@@ -21,25 +23,16 @@ class ReactiveTransportManager(ReactiveTransportManager):
         theta = Constant(theta_val)
         one = Constant(1.0)
 
-        #self.add_implicit_advection(kappa=one, marker=0, f_id=f_id)
-        #self.add_explicit_advection(u, kappa=one, marker=0, f_id=f_id)
-
-        self.add_explicit_advection(u, kappa=one-theta, marker=0, f_id=f_id)
         self.add_implicit_advection(kappa=theta, marker=0, f_id=f_id)
+        self.add_explicit_advection(u, kappa=one-theta, marker=0, f_id=f_id)
 
         for component in self.component_dict.keys():
             self.add_implicit_diffusion(component, kappa=theta, marker=0)
             self.add_explicit_diffusion(component, u, kappa=one-theta, marker=0)
-            #self.add_implicit_diffusion(component, kappa=theta, marker=0)
-            #self.add_explicit_diffusion(component, u, kappa=one, marker=0)
 
         if self.is_same_diffusivity==False:
             self.add_implicit_charge_balanced_diffusion(kappa=theta, marker=0)
             self.add_explicit_charge_balanced_diffusion(u, kappa=one-theta, marker=0)
-            #self.add_implicit_charge_balanced_diffusion(kappa=one, marker=0)
-            #self.add_implicit_charge_balanced_diffusion(u, kappa=one, marker=0)
-
-        #self.evaluate_jacobian(self.get_forms()[0])
 
     def solve_initial_condition(self):
         self.assign_u0_to_u1()
@@ -151,24 +144,20 @@ class ReactiveTransportManager(ReactiveTransportManager):
 
         #opts['snes_view'] = None
         opts['snes_monitor'] = None
-        opts['snes_linesearch_monitor'] = None
+        #opts['snes_linesearch_monitor'] = None
         opts['snes_converged_reason'] = None
         opts['snes_type'] = 'newtonls'
         opts['snes_linesearch_type'] = 'bt'
-        opts['snes_linesearch_alpha'] = 1e-2
-        opts['snes_linesearch_minlambda'] = 1e-5
-        opts['snes_linesearch_setorder'] = 3
-        #opts['snes_tr_delta0'] = 1.0
-        #opts['snes_qn_type'] = 'lbfgs'
-        #opts['snes_fd'] = None
-        #opts['snes_mf'] = None
+        opts['snes_linesearch_alpha'] = 2e-1
+        opts['snes_linesearch_damping'] = 1.2
+        opts['snes_linesearch_minlambda'] = 1e-10
+        opts['snes_linesearch_setorder'] = 2
 
         #opts['ksp_monitor_true_residual'] = None
         opts['ksp_max_it'] = 500
         opts['ksp_rtol'] = 1e-12
         opts['ksp_atol'] = 1e-14
         #opts['ksp_converged_reason'] = None
-        #opts['ksp_monitor_singular_value'] = None
 
         # opts['pc_hypre_boomeramg_strong_threshold'] = 0.25
         # opts['pc_hypre_boomeramg_truncfactor'] = 0.0
@@ -176,29 +165,16 @@ class ReactiveTransportManager(ReactiveTransportManager):
 
         self.snes.setFromOptions()
 
-        self.snes.setTolerances(rtol=1e-15, atol=1e-15, stol=1e-10, max_it=100)
-        self.snes.getKSP().setType('fgmres')
         self.snes.getKSP().setInitialGuessNonzero(True)
-        self.snes.getKSP().getPC().setType('gamg')
+        self.snes.setTolerances(rtol=1e-15, atol=1e-15, stol=1e-16, max_it=100)
+        self.snes.getKSP().setType(linear_solver)
+        self.snes.getKSP().getPC().setType(preconditioner)
+        self.snes.getKSP()
         #self.snes.getKSP().getPC().setHYPREType('boomeramg')
-
         #self.snes.getKSP().getPC().setGAMGType('agg')
 
-        # assert snes.getConvergedReason() > 0
-        # assert snes.getIterationNumber() < 6
-
-        # self.__set_krylov_solver_params(prm[nl_solver_type]['krylov_solver'])
-
-    # def __set_krylov_solver_params(self, prm):
-    #     prm['absolute_tolerance'] = 1e-13
-    #     prm['relative_tolerance'] = 1e-12
-    #     prm['maximum_iterations'] = 2000
-    #     prm['error_on_nonconvergence'] = False
-    #     prm['monitor_convergence'] = False
-    #     prm['nonzero_initial_guess'] = True
-    #     prm['divergence_limit'] = 1e6
-
-class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager):
+class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
+              CustomNLSolver):
     """This class solves the chemically driven convection problem."""
 
     def __init__(self, const_diff):
@@ -245,14 +221,11 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager)
 
     def setup_transport_solver(self):
         self.generate_solver(eval_jacobian=True)
-        self.set_solver_parameters('bicgstab', 'amg')
-        # PETScOptions.set("pc_hypre_boomeramg_strong_threshold", 0.4)
-        # PETScOptions.set("pc_hypre_boomeramg_truncfactor", 0.0)
-        # PETScOptions.set("pc_hypre_boomeramg_print_statistics", 0)
+        self.set_solver_parameters('gmres', 'gamg')
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
-        min_dt, max_dt = 1e-3, 0.5
+        min_dt, max_dt = 1e-3, 0.4
 
         if (dt_val := dt_val*1.05) > max_dt:
             dt_val = max_dt

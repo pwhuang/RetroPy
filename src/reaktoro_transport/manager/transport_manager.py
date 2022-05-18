@@ -1,12 +1,10 @@
 from reaktoro_transport.problem import TracerTransportProblemExp
 from reaktoro_transport.physics import DG0Kernel
-from reaktoro_transport.solver import TransientNLSolver
 
 from dolfin import Constant, as_vector
 from numpy import exp
 
-class TransportManager(TracerTransportProblemExp, DG0Kernel,
-                       TransientNLSolver):
+class TransportManager(TracerTransportProblemExp, DG0Kernel):
     """Manages the default behavior of solving species transport."""
 
     def __init__(self, mesh, boundary_markers, domain_markers):
