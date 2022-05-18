@@ -1,5 +1,8 @@
 from dolfin import *
 parameters["ghost_mode"] = "shared_vertex"
+parameters["form_compiler"]["optimize"] = True
+parameters["form_compiler"]["cpp_optimize"] = True
+parameters["std_out_all_processes"] = False
 
 from ufl.algebra import Abs
 from ufl.operators import sqrt
