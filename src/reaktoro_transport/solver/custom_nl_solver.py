@@ -53,7 +53,6 @@ class CustomNLSolver(TransientSolver):
     def __J(self, snes, x, J, P):
         J = PETScMatrix(J)
         u = self.__u1
-        u.vector()[:] = np.exp(u.vector()[:])
         x.copy(u.vector().vec())
         u.vector().apply("")
 
