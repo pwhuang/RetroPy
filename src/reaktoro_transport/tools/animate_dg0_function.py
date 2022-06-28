@@ -90,22 +90,22 @@ class AnimateDG0Function:
 
         return self.vector_x, self.vector_y
 
-    def interpolate_over_space(self, scalar_list):
+    def interpolate_over_space(self, scalar_list, origin='DG', origin_order=0
+                                                , target='CG', target_order=1):
+
+        origin_space = FunctionSpace(self.mesh, origin, origin_order)
+        target_space = FunctionSpace(self.mesh, target, target_order)
+
+        self.px_proj = target_space.tabulate_dof_coordinates()[:, 0]
+        self.py_proj = target_space.tabulate_dof_coordinates()[:, 1]
+        self.triang_proj = Triangulation(self.px_proj, self.py_proj)
+
+        origin_func = Function(origin_space)
         interpolated_scalar = []
-        DG_space = FunctionSpace(self.mesh, 'DG', 0)
-        CR_space = FunctionSpace(self.mesh, 'CR', 1)
-
-        self.px_CR = CR_space.tabulate_dof_coordinates()[:, 0]
-        self.py_CR = CR_space.tabulate_dof_coordinates()[:, 1]
-        self.triang_CR = Triangulation(self.px_CR, self.py_CR)
-
-        w = TestFunction(CR_space)
-        DG_func = Function(DG_space)
-        CR_func = Function(CR_space)
 
         for scalar in scalar_list:
-            DG_func.vector()[:] = scalar
-            interpolated_scalar.append(project(DG_func, CR_space).vector()[:])
+            origin_func.vector()[:] = scalar
+            interpolated_scalar.append(project(origin_func, target_space).vector()[:])
 
         return np.array(interpolated_scalar)
 
