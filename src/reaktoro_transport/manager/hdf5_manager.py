@@ -13,7 +13,7 @@ class HDF5Manager:
         xdmf_output.close()
 
         if MPI.rank(MPI.comm_world)==0:
-            self.csv_file = open(self.output_file_name + '.csv', mode='w')
+            self.csv_file = open(self.output_file_name + '_time.csv', mode='w')
             self.csv_writer = csv.writer(self.csv_file, delimiter=',')
 
         return True
