@@ -16,9 +16,13 @@ class AnimateDG0Function:
             raise NameError(f'Only supports {supported_types}.')
         self.file_type = file_type
 
-    def open(self, filepath):
+    def open(self, filepath, time_type='npy'):
         self.file_handle = h5py.File(f'{filepath}.h5', 'r')
-        self.times = np.load(f'{filepath}_time.npy')
+
+        if time_type='npy':
+            self.times = np.load(f'{filepath}_time.npy')
+        elif time_type='csv':
+            self.times = np.loadtxt(f'{filepath}_time.csv')
 
         self.hdf5_handle = HDF5File(MPI.comm_world, f'{filepath}.h5', 'r')
         self.xdmf_handle = XDMFFile(MPI.comm_world, f'{filepath}_mesh.xdmf')

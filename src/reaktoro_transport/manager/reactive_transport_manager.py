@@ -63,6 +63,8 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
         self.write_function(self.fluid_density, self.fluid_density.name(), time)
         self.write_function(self.fluid_pH, self.fluid_pH.name(), time)
         # self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
+        if self.__MPI_rank==0:
+            self.csv_writer.writerow([time])
 
     def solve(self, dt_val=1.0, endtime=10.0, time_stamps=[]):
         current_time = 0.0
