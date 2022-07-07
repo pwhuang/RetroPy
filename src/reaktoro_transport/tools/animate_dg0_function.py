@@ -19,9 +19,9 @@ class AnimateDG0Function:
     def open(self, filepath, time_type='npy'):
         self.file_handle = h5py.File(f'{filepath}.h5', 'r')
 
-        if time_type='npy':
+        if time_type=='npy':
             self.times = np.load(f'{filepath}_time.npy')
-        elif time_type='csv':
+        elif time_type=='csv':
             self.times = np.loadtxt(f'{filepath}_time.csv')
 
         self.hdf5_handle = HDF5File(MPI.comm_world, f'{filepath}.h5', 'r')
