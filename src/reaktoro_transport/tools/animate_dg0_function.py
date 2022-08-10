@@ -5,7 +5,8 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.tri import Triangulation
 import h5py
 from dolfin import (FunctionSpace, Function, Mesh, HDF5File, XDMFFile, MPI,
-                    project, TestFunction)
+                    project, TestFunction, refine, VectorFunctionSpace,
+                    interpolate, plot)
 
 class AnimateDG0Function:
     def __init__(self, fps=30, playback_rate=1.0, file_type='xdmf'):
@@ -91,6 +92,30 @@ class AnimateDG0Function:
         self.vector_list = np.array(self.vector_list)
         self.vector_x = self.vector_list.reshape(len(self.t_ids), -1, 2)[:, :, 0]
         self.vector_y = self.vector_list.reshape(len(self.t_ids), -1, 2)[:, :, 1]
+
+        return self.vector_x, self.vector_y
+
+    def load_CG2_velocity(self):
+        mesh = Mesh()
+        self.hdf5_handle.read(mesh, 'mesh', False)
+
+        self.x_CG2, self.y_CG2 = mesh.coordinates().T
+        self.cells_CG2 = mesh.cells()
+        self.triang_CG2 = Triangulation(self.x_CG2, self.y_CG2, self.cells_CG2)
+
+        CG2 = VectorFunctionSpace(mesh, 'CG', 2)
+        velocity = Function(CG2)
+
+        self.vector_x, self.vector_y = [], []
+
+        for t_id in self.t_ids:
+            self.hdf5_handle.read(velocity, f'velocity/vector_{t_id}')
+            vel_cg1 = velocity.compute_vertex_values(mesh).reshape([2,-1])
+            self.vector_x.append(vel_cg1[0])
+            self.vector_y.append(vel_cg1[1])
+
+        self.vector_x = np.array(self.vector_x),
+        self.vector_y = np.array(self.vector_y)
 
         return self.vector_x, self.vector_y
 
