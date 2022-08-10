@@ -5,7 +5,7 @@ from reaktoro_transport.mesh import MarkedRectangleMesh, XDMFMesh
 from reaktoro_transport.problem import TracerTransportProblem, StokesFlowUzawa
 from reaktoro_transport.physics import DG0Kernel
 from reaktoro_transport.solver import TransientSolver
-from reaktoro_transport.manager import XDMFManager as OutputManager
+from reaktoro_transport.manager import HDF5Manager as OutputManager
 
 from dolfin import (Constant, Function, MPI, SubDomain, near, DOLFIN_EPS,
                     MeshFunction, PETScLUSolver, PETScKrylovSolver,
@@ -85,6 +85,10 @@ class FlowManager(StokesFlowUzawa):
         self.set_flow_solver_params()
         self.set_additional_parameters(r_val=5e3, omega_by_r=1.0)
         self.assemble_matrix()
+
+    def save_fluid_velocity(self, time_step):
+        self.write_function(self.fluid_velocity, self.fluid_velocity.name(),
+                            time_step)
 
     def set_flow_solver_params(self):
         self.solver_v = PETScLUSolver('mumps')
