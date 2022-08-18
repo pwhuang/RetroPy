@@ -114,7 +114,7 @@ class AnimateDG0Function:
             self.vector_x.append(vel_cg1[0])
             self.vector_y.append(vel_cg1[1])
 
-        self.vector_x = np.array(self.vector_x),
+        self.vector_x = np.array(self.vector_x)
         self.vector_y = np.array(self.vector_y)
 
         return self.vector_x, self.vector_y
