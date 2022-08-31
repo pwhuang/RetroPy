@@ -15,7 +15,7 @@ from math import isclose
 class GradientReconstructionRTTest(TransportProblemBase, GradientSolver):
     def __init__(self, projection_space):
         self.num_component = 1
-        GradientSolver.__init__(self, projection_space)
+        GradientSolver.set_projection_space(self, projection_space)
 
     def set_mesh(self, mesh):
         self.mesh = mesh

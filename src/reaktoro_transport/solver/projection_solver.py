@@ -1,7 +1,7 @@
 from . import *
 
 class ProjectionSolver:
-    def __init__(self, projection_space: FunctionSpace):
+    def set_projection_space(self, projection_space: FunctionSpace):
         self.projection_space = projection_space
 
     def set_projection_form(self, func_to_project: Function):

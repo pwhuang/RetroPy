@@ -13,7 +13,7 @@ from math import isclose
 
 class ProjectionCG1DG0Test(TransportProblemBase, ProjectionSolver):
     def __init__(self, projection_space):
-        ProjectionSolver.__init__(self, projection_space)
+        ProjectionSolver.set_projection_space(self, projection_space)
 
     def set_mesh(self, mesh):
         self.mesh = mesh
