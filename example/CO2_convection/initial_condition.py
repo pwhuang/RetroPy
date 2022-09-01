@@ -3,7 +3,7 @@ from reaktoro_transport.manager import ReactionManager
 
 class EquilibriumProblem(MassBalanceBase, ReactionManager):
     def set_activity_models(self):
-        self.aqueous_phase.setChemicalModelPitzerHMW()
+        self.aqueous_phase.setChemicalModelHKF()
 
 init_cond = EquilibriumProblem()
 init_cond.set_components('Li+', 'H+', 'OH-')
