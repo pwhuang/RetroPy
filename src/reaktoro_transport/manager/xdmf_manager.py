@@ -1,4 +1,5 @@
 from dolfin import XDMFFile, MPI
+import csv
 
 class XDMFManager:
     def generate_output_instance(self, file_name: str):
@@ -10,6 +11,10 @@ class XDMFManager:
         self.outputter.parameters['flush_output'] = True
         self.outputter.parameters['functions_share_mesh'] = True
         self.outputter.parameters['rewrite_function_mesh'] = False
+
+        if MPI.rank(MPI.comm_world)==0:
+            self.csv_file = open(self.output_file_name + '_time.csv', mode='w')
+            self.csv_writer = csv.writer(self.csv_file, delimiter=',')
 
         return True
 
