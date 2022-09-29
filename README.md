@@ -1,4 +1,4 @@
-# Reaktoro-Transport
+# RetroPy
 ## Installation
 For development purposes, please follow the procedure in the project directory:
 ```
