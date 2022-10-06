@@ -7,6 +7,8 @@ __pycache__/
 *.xdmf
 *.obj
 *.npy
+*.csv
+*.mp4
 */gold/*
 src/reaktoro_transport.egg-info/*
 dist/*
