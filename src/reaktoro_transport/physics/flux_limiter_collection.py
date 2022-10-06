@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 from ufl.algebra import Abs
 from ufl import min_value, max_value, sign
 from dolfin import Constant

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 from abc import ABC, abstractmethod
 from reaktoro_transport.problem import DarcyFlowUzawa
 from dolfin import PETScLUSolver, PETScKrylovSolver, Constant

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 from . import *
 
 def refine_mesh_dg(mesh_nd, f_of_phi, threshold=1e-4, min_cell_size=1.0, where='b'):
@@ -14,7 +17,7 @@ def refine_mesh_dg(mesh_nd, f_of_phi, threshold=1e-4, min_cell_size=1.0, where='
 
     iteration = 0
     report = 1
-    
+
     while(report==1):
         CG_space = FunctionSpace(mesh_nd, 'CG', 1)
         DG_space = FunctionSpace(mesh_nd, 'DG', 0)

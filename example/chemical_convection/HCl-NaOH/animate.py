@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 from reaktoro_transport.tools import AnimateDG0Function
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -16,7 +19,7 @@ class Animate(AnimateDG0Function):
         color_norm = TwoSlopeNorm(vmin=rho_min, vcenter=rho_center, vmax=rho_max)
         self.scalar_to_animate *= 1e3
 
-        self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 4), 
+        self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 4),
                                     constrained_layout=True,)
                                     #gridspec_kw={'width_ratios': [1.0, 0.05]})
         self.collection = self.ax.tripcolor(self.px, self.py, self.triang,

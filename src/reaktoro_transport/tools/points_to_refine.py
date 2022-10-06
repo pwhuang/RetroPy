@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 from . import *
 
 def points_to_refine(mesh_nd, f_of_phi, threshold=1.0, min_cell_size=0.0):
@@ -59,7 +62,7 @@ def points_to_refine(mesh_nd, f_of_phi, threshold=1.0, min_cell_size=0.0):
         norm_grad_phi = project( inner(grad(phi), grad(phi)), DG_space)
 
         #File("norm_grad_phi.pvd") << norm_grad_phi
-        
+
         point_index = np.logical_and(norm_grad_phi.vector()>threshold, cell_size.vector() > min_cell_size)
 
         point_x = dof_x_dg[point_index]

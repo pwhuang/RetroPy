@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 from dolfin import (HDF5File, MPI, vertex_to_dof_map, Function, MeshFunction,
                     XDMFFile)
 import numpy as np
