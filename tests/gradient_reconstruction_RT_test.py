@@ -4,9 +4,9 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.problem import TransportProblemBase
-from reaktoro_transport.mesh import MarkedRectangleMesh
-from reaktoro_transport.solver import GradientSolver
+from retropy.problem import TransportProblemBase
+from retropy.mesh import MarkedRectangleMesh
+from retropy.solver import GradientSolver
 
 from dolfin import (FunctionSpace, Function, interpolate,
                     Expression, norm, FacetNormal)

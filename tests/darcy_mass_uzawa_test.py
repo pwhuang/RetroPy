@@ -4,7 +4,7 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.problem import DarcyFlowUzawa
+from retropy.problem import DarcyFlowUzawa
 from utility_functions import convergence_rate
 from benchmarks import DarcyMassSourceBenchmark
 

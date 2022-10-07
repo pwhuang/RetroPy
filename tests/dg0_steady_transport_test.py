@@ -4,8 +4,8 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.physics import DG0Kernel
-from reaktoro_transport.solver import SteadyStateSolver
+from retropy.physics import DG0Kernel
+from retropy.solver import SteadyStateSolver
 
 from utility_functions import convergence_rate
 from benchmarks import EllipticTransportBenchmark

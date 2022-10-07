@@ -5,8 +5,8 @@ import os
 os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 
-from reaktoro_transport.problem import MassBalanceBase
-from reaktoro_transport.manager import ReactionManager
+from retropy.problem import MassBalanceBase
+from retropy.manager import ReactionManager
 
 class EquilibriumProblem(MassBalanceBase, ReactionManager):
     def set_chem_editor(self, database):

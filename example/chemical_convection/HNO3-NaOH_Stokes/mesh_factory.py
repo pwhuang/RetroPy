@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from reaktoro_transport.mesh import MarkedRectangleMesh, XDMFMesh
+from retropy.mesh import MarkedRectangleMesh, XDMFMesh
 from dolfin import SubDomain, DOLFIN_EPS, refine, MeshFunction, plot
 
 import matplotlib.pyplot as plt

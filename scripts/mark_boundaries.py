@@ -3,8 +3,8 @@ from dolfin import *
 
 import sys
 sys.path.insert(0, '../../projects/Reaktoro-Transport')
-import reaktoro_transport.solver as solver
-import reaktoro_transport.tools as tools
+import retropy.solver as solver
+import retropy.tools as tools
 
 # Reading mesh and MeshFunction that stores the fluid solid markers
 mesh_2d = Mesh()

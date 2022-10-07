@@ -2,20 +2,18 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from abc import ABC, abstractmethod
-from reaktoro_transport.problem import DarcyFlowUzawa
+from retropy.problem import StokesFlowUzawa
 from dolfin import PETScLUSolver, PETScKrylovSolver, Constant
 
-class DarcyFlowManagerUzawa(ABC, DarcyFlowUzawa):
+class StokesFlowManagerUzawa(ABC, StokesFlowUzawa):
     """Manager class that solves Darcy flow using Uzawa's method."""
 
     def setup_flow_solver(self, r_val=1e6, omega_by_r=1.0):
         self.set_flow_fe_space()
-        self.set_flow_ibc()
-
         self.set_fluid_properties()
-
         self.generate_form()
-        self.generate_residual_form()
+
+        self.set_flow_ibc()
 
         self.set_flow_solver_params()
         self.set_additional_parameters(r_val=r_val, omega_by_r=omega_by_r)
@@ -23,7 +21,7 @@ class DarcyFlowManagerUzawa(ABC, DarcyFlowUzawa):
 
     def set_flow_fe_space(self):
         self.set_pressure_fe_space('DG', 0)
-        self.set_velocity_fe_space('RT', 1)
+        self.set_velocity_vector_fe_space('CR', 1)
 
     @abstractmethod
     def set_flow_ibc(self):
@@ -42,7 +40,7 @@ class DarcyFlowManagerUzawa(ABC, DarcyFlowUzawa):
 
     def set_flow_solver_params(self):
         self.solver_v = PETScLUSolver('mumps')
-        self.solver_p = PETScKrylovSolver('gmres', 'none')
+        self.solver_p = PETScKrylovSolver('gmres', 'jacobi')
 
         prm_v = self.solver_v.parameters
         prm_p = self.solver_p.parameters

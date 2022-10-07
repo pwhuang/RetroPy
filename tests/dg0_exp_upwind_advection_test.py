@@ -4,10 +4,10 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.problem import TracerTransportProblemExp
-from reaktoro_transport.physics import DG0Kernel
-from reaktoro_transport.solver import TransientNLSolver
-from reaktoro_transport.manager import XDMFManager
+from retropy.problem import TracerTransportProblemExp
+from retropy.physics import DG0Kernel
+from retropy.solver import TransientNLSolver
+from retropy.manager import XDMFManager
 
 from benchmarks import RotatingCone
 

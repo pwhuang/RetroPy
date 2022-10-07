@@ -4,11 +4,11 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.mesh import MarkedRectangleMesh, XDMFMesh
-from reaktoro_transport.problem import TracerTransportProblem, StokesFlowUzawa
-from reaktoro_transport.physics import DG0Kernel
-from reaktoro_transport.solver import TransientSolver
-from reaktoro_transport.manager import HDF5Manager as OutputManager
+from retropy.mesh import MarkedRectangleMesh, XDMFMesh
+from retropy.problem import TracerTransportProblem, StokesFlowUzawa
+from retropy.physics import DG0Kernel
+from retropy.solver import TransientSolver
+from retropy.manager import HDF5Manager as OutputManager
 
 from dolfin import (Constant, Function, MPI, SubDomain, near, DOLFIN_EPS,
                     MeshFunction, PETScLUSolver, PETScKrylovSolver,

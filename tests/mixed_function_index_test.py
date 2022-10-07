@@ -4,9 +4,9 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.mesh import MarkedRectangleMesh
-from reaktoro_transport.physics import DG0Kernel
-from reaktoro_transport.problem import TracerTransportProblem
+from retropy.mesh import MarkedRectangleMesh
+from retropy.physics import DG0Kernel
+from retropy.problem import TracerTransportProblem
 
 from dolfin import Expression, TestFunction, dx, assemble, inner, CellVolume
 from numpy import array, dot

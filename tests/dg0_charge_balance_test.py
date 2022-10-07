@@ -4,9 +4,9 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.problem import TracerTransportProblem
-from reaktoro_transport.physics import DG0Kernel
-from reaktoro_transport.solver import TransientSolver
+from retropy.problem import TracerTransportProblem
+from retropy.physics import DG0Kernel
+from retropy.solver import TransientSolver
 
 from benchmarks import ChargeBalancedDiffusion
 

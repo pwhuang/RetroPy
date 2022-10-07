@@ -5,13 +5,13 @@ import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
 from mesh_factory import MeshFactory
-from reaktoro_transport.manager import DarcyFlowManagerUzawa as FlowManager
-from reaktoro_transport.manager import ReactiveTransportManager
-from reaktoro_transport.manager import HDF5Manager as OutputManager
-from reaktoro_transport.solver import TransientNLSolver
+from retropy.manager import DarcyFlowManagerUzawa as FlowManager
+from retropy.manager import ReactiveTransportManager
+from retropy.manager import HDF5Manager as OutputManager
+from retropy.solver import TransientNLSolver
 
-from reaktoro_transport.problem import MassBalanceBase
-from reaktoro_transport.manager import ReactionManager
+from retropy.problem import MassBalanceBase
+from retropy.manager import ReactionManager
 
 from dolfin import Expression, Constant
 

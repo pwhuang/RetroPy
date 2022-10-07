@@ -4,9 +4,9 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.problem import TracerTransportProblem
-from reaktoro_transport.physics import CGKernel
-from reaktoro_transport.solver import SteadyStateSolver
+from retropy.problem import TracerTransportProblem
+from retropy.physics import CGKernel
+from retropy.solver import SteadyStateSolver
 
 from utility_functions import convergence_rate
 from benchmarks import DiffusionBenchmark

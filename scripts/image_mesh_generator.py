@@ -6,8 +6,8 @@ from dolfin import *
 
 import sys
 sys.path.insert(0, '../../projects/Reaktoro-Transport')
-import reaktoro_transport.solver as solver
-import reaktoro_transport.tools as tools
+import retropy.solver as solver
+import retropy.tools as tools
 
 # Loading image. Zeros represent pore, and ones represent solid.
 im = np.load(sys.argv[1])

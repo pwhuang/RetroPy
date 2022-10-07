@@ -4,9 +4,9 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from reaktoro_transport.physics import DG0Kernel, FluxLimiterCollection
-from reaktoro_transport.solver import TransientRK2Solver
-from reaktoro_transport.manager import XDMFManager
+from retropy.physics import DG0Kernel, FluxLimiterCollection
+from retropy.solver import TransientRK2Solver
+from retropy.manager import XDMFManager
 
 from benchmarks import RotatingCone
 

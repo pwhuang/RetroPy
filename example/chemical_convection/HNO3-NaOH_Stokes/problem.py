@@ -5,11 +5,11 @@ import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
 from mesh_factory import MeshFactory
-from reaktoro_transport.manager import StokesFlowManagerUzawa as FlowManager
-from reaktoro_transport.manager import ReactiveTransportManager
-from reaktoro_transport.manager import XDMFManager as OutputManager
+from retropy.manager import StokesFlowManagerUzawa as FlowManager
+from retropy.manager import ReactiveTransportManager
+from retropy.manager import XDMFManager as OutputManager
 
-from reaktoro_transport.solver import CustomNLSolver
+from retropy.solver import CustomNLSolver
 
 from dolfin import (Expression, Constant, PETScOptions, interpolate, Function,
                     project, info, end)

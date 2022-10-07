@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from reaktoro_transport.problem import MassBalanceBase
-from reaktoro_transport.manager import ReactionManager
+from retropy.problem import MassBalanceBase
+from retropy.manager import ReactionManager
 
 class EquilibriumProblem(MassBalanceBase, ReactionManager):
     def set_activity_models(self):
