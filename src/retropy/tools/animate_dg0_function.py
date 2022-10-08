@@ -162,7 +162,10 @@ class AnimateDG0Function:
 
     def update_animation(self, i):
         self.collection.set_array(self.scalar_to_animate[i])
-        self.ax.set_title(f'time = {self.times_to_animate[i]*self.scaling_factor:.3f}' + self.time_unit)
+        self.ax.set_title(
+        f"time = {self.times_to_animate[i]*self.scaling_factor:.2f}{self.time_unit}, "
+        f"{self.playback_rate:.0f}x"
+        )
 
     def init_animation(self):
         self.ani = FuncAnimation(self.fig, self.update_animation, frames=self.frame_id,
