@@ -19,7 +19,7 @@ cd $RetroPy/tests
 pytest
 ```
 ## Example Usage
-To use RetroPy, we can execute into one of the chemically-driven convection problem in the example folder:
+To use RetroPy, we can execute one of the chemically-driven convection problem in the example folder:
 ```
 cd example/chemical_convection/HCl-NaOH/
 mpirun -n 4 python main.py output
