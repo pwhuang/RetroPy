@@ -13,7 +13,7 @@ problem = Problem(nx=62, ny=100, const_diff=False)
 problem.generate_output_instance(sys.argv[1])
 problem.define_problem()
 
-problem.setup_flow_solver()
+problem.setup_flow_solver(r_val=1e5)
 problem.setup_reaction_solver()
 problem.setup_transport_solver()
 

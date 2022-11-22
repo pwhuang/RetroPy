@@ -20,4 +20,4 @@ problem.setup_auxiliary_reaction_solver()
 problem.setup_transport_solver()
 
 time_stamps = [780.0]
-problem.solve(dt_val=3e-2, endtime=1600.0, time_stamps=time_stamps)
+problem.solve(dt_val=2e-2, endtime=1600.0, time_stamps=time_stamps)
