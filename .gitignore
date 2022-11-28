@@ -10,6 +10,6 @@ __pycache__/
 *.csv
 *.mp4
 */gold/*
-src/reaktoro_transport.egg-info/*
+src/*.egg-info
 dist/*
 build/*
