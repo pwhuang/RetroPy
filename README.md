@@ -1,4 +1,5 @@
 # RetroPy
+[![DOI](https://zenodo.org/badge/196580566.svg)](https://zenodo.org/badge/latestdoi/196580566)
 ## Environment
 RetroPy uses FEniCS 2019.1.0 and Reaktoro v1. The environment can be installed using conda:
 ```
