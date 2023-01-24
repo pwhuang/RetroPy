@@ -7,7 +7,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from mesh_factory import MeshFactory
 from retropy.manager import DarcyFlowManagerUzawa as FlowManager
 from retropy.manager import ReactiveTransportManager
-from retropy.manager import XDMFManager as OutputManager
+from retropy.manager import HDF5Manager as OutputManager
 from retropy.solver import TransientNLSolver
 
 from dolfin import Expression, Constant, PETScOptions
@@ -68,7 +68,6 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
         self.set_solver_parameters('bicgstab', 'amg')
         PETScOptions.set("pc_hypre_boomeramg_strong_threshold", 0.4)
         PETScOptions.set("pc_hypre_boomeramg_truncfactor", 0.0)
-        #PETScOptions.set("pc_hypre_boomeramg_print_statistics", 1)
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):

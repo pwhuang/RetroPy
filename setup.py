@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='RetroPy',
-    version='0.0.1',
+    version='1.0',
     description='An interface for reactive-transport simulations using FEniCS and Reaktoro',
     packages=['retropy', 'retropy.material',
               'retropy.mesh', 'retropy.physics',

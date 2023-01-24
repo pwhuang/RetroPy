@@ -28,7 +28,7 @@ class BoundaryEquilibriumProblem(MassBalanceBase, ReactionManager):
         return editor
 
     def set_activity_models(self):
-        self.aqueous_phase.setChemicalModelPitzerHMW()
+        self.aqueous_phase.setChemicalModelHKF()
         self.aqueous_phase.setActivityModelDrummondCO2()
         self.gaseous_phase.setChemicalModelPengRobinson()
 
@@ -50,7 +50,7 @@ class ReactiveTransportManager(ReactiveTransportManager, MeshFactory):
         self.boundary_cell_idx, self.dof_idx = self.mark_inflow_boundary_cells()
 
     def set_activity_models(self):
-        self.aqueous_phase.setChemicalModelPitzerHMW()
+        self.aqueous_phase.setChemicalModelHKF()
         self.aqueous_phase.setActivityModelDrummondCO2()
 
     def _solve_chem_equi_over_dofs(self, pressure, fluid_comp):
