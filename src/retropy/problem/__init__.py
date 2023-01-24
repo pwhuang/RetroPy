@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfin import *
-parameters["ghost_mode"] = "shared_vertex"
-parameters["form_compiler"]["optimize"] = True
-parameters["form_compiler"]["cpp_optimize"] = True
-parameters["std_out_all_processes"] = False
+from dolfinx import *
+# parameters["ghost_mode"] = "shared_vertex"
+# parameters["form_compiler"]["optimize"] = True
+# parameters["form_compiler"]["cpp_optimize"] = True
+# parameters["std_out_all_processes"] = False
 
 from ufl.algebra import Abs
 from ufl.operators import sqrt
