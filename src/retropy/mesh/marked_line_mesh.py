@@ -1,7 +1,9 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfin import IntervalMesh, MeshFunction
+from dolfinx.mesh import create_interval, locate_entities, meshtags
+from mpi4py import MPI
+import numpy as np
 from . import MarkerCollection
 
 class MarkedLineMesh(MarkerCollection):
@@ -25,30 +27,38 @@ class MarkedLineMesh(MarkerCollection):
         self.num_elements_x = num_elements_x
 
     def generate_mesh(self):
-        self.mesh = IntervalMesh(self.num_elements_x, self.xmin, self.xmax)
+        self.mesh = create_interval(MPI.COMM_WORLD, self.num_elements_x,
+                                    [self.xmin, self.xmax])
 
         return self.mesh
 
     def generate_boundary_markers(self):
-        self.boundary_markers = MeshFunction('size_t', self.mesh,
-                                             dim=self.mesh.geometric_dimension()-1)
-
-        self.boundary_markers.set_all(0)
-
-        right_marker = self.RightBoundary(self.xmax)
-        left_marker = self.LeftBoundary(self.xmin)
-
-        right_marker.mark(self.boundary_markers, 2)
-        left_marker.mark(self.boundary_markers, 1)
+        right_marker = lambda x: np.isclose(x[0], self.xmax)
+        left_marker = lambda x: np.isclose(x[0], self.xmin)
 
         marker_dict = {'right': 2, 'left': 1}
+
+        boundaries = [(marker_dict['right'], right_marker),
+                      (marker_dict['left'], left_marker)]
+
+        facet_indices, facet_markers = [], []
+        fdim = self.mesh.topology.dim - 1
+
+        for (marker, locator) in boundaries:
+            facets = locate_entities(self.mesh, fdim, locator)
+            facet_indices.append(facets)
+            facet_markers.append(np.full_like(facets, marker))
+
+        facet_indices = np.hstack(facet_indices).astype(np.int32)
+        facet_markers = np.hstack(facet_markers).astype(np.int32)
+        sorted_facets = np.argsort(facet_indices)
+        self.boundary_markers = meshtags(self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
 
         return self.boundary_markers, marker_dict
 
     def generate_domain_markers(self):
-        self.domain_markers = MeshFunction('size_t', self.mesh,
-                                           dim=self.mesh.geometric_dimension())
-
-        self.domain_markers.set_all(0)
+        cell_indices = locate_entities(self.mesh, self.mesh.topology.dim, lambda x: x[0] < np.inf)
+        cell_value = np.zeros_like(cell_indices, dtype=np.int32)
+        self.domain_markers = meshtags(self.mesh, self.mesh.topology.dim, cell_indices, cell_value)
 
         return self.domain_markers

@@ -23,13 +23,10 @@ class TransportProblemBase:
     def __init_TPFA_recipe(self, option):
         # TODO: Find a better name for this method.
 
-        self.DG0_space = FunctionSpace(self.mesh, 'DG', 0,
-                                       constrained_domain=self.periodic_bcs)
+        self.DG0_space = FunctionSpace(self.mesh, ('DG', 0))
 
-        self.Vec_DG0_space = VectorFunctionSpace(self.mesh, 'DG', 0,
-                                                 constrained_domain=self.periodic_bcs)
-        self.Vec_CG1_space = VectorFunctionSpace(self.mesh, 'CG', 1,
-                                                 constrained_domain=self.periodic_bcs)
+        self.Vec_DG0_space = VectorFunctionSpace(self.mesh, ('DG', 0))
+        self.Vec_CG1_space = VectorFunctionSpace(self.mesh, ('CG', 1))
 
         space_list = []
 

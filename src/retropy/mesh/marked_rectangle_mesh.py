@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from dolfinx.mesh import create_rectangle, locate_entities, meshtags
-from dolfinx.cpp.mesh import CellType
+from dolfinx.mesh import CellType
 from mpi4py import MPI
 import numpy as np
 
@@ -45,10 +45,10 @@ class MarkedRectangleMesh(MarkerCollection):
         return self.mesh
 
     def generate_boundary_markers(self, boundary_eps=1e-8):
-        right_marker = self.RightBoundary(self.xmax, boundary_eps)
-        top_marker = self.TopBoundary(self.ymax, boundary_eps)
-        left_marker = self.LeftBoundary(self.xmin, boundary_eps)
-        bottom_marker = self.BottomBoundary(self.ymin, boundary_eps)
+        right_marker = lambda x: np.isclose(x[0], self.xmax)
+        top_marker = lambda x: np.isclose(x[1], self.ymax)
+        left_marker = lambda x: np.isclose(x[0], self.xmin)
+        bottom_marker = lambda x: np.isclose(x[1], self.ymin)
 
         marker_dict = {'right': 1, 'top': 2, 'left': 3, 'bottom': 4}
 
@@ -84,6 +84,7 @@ class MarkedRectangleMesh(MarkerCollection):
 
         pass
 
+        # TODO: Fix this method.
         # cr_space = FunctionSpace(self.mesh, 'CR', 1)
         # cr_dof = cr_space.dofmap().dofs(self.mesh, 1)
 

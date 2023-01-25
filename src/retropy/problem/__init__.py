@@ -1,15 +1,14 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfinx import *
-# parameters["ghost_mode"] = "shared_vertex"
-# parameters["form_compiler"]["optimize"] = True
-# parameters["form_compiler"]["cpp_optimize"] = True
+from dolfinx.fem import Function, FunctionSpace, VectorFunctionSpace
+
 # parameters["std_out_all_processes"] = False
 
 from ufl.algebra import Abs
 from ufl.operators import sqrt
-from ufl import min_value, max_value, sign
+from ufl import (min_value, max_value, sign, FacetNormal,
+                 FacetArea, CellVolume, VectorElement, FiniteElement)
 
 from ..material import FluidProperty, ComponentProperty
 
