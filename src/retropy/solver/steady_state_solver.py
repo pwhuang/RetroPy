@@ -19,16 +19,15 @@ class SteadyStateSolver:
 
         a, L = lhs(self.__form), rhs(self.__form)
 
-        problem = LinearVariationalProblem(a, L, self.__u1, self.get_dirichlet_bcs())
-        self.__solver = LinearVariationalSolver(problem)
+        self.__problem = LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1)
 
-    def set_solver_parameters(self, linear_solver='gmres', preconditioner='amg'):
-        prm = self.__solver.parameters
-        prm['linear_solver'] = linear_solver
-        prm['preconditioner'] = preconditioner
+    def set_solver_parameters(self, linear_solver='gmres', preconditioner='petsc_amg'):
+        prm = self.__problem.solver
+        prm.setType(linear_solver)
+        prm.getPC().setType(preconditioner)
 
-        set_default_solver_parameters(prm['krylov_solver'])
+        set_default_solver_parameters(prm)
 
     def solve_transport(self):
-        self.__solver.solve()
-        self.fluid_components.assign(self.__u1)
+        self.__problem.solve()
+        self.fluid_components.vector[:] = self.__u1.vector[:]

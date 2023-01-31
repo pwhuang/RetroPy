@@ -4,8 +4,9 @@
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import TracerTransportProblem
 
-from dolfin import Expression, inner, interpolate, assemble, Constant
-from dolfin import VectorFunctionSpace, Function, norm
+from dolfinx.fem import VectorFunctionSpace, Function
+from dolfinx.la import Norm
+from ufl import inner
 
 class EllipticTransportBenchmark(TracerTransportProblem):
     """

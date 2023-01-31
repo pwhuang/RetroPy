@@ -6,9 +6,9 @@ sys.path.insert(0, '../')
 
 from benchmarks import EllipticTransportBenchmark
 
-from dolfin import Expression, inner, interpolate, assemble, Constant
-from dolfin import VectorFunctionSpace, FunctionSpace, Function, norm, cos, pi
-from dolfin import DOLFIN_EPS
+from dolfinx.fem import VectorFunctionSpace, Function, assemble_scalar, Constant
+
+DOLFIN_EPS = 1e-16
 
 class RotatingCone(EllipticTransportBenchmark):
     """This benchmark problem is inspired by Randall J. Leveque's work:
@@ -27,7 +27,7 @@ class RotatingCone(EllipticTransportBenchmark):
                            '-sin(M_PI*x[1])*sin(M_PI*x[1])*sin(2*M_PI*x[0])'],
                            degree = 1)
 
-        self.t_end = Constant(0.0)
+        self.t_end = Constant(self.mesh, 0.0)
         self.fluid_velocity = interpolate(expr, V)*cos(Constant(pi)*self.t_end)
         self.fluid_pressure = Function(self.DG0_space)
 
@@ -52,11 +52,11 @@ class RotatingCone(EllipticTransportBenchmark):
         return self.solution.copy()
 
     def get_total_mass(self):
-        self.total_mass = assemble(self.fluid_components[0]*self.dx)
+        self.total_mass = assemble_scalar(self.fluid_components[0]*self.dx)
         return self.total_mass
 
     def get_center_of_mass(self):
-        center_x = assemble(self.fluid_components[0]*self.cell_coord[0]*self.dx)
-        center_y = assemble(self.fluid_components[0]*self.cell_coord[1]*self.dx)
+        center_x = assemble_scalar(self.fluid_components[0]*self.cell_coord[0]*self.dx)
+        center_y = assemble_scalar(self.fluid_components[0]*self.cell_coord[1]*self.dx)
 
         return center_x/self.total_mass, center_y/self.total_mass

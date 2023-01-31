@@ -3,8 +3,9 @@
 
 from retropy.mesh import MarkedLineMesh
 
-from dolfin import Expression, inner, interpolate, Constant
-from dolfin import VectorFunctionSpace, Function, norm
+from dolfinx.fem import VectorFunctionSpace, Function, Constant
+from ufl import inner
+from dolfinx.la import Norm
 
 class ChargeBalancedDiffusion:
     """
@@ -89,6 +90,6 @@ class ChargeBalancedDiffusion:
 
         mass_error.assign(self.fluid_components - self.solution)
 
-        mass_error_norm = norm(mass_error, 'l2')
+        mass_error_norm = Norm(mass_error, 'l2')
 
         return mass_error_norm

@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from retropy.mesh import MarkedRectangleMesh
-from dolfin import Expression, inner, interpolate, assemble, Constant
-from dolfin import Function, norm
+from dolfinx.fem import Constant, Function
+from dolfinx.la import Norm
+from ufl import inner
 
 import matplotlib.pyplot as plt
-from dolfin.common.plotting import mplot_function
 
 class DarcyMassSourceBenchmark:
     """This benchmark problem studies the effect of mass source (e.g., density
@@ -32,9 +32,9 @@ class DarcyMassSourceBenchmark:
         return self.mesh_characteristic_length
 
     def set_material_properties(self):
-        self.set_porosity(Constant(1.0))
-        self.set_permeability(Constant(1.0))
-        self.set_fluid_density(Constant(1.0))
+        self.set_porosity(1.0)
+        self.set_permeability(1.0)
+        self.set_fluid_density(1.0)
         self.set_fluid_viscosity(1.0)
         self.set_gravity((0.0, 0.0))
 
@@ -46,7 +46,7 @@ class DarcyMassSourceBenchmark:
         self.set_pressure_bc([])
         self.generate_form()
         self.generate_residual_form()
-        self.set_velocity_bc([Constant([0.0, 0.0])]*4)
+        self.set_velocity_bc([(0.0, 0.0)]*4)
 
     def set_mass_sources(self):
         mass_sources = [Expression(('2*M_PI*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1])'), degree=1)]
@@ -75,9 +75,9 @@ class DarcyMassSourceBenchmark:
 
         return pressure_error_norm, velocity_error_norm
 
-    def plot_pv_solution(self):
-        fig, ax = plt.subplots(1, 2, figsize=(8,4))
-        cb = mplot_function(ax[0], self.get_fluid_pressure())
-        mplot_function(ax[1], self.get_fluid_velocity())
-        fig.colorbar(cb)
-        plt.show()
+    # def plot_pv_solution(self):
+    #     fig, ax = plt.subplots(1, 2, figsize=(8,4))
+    #     cb = mplot_function(ax[0], self.get_fluid_pressure())
+    #     mplot_function(ax[1], self.get_fluid_velocity())
+    #     fig.colorbar(cb)
+    #     plt.show()

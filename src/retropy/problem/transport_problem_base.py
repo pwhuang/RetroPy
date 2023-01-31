@@ -3,7 +3,7 @@
 
 from . import *
 from ..mesh import MarkerCollection
-from numpy import array
+import numpy as np
 
 class TransportProblemBase:
     """Base class for all problems that use FeNiCs."""
@@ -24,32 +24,41 @@ class TransportProblemBase:
         # TODO: Find a better name for this method.
 
         self.DG0_space = FunctionSpace(self.mesh, ('DG', 0))
+        self.CG1_space = FunctionSpace(self.mesh, ('CG', 1))
 
         self.Vec_DG0_space = VectorFunctionSpace(self.mesh, ('DG', 0))
         self.Vec_CG1_space = VectorFunctionSpace(self.mesh, ('CG', 1))
 
-        space_list = []
-
-        for i in range(self.mesh.geometric_dimension()):
-            space_list.append('x[' + str(i) + ']')
-
         # The implementation of boundary_vertex_coord potentially leads to a
-        # erroneous boundary diffusion flux approximation (only for triangles).
+        # erroneous boundary diffusion flux approximation for triangular meshes.
+        # It is wrong on the corners of quad meshes.
         # TODO: Please address this.
 
-        self.vertex_coord = interpolate(Expression(space_list, degree=1), self.Vec_CG1_space)
+        mesh_dim = self.mesh.topology.dim
+        facet_dim = mesh_dim - 1
+        cell_vertex_num = np.abs(self.mesh.topology.cell_type.value)
+
+        self.mesh.topology.create_connectivity(facet_dim, mesh_dim)
+        boundary_facets = exterior_facet_indices(self.mesh.topology)
+        boundary_dofs = locate_dofs_topological(self.Vec_CG1_space, facet_dim, boundary_facets)
+        boundary_dofs_vec = np.concatenate([mesh_dim*boundary_dofs + i for i in range(mesh_dim)], axis=None)
+
+        self.vertex_coord = Function(self.Vec_CG1_space)
+        self.vertex_coord.interpolate(lambda x: [x[i] for i in range(mesh_dim)])
+
+        self.cell_coord = Function(self.Vec_DG0_space)
 
         if option=='cell_centered':
-            self.cell_coord = interpolate(Expression(space_list, degree=0), self.Vec_DG0_space)
+            self.cell_coord.interpolate(self.vertex_coord)
 
+        # TODO: Fix the voronoi option
         elif option=='voronoi':
-            self.cell_coord = Function(self.Vec_DG0_space)
             circumcenter_list = []
 
             for c in cells(self.mesh):
                 circumcenter_list.append(self.circumcenter_from_points(*c.get_coordinate_dofs()))
 
-            self.cell_coord.vector()[:] = array(circumcenter_list).flatten()
+            self.cell_coord.vector[:] = np.array(circumcenter_list).flatten()
 
         else:
             raise ValueError("Valid inputs are 'cell_centered' or 'voronoi'. ")
@@ -57,17 +66,15 @@ class TransportProblemBase:
 
         self.delta_h = sqrt(dot(jump(self.cell_coord), jump(self.cell_coord)))
 
-        bc = DirichletBC(self.Vec_CG1_space, [1]*self.mesh.geometric_dimension(),
-                         MarkerCollection.AllBoundary())
-
         boundary_mask = Function(self.Vec_CG1_space)
-        self.boundary_vertex_coord = Function(self.Vec_CG1_space)
+        boundary_mask.vector[boundary_dofs_vec] = np.ones_like(boundary_dofs_vec)
 
-        bc.apply(boundary_mask.vector())
-        self.boundary_vertex_coord.vector()[:] = boundary_mask.vector()[:] \
-                                                 *self.vertex_coord.vector()[:]
-        self.boundary_cell_coord = project(self.boundary_vertex_coord,
-                                           self.Vec_DG0_space, solver_type='mumps')
+        self.boundary_vertex_coord = Function(self.Vec_CG1_space)
+        self.boundary_vertex_coord.vector[:] = boundary_mask.vector[:] * self.vertex_coord.vector[:]
+
+        self.boundary_cell_coord = Function(self.Vec_DG0_space)
+        self.boundary_cell_coord.interpolate(self.boundary_vertex_coord)
+        self.boundary_cell_coord.vector[:] *= cell_vertex_num/mesh_dim
 
     def set_boundary_markers(self, boundary_markers):
         self.boundary_markers = boundary_markers
@@ -92,11 +99,10 @@ class TransportProblemBase:
                                                      fe_degree)
 
         self.velocity_func_space = FunctionSpace(self.mesh,
-                                                 self.velocity_finite_element,
-                                                 constrained_domain=self.periodic_bcs)
+                                                 self.velocity_finite_element)
 
         self.fluid_velocity = Function(self.velocity_func_space)
-        self.fluid_velocity.rename('velocity', 'fluid velocity')
+        self.fluid_velocity.name = 'velocity'
 
     def set_velocity_fe_space(self, fe_space, fe_degree):
         self.velocity_finite_element = FiniteElement(fe_space,
@@ -104,11 +110,10 @@ class TransportProblemBase:
                                                      fe_degree)
 
         self.velocity_func_space = FunctionSpace(self.mesh,
-                                                 self.velocity_finite_element,
-                                                 constrained_domain=self.periodic_bcs)
+                                                 self.velocity_finite_element)
 
         self.fluid_velocity = Function(self.velocity_func_space)
-        self.fluid_velocity.rename('velocity', 'fluid velocity')
+        self.fluid_velocity.name = 'velocity'
 
     def set_pressure_fe_space(self, fe_space, fe_degree):
         self.pressure_finite_element = FiniteElement(fe_space,
@@ -116,11 +121,10 @@ class TransportProblemBase:
                                                      fe_degree)
 
         self.pressure_func_space = FunctionSpace(self.mesh,
-                                                 self.pressure_finite_element,
-                                                 constrained_domain=self.periodic_bcs)
+                                                 self.pressure_finite_element)
 
         self.fluid_pressure = Function(self.pressure_func_space)
-        self.fluid_pressure.rename('pressure', 'fluid pressure')
+        self.fluid_pressure.name = 'pressure'
 
     def get_fluid_velocity(self):
         return self.fluid_velocity
@@ -132,19 +136,17 @@ class TransportProblemBase:
         """"""
         with XDMFFile(file_name + '.xdmf') as obj:
             obj.parameters['flush_output'] = True
-            obj.write(self.mesh)
+            obj.write_mesh(self.mesh)
             for func in self.functions_to_save:
-                obj.write_checkpoint(func, func.name(),
-                                     time_step=0, append=True)
+                obj.write_function(func, t=0)
 
     def save_fluid_pressure(self, time_step):
-        self.write_function(self.fluid_pressure, self.fluid_pressure.name(),
-                            time_step)
+        self.write_function(self.fluid_pressure, t=time_step)
 
     def save_fluid_velocity(self, time_step):
-        self.fluid_vel_to_save = interpolate(self.fluid_velocity, self.Vec_DG0_space)
-        self.write_function(self.fluid_vel_to_save, self.fluid_velocity.name(),
-                            time_step)
+        self.fluid_vel_to_save = Function(self.Vec_DG0_space)
+        self.fluid_vel_to_save.interpolate(self.fluid_velocity)
+        self.write_function(self.fluid_vel_to_save, t=time_step)
 
     @staticmethod
     def set_default_solver_parameters(prm):

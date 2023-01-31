@@ -24,9 +24,10 @@ class MassBalanceBase:
     def set_solvent_molar_mass(self, solvent_molar_mass=18.0e-3):
         self.M_solvent = solvent_molar_mass
 
-    def set_solvent_ic(self, init_expr: Expression):
-        self.solvent = interpolate(init_expr, self.DG0_space)
-        self.solvent.rename(self.solvent_name, 'solvent')
+    def set_solvent_ic(self, init_expr):
+        self.solvent = Function(self.DG0_space)
+        self.solvent.interpolate(init_expr)
+        self.solvent.name = self.solvent_name
         self._M_fraction = self._M/self.M_solvent
 
     def initiaize_ln_activity(self):
@@ -43,4 +44,4 @@ class MassBalanceBase:
             raise Exception('H+ does not exist in the chemcial system.')
 
         self.fluid_pH = Function(self.DG0_space)
-        self.fluid_pH.rename('pH', 'fluid_pH')
+        self.fluid_pH.name = 'pH'

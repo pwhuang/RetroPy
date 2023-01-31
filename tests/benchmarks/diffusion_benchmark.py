@@ -4,10 +4,10 @@
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import TracerTransportProblemExp
 
-from dolfin import Expression, inner, interpolate, assemble, Constant
-from dolfin import VectorFunctionSpace, Function, norm
-
-from numpy import exp
+from dolfinx.fem import (VectorFunctionSpace, Function, Constant,
+                         assemble_scalar, form)
+import numpy as np
+from ufl import sqrt
 
 class DiffusionBenchmark:
     """"""
@@ -20,7 +20,7 @@ class DiffusionBenchmark:
         mesh_factory.set_mesh_type(mesh_type)
 
         mesh = mesh_factory.generate_mesh(mesh_shape='crossed')
-        boundary_markers, self.marker_dict = mesh_factory.generate_boundary_markers()
+        boundary_markers, self.marker_dict, self.locator_dict = mesh_factory.generate_boundary_markers()
         domain_markers = mesh_factory.generate_domain_markers()
 
         self.mesh_characteristic_length = 1.0/nx
@@ -31,8 +31,8 @@ class DiffusionBenchmark:
         return self.mesh_characteristic_length
 
     def set_flow_field(self):
-        V = VectorFunctionSpace(self.mesh, "CG", 1)
-        self.fluid_velocity = interpolate(Expression(('0.0', '0.0'), degree=1), V)
+        self.fluid_velocity = Function(self.Vec_CG1_space)
+        self.fluid_velocity.interpolate(lambda x: (0.0*x[0], 0.0*x[0]))
 
     def define_problem(self):
         self.set_components('solute')
@@ -42,8 +42,9 @@ class DiffusionBenchmark:
         self.set_molecular_diffusivity([1.0])
         self.add_implicit_diffusion('solute', marker=0)
 
-        mass_source = '2.0*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])'
-        self.add_mass_source(['solute'], [Expression(mass_source, degree=1)])
+        mass_source = Function(self.DG0_space)
+        mass_source.interpolate(lambda x: 2.0*np.pi**2*np.sin(np.pi*x[0])*np.sin(np.pi*x[1]))
+        self.add_mass_source(['solute'], [mass_source])
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})
 
@@ -59,25 +60,29 @@ class DiffusionBenchmark:
         Since the implementation of Dirichlet bcs depends on the solving scheme,
          this method should be defined in tests.
         """
+
         num_marked_boundaries = len(self.marker_dict)
-        values = [Constant(0.0)]*num_marked_boundaries
+
+        uD = Function(self.comp_func_spaces)
+        uD.vector[:] = np.zeros_like(uD.vector[:])
+        values = [uD]*num_marked_boundaries
 
         return values
 
     def get_solution(self):
         # To match the rank in mixed spaces,
         # one should supply a list of expressions to the Expression Function.
-        expr = Expression(['sin(M_PI*x[0])*sin(M_PI*x[1])'], degree=1)
+        expr = lambda x: np.sin(np.pi*x[0])*np.sin(np.pi*x[1])
 
-        self.solution = Function(self.comp_func_spaces)
-        self.solution.assign(interpolate(expr, self.comp_func_spaces))
+        self.solution = Function(self.func_space_list[0])
+        self.solution.interpolate(expr)
 
         return self.solution
 
     def get_error_norm(self):
-        mass_error = Function(self.comp_func_spaces)
-        mass_error.assign(self.fluid_components - self.solution)
+        mass_error = Function(self.func_space_list[0])
+        mass_error.vector[:] = self.fluid_components.vector[:] - self.solution.vector[:]
 
-        mass_error_norm = norm(mass_error, 'l2')
+        mass_error_norm = assemble_scalar(form(sqrt(mass_error**2)*self.dx))
 
         return mass_error_norm

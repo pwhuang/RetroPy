@@ -24,7 +24,7 @@ class DarcyFlowBase(FluidProperty):
 
         self.darcyflow_boundary_dict = kwargs
 
-    def set_pressure_ic(self, init_cond_pressure: Expression):
+    def set_pressure_ic(self, init_cond_pressure):
         """Sets up the initial condition of pressure."""
         self.init_cond_pressure = init_cond_pressure
 

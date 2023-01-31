@@ -23,7 +23,7 @@ class CGSteadyDiffusionTest(TracerTransportProblem, DiffusionBenchmark,
         self.set_problem_bc()
 
         self.generate_solver()
-        self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
+        self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
 
     def set_problem_bc(self):
         values = DiffusionBenchmark.set_problem_bc(self)

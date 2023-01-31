@@ -1,14 +1,24 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfinx.fem import Function, FunctionSpace, VectorFunctionSpace
+from dolfinx.fem import (Function, FunctionSpace, VectorFunctionSpace,
+                         dirichletbc, locate_dofs_topological, locate_dofs_geometrical,
+                         Constant)
+from dolfinx.mesh import exterior_facet_indices
+from dolfinx.io.utils import XDMFFile
 
+DOLFIN_EPS = 1e-16
 # parameters["std_out_all_processes"] = False
 
 from ufl.algebra import Abs
 from ufl.operators import sqrt
-from ufl import (min_value, max_value, sign, FacetNormal,
-                 FacetArea, CellVolume, VectorElement, FiniteElement)
+from ufl import (min_value, max_value, sign, Measure,
+                 FacetNormal, FacetArea, CellVolume,
+                 VectorElement, FiniteElement, MixedElement,
+                 TestFunction, TestFunctions, TrialFunction, TrialFunctions,
+                 dot, inner, jump, as_vector, exp, grad, dx, ds, dS)
+
+from petsc4py.PETSc import ScalarType
 
 from ..material import FluidProperty, ComponentProperty
 

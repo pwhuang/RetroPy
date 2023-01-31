@@ -11,7 +11,6 @@ class TracerTransportProblemExp(TracerTransportProblem):
     negativity of such concentration.
     """
 
-    one = Constant(1.0)
     def initialize_form(self):
         """"""
 
@@ -23,7 +22,7 @@ class TracerTransportProblemExp(TracerTransportProblem):
 
         u = self._TracerTransportProblem__u
 
-        self.tracer_forms = [Constant(0.0)*inner(self.__w, u)*self.dx]*super().num_forms
+        self.tracer_forms = [Constant(self.mesh, 0.0)*inner(self.__w, u)*self.dx]*super().num_forms
 
     def save_to_file(self, time, is_exponentiated=False, is_saving_pv=False):
         """"""
@@ -44,8 +43,8 @@ class TracerTransportProblemExp(TracerTransportProblem):
             if is_exponentiated:
                 pass
             else:
-                self.output_func_list[i].vector()[:] = \
-                np.exp(self.output_func_list[i].vector())
+                self.output_func_list[i].vector[:] = \
+                np.exp(self.output_func_list[i].vector[:])
 
             self.write_function(self.output_func_list[i], key, time)
 
@@ -58,13 +57,13 @@ class TracerTransportProblemExp(TracerTransportProblem):
     def get_fluid_components(self):
         return as_vector([exp(self.fluid_components[i]) for i in range(self.num_component)])
 
-    def set_component_ics(self, expressions: Expression):
+    def set_component_ics(self, expressions):
         super().set_component_ics(expressions)
 
-        if np.any(self.fluid_components.vector() < DOLFIN_EPS):
+        if np.any(self.fluid_components.vector[:] < DOLFIN_EPS):
             raise ValueError('fluid_components contains negative or zero values!')
 
         self.logarithm_fluid_components()
 
     def logarithm_fluid_components(self):
-        self.fluid_components.vector()[:] = np.log(self.fluid_components.vector())
+        self.fluid_components.vector[:] = np.log(self.fluid_components.vector[:])

@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfinx.mesh import create_rectangle, locate_entities, meshtags
-from dolfinx.mesh import CellType
+from dolfinx.mesh import (create_rectangle, locate_entities, meshtags,
+                          CellType, DiagonalType)
 from mpi4py import MPI
 import numpy as np
 
@@ -37,10 +37,18 @@ class MarkedRectangleMesh(MarkerCollection):
             raise Exception("This class supports 'triangle' and 'quadrilateral' mesh.")
 
     def generate_mesh(self, mesh_shape='right'):
+        shape_dict = {
+            'right': DiagonalType.right,
+            'left': DiagonalType.left,
+            'left/right': DiagonalType.left_right,
+            'right/left': DiagonalType.right_left,
+            'crossed': DiagonalType.crossed,
+        }
+
         self.mesh = create_rectangle(MPI.COMM_WORLD,
                                      [self.bottom_left_point, self.top_right_point],
                                      [self.num_elements_x, self.num_elements_y],
-                                     self.mesh_type, diagonal=mesh_shape)
+                                     self.mesh_type, diagonal=shape_dict[mesh_shape])
 
         return self.mesh
 
@@ -52,25 +60,27 @@ class MarkedRectangleMesh(MarkerCollection):
 
         marker_dict = {'right': 1, 'top': 2, 'left': 3, 'bottom': 4}
 
-        boundaries = [(marker_dict['right'], right_marker),
-                      (marker_dict['top'], top_marker),
-                      (marker_dict['left'], left_marker),
-                      (marker_dict['bottom'], bottom_marker)]
+        locator_dict = {
+            'right': right_marker,
+            'top': top_marker,
+            'left': left_marker,
+            'bottom': bottom_marker,
+        }
 
         facet_indices, facet_markers = [], []
         fdim = self.mesh.topology.dim - 1
 
-        for (marker, locator) in boundaries:
+        for (key, locator) in locator_dict.items():
             facets = locate_entities(self.mesh, fdim, locator)
             facet_indices.append(facets)
-            facet_markers.append(np.full_like(facets, marker))
+            facet_markers.append(np.full_like(facets, marker_dict[key]))
 
         facet_indices = np.hstack(facet_indices).astype(np.int32)
         facet_markers = np.hstack(facet_markers).astype(np.int32)
         sorted_facets = np.argsort(facet_indices)
         self.boundary_markers = meshtags(self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
 
-        return self.boundary_markers, marker_dict
+        return self.boundary_markers, marker_dict, locator_dict
 
     def generate_domain_markers(self):
         cell_indices = locate_entities(self.mesh, self.mesh.topology.dim, lambda x: x[0] < np.inf)

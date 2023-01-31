@@ -1,20 +1,23 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfin import *
+from dolfinx.fem import (Function, FunctionSpace, VectorFunctionSpace,
+                         dirichletbc, locate_dofs_topological, Constant)
+from dolfinx.mesh import exterior_facet_indices
+from dolfinx.fem.petsc import LinearProblem
+
 from ufl.algebra import Abs
+from ufl import (lhs, rhs)
 
 from .reactive_transport_problem_base import reactive_transport_problem_base
 from .multicomponent_diffusion_problem import multicomponent_diffusion_problem
 from .multicomponent_transport_problem import multicomponent_transport_problem
 
 def set_default_solver_parameters(prm):
-    prm['absolute_tolerance'] = 1e-14
-    prm['relative_tolerance'] = 1e-12
-    prm['maximum_iterations'] = 5000
-    prm['error_on_nonconvergence'] = True
-    prm['monitor_convergence'] = True
-    prm['nonzero_initial_guess'] = True
+    prm.setTolerances(rtol = 1e-12, atol=1e-14, divtol=None, max_it=5000)
+    # prm['error_on_nonconvergence'] = True
+    # prm['monitor_convergence'] = True
+    # prm['nonzero_initial_guess'] = True
 
 from .steady_state_solver import SteadyStateSolver
 from .transient_solver import TransientSolver
