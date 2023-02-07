@@ -3,7 +3,7 @@
 
 from dolfinx.fem import (Function, FunctionSpace, VectorFunctionSpace,
                          dirichletbc, locate_dofs_topological, locate_dofs_geometrical,
-                         Constant)
+                         Constant, petsc)
 from dolfinx.mesh import exterior_facet_indices
 from dolfinx.io.utils import XDMFFile
 

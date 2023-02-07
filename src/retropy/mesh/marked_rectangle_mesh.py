@@ -67,41 +67,34 @@ class MarkedRectangleMesh(MarkerCollection):
             'bottom': bottom_marker,
         }
 
+        boundary_markers = self.generate_facet_tags(self.mesh, locator_dict, marker_dict)
+
+        return boundary_markers, marker_dict, locator_dict
+
+    def generate_interior_markers(self):
+        locator_dict = {'interior': lambda x: x[0] < np.inf}
+        marker_dict = {'interior': 0}
+
+        return self.generate_facet_tags(self.mesh, locator_dict, marker_dict)
+
+    def generate_domain_markers(self):
+        cell_indices = locate_entities(self.mesh, self.mesh.topology.dim, lambda x: x[0] < np.inf)
+        cell_value = np.zeros_like(cell_indices, dtype=np.int32)
+
+        return meshtags(self.mesh, self.mesh.topology.dim, cell_indices, cell_value)
+
+    @staticmethod
+    def generate_facet_tags(mesh, locator_dict, marker_dict):
         facet_indices, facet_markers = [], []
-        fdim = self.mesh.topology.dim - 1
+        fdim = mesh.topology.dim - 1
 
         for (key, locator) in locator_dict.items():
-            facets = locate_entities(self.mesh, fdim, locator)
+            facets = locate_entities(mesh, fdim, locator)
             facet_indices.append(facets)
             facet_markers.append(np.full_like(facets, marker_dict[key]))
 
         facet_indices = np.hstack(facet_indices).astype(np.int32)
         facet_markers = np.hstack(facet_markers).astype(np.int32)
         sorted_facets = np.argsort(facet_indices)
-        self.boundary_markers = meshtags(self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
 
-        return self.boundary_markers, marker_dict, locator_dict
-
-    def generate_domain_markers(self):
-        cell_indices = locate_entities(self.mesh, self.mesh.topology.dim, lambda x: x[0] < np.inf)
-        cell_value = np.zeros_like(cell_indices, dtype=np.int32)
-        self.domain_markers = meshtags(self.mesh, self.mesh.topology.dim, cell_indices, cell_value)
-
-        return self.domain_markers
-
-    def plot_boundary_markers(self, ax, s=20, colormap='Blues'):
-        """Plots boundary markers given matplotlib AxesSubpot instance."""
-
-        pass
-
-        # TODO: Fix this method.
-        # cr_space = FunctionSpace(self.mesh, 'CR', 1)
-        # cr_dof = cr_space.dofmap().dofs(self.mesh, 1)
-
-        # coord_x = cr_space.tabulate_dof_coordinates()[cr_dof, 0]
-        # coord_y = cr_space.tabulate_dof_coordinates()[cr_dof, 1]
-
-        # cb = ax.scatter(coord_x, coord_y,
-        #                 c=self.boundary_markers.array(), cmap=colormap, s=s)
-
-        # return cb
+        return meshtags(mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])

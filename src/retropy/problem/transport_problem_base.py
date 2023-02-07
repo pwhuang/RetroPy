@@ -41,7 +41,6 @@ class TransportProblemBase:
         self.mesh.topology.create_connectivity(facet_dim, mesh_dim)
         boundary_facets = exterior_facet_indices(self.mesh.topology)
         boundary_dofs = locate_dofs_topological(self.Vec_CG1_space, facet_dim, boundary_facets)
-        boundary_dofs_vec = np.concatenate([mesh_dim*boundary_dofs + i for i in range(mesh_dim)], axis=None)
 
         self.vertex_coord = Function(self.Vec_CG1_space)
         self.vertex_coord.interpolate(lambda x: [x[i] for i in range(mesh_dim)])
@@ -66,23 +65,25 @@ class TransportProblemBase:
 
         self.delta_h = sqrt(dot(jump(self.cell_coord), jump(self.cell_coord)))
 
-        boundary_mask = Function(self.Vec_CG1_space)
-        boundary_mask.vector[boundary_dofs_vec] = np.ones_like(boundary_dofs_vec)
-
         self.boundary_vertex_coord = Function(self.Vec_CG1_space)
-        self.boundary_vertex_coord.vector[:] = boundary_mask.vector[:] * self.vertex_coord.vector[:]
+        petsc.set_bc(self.boundary_vertex_coord.vector, bcs=[dirichletbc(self.vertex_coord, boundary_dofs)])
+        self.boundary_vertex_coord.x.scatter_forward()
 
         self.boundary_cell_coord = Function(self.Vec_DG0_space)
         self.boundary_cell_coord.interpolate(self.boundary_vertex_coord)
-        self.boundary_cell_coord.vector[:] *= cell_vertex_num/mesh_dim
+        self.boundary_cell_coord.vector.array_w *= cell_vertex_num/mesh_dim
 
     def set_boundary_markers(self, boundary_markers):
         self.boundary_markers = boundary_markers
 
         self.ds = Measure('ds', domain=self.mesh,
                           subdomain_data=self.boundary_markers)
+
+    def set_interior_markers(self, interior_markers):
+        self.interior_markers = interior_markers
+
         self.dS = Measure('dS', domain=self.mesh,
-                          subdomain_data=self.boundary_markers)
+                          subdomain_data=self.interior_markers)
 
     def set_domain_markers(self, domain_markers):
         self.domain_markers = domain_markers

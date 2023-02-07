@@ -11,7 +11,6 @@ from retropy.solver import SteadyStateSolver
 from utility_functions import convergence_rate
 from benchmarks import DiffusionBenchmark
 
-from dolfin import Constant
 from math import isclose
 
 class DG0SteadyDiffusionTest(TracerTransportProblem, DiffusionBenchmark,
@@ -24,14 +23,13 @@ class DG0SteadyDiffusionTest(TracerTransportProblem, DiffusionBenchmark,
         self.set_problem_bc()
 
         self.generate_solver()
-        self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
+        self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
 
     def set_problem_bc(self):
-        values = DiffusionBenchmark.set_problem_bc(self)
+        values = [0.0]*len(self.marker_dict)
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.
-        self.add_component_diffusion_bc('solute', diffusivity=Constant(1e3),
-                                        values=values)
+        self.add_component_diffusion_bc('solute', diffusivity=1e2, values=values)
 
 list_of_nx = [10, 20]
 element_diameters = []
@@ -51,4 +49,4 @@ convergence_rate_m = convergence_rate(err_norms, element_diameters)
 print(convergence_rate_m)
 
 def test_function():
-    assert isclose(convergence_rate_m, 1, rel_tol=0.5)
+    assert isclose(convergence_rate_m, 1, rel_tol=0.2)

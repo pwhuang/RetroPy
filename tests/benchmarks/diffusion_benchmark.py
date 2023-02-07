@@ -6,6 +6,8 @@ from retropy.problem import TracerTransportProblemExp
 
 from dolfinx.fem import (VectorFunctionSpace, Function, Constant,
                          assemble_scalar, form)
+
+from mpi4py import MPI
 import numpy as np
 from ufl import sqrt
 
@@ -21,11 +23,12 @@ class DiffusionBenchmark:
 
         mesh = mesh_factory.generate_mesh(mesh_shape='crossed')
         boundary_markers, self.marker_dict, self.locator_dict = mesh_factory.generate_boundary_markers()
+        interior_markers = mesh_factory.generate_interior_markers()
         domain_markers = mesh_factory.generate_domain_markers()
 
         self.mesh_characteristic_length = 1.0/nx
 
-        return mesh, boundary_markers, domain_markers
+        return mesh, boundary_markers, interior_markers, domain_markers
 
     def get_mesh_characterisitic_length(self):
         return self.mesh_characteristic_length
@@ -42,7 +45,7 @@ class DiffusionBenchmark:
         self.set_molecular_diffusivity([1.0])
         self.add_implicit_diffusion('solute', marker=0)
 
-        mass_source = Function(self.DG0_space)
+        mass_source = Function(self.CG1_space)
         mass_source.interpolate(lambda x: 2.0*np.pi**2*np.sin(np.pi*x[0])*np.sin(np.pi*x[1]))
         self.add_mass_source(['solute'], [mass_source])
 
@@ -64,7 +67,7 @@ class DiffusionBenchmark:
         num_marked_boundaries = len(self.marker_dict)
 
         uD = Function(self.comp_func_spaces)
-        uD.vector[:] = np.zeros_like(uD.vector[:])
+        uD.vector.array_w = 0.0
         values = [uD]*num_marked_boundaries
 
         return values
@@ -80,9 +83,11 @@ class DiffusionBenchmark:
         return self.solution
 
     def get_error_norm(self):
+        comm = MPI.COMM_WORLD
         mass_error = Function(self.func_space_list[0])
-        mass_error.vector[:] = self.fluid_components.vector[:] - self.solution.vector[:]
+        mass_error.vector.array_w = self.fluid_components.vector.array_r - self.solution.vector.array_r
+        mass_error.x.scatter_forward()
 
-        mass_error_norm = assemble_scalar(form(sqrt(mass_error**2)*self.dx))
+        mass_error_norm = assemble_scalar(form(mass_error**2*self.dx))
 
-        return mass_error_norm
+        return np.sqrt(comm.allreduce(mass_error_norm, op=MPI.SUM))

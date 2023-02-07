@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from . import *
+from dolfinx.io import XDMFFile
 
 class TracerTransportProblem(TransportProblemBase,
                              MassBalanceBase, ComponentProperty):
     """A class that solves single-phase tracer transport problems."""
 
-    def __init__(self, mesh, boundary_markers, domain_markers,
+    def __init__(self, mesh, boundary_markers, interior_markers, domain_markers,
                  option='cell_centered', periodic_bcs=None):
         try:
             super().num_forms
@@ -16,6 +17,7 @@ class TracerTransportProblem(TransportProblemBase,
 
         self.set_mesh(mesh, option, periodic_bcs)
         self.set_boundary_markers(boundary_markers)
+        self.set_interior_markers(interior_markers)
         self.set_domain_markers(domain_markers)
 
         self.dt = Constant(self.mesh, 1.0)
@@ -146,11 +148,9 @@ class TracerTransportProblem(TransportProblemBase,
             raise Exception("length of values != number of markers")
 
         idx = self.component_dict[component_name]
-        # markers = self.__boundary_dict[component_name]
 
         for i, locator in enumerate(self.locator_dict.values()):
-            # dof = locate_dofs_geometrical(self.func_space_list[idx], locator)
-            dof = locate_dofs_geometrical(self.CG1_space, locator)
+            dof = locate_dofs_geometrical(self.func_space_list[idx], locator)
             bc = dirichletbc(values[i], dof)
             self.__dirichlet_bcs.append(bc)
 

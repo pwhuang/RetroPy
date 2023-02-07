@@ -21,7 +21,7 @@ class SteadyStateSolver:
 
         self.__problem = LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1)
 
-    def set_solver_parameters(self, linear_solver='gmres', preconditioner='petsc_amg'):
+    def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
         prm = self.__problem.solver
         prm.setType(linear_solver)
         prm.getPC().setType(preconditioner)
@@ -30,4 +30,4 @@ class SteadyStateSolver:
 
     def solve_transport(self):
         self.__problem.solve()
-        self.fluid_components.vector[:] = self.__u1.vector[:]
+        self.fluid_components.vector.array_w = self.__u1.vector.array_r
