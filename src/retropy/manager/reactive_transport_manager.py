@@ -12,6 +12,7 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
         super().__init__(mesh, boundary_markers, domain_markers)
         self.__MPI_rank = MPI.rank(MPI.comm_world)
         self.set_flow_residual(1e-10)
+        self.set_flow_max_steps(50)
 
     def solve_species_transport(self):
         max_trials = 7
@@ -46,11 +47,14 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
     def set_flow_residual(self, residual):
         self.flow_residual = residual
 
+    def set_flow_max_steps(self, max_steps):
+        self.flow_max_steps = max_steps
+
     def solve_initial_condition(self):
         self.assign_u0_to_u1()
 
         # updates the pressure assuming constant density
-        self.solve_flow(target_residual=self.flow_residual, max_steps=50)
+        self.solve_flow(target_residual=self.flow_residual, max_steps=self.flow_max_steps)
 
         fluid_comp = np.exp(self.get_solution().vector()[:].reshape(-1, self.num_component))
         pressure = self.fluid_pressure.vector()[:] + self.background_pressure
@@ -108,7 +112,7 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
             pressure = self.fluid_pressure.vector()[:] + self.background_pressure
             self._solve_chem_equi_over_dofs(pressure, fluid_comp)
             self._assign_chem_equi_results()
-            self.solve_flow(target_residual=self.flow_residual, max_steps=20)
+            self.solve_flow(target_residual=self.flow_residual, max_steps=self.flow_max_steps)
 
             timestep += 1
 
