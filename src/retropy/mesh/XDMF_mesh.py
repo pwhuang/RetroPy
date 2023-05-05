@@ -8,9 +8,9 @@ from mpi4py import MPI
 class XDMFMesh:
     """This class reads mesh in the XDMF format."""
 
-    def read_mesh(self, filepath: str):
-        xdmf_obj = XDMFFile(MPI.COMM_WORLD, filepath)
-        self.mesh = xdmf_obj.read_mesh()
+    def read_mesh(self, filepath: str, meshname: str):
+        xdmf_obj = XDMFFile(MPI.COMM_WORLD, filepath, 'r')
+        self.mesh = xdmf_obj.read_mesh(name=meshname)
         xdmf_obj.close()
 
         return self.mesh
