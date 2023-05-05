@@ -4,17 +4,16 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from retropy.problem import TracerTransportProblem
 from retropy.physics import DG0Kernel
 from retropy.solver import SteadyStateSolver
 
 from utility_functions import convergence_rate
 from benchmarks import DiffusionBenchmark
 
+from dolfinx.fem import Constant
 from math import isclose
 
-class DG0SteadyDiffusionTest(TracerTransportProblem, DiffusionBenchmark,
-                             DG0Kernel, SteadyStateSolver):
+class DG0SteadyDiffusionTest(DiffusionBenchmark, DG0Kernel, SteadyStateSolver):
     def __init__(self, nx):
         super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
@@ -26,10 +25,10 @@ class DG0SteadyDiffusionTest(TracerTransportProblem, DiffusionBenchmark,
         self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
 
     def set_problem_bc(self):
-        values = [0.0]*len(self.marker_dict)
+        values = DiffusionBenchmark.set_problem_bc(self)
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.
-        self.add_component_diffusion_bc('solute', diffusivity=1e2, values=values)
+        self.add_component_diffusion_bc('solute', diffusivity=Constant(self.mesh, 1e2), values=values)
 
 list_of_nx = [10, 20]
 element_diameters = []
