@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from dolfinx.mesh import (create_rectangle, locate_entities, meshtags,
-                          CellType, DiagonalType)
+                          CellType, DiagonalType, GhostMode)
 from mpi4py import MPI
 import numpy as np
 
@@ -48,15 +48,16 @@ class MarkedRectangleMesh(MarkerCollection):
         self.mesh = create_rectangle(MPI.COMM_WORLD,
                                      [self.bottom_left_point, self.top_right_point],
                                      [self.num_elements_x, self.num_elements_y],
-                                     self.mesh_type, diagonal=shape_dict[mesh_shape])
+                                     self.mesh_type, diagonal=shape_dict[mesh_shape],
+                                     ghost_mode=GhostMode.shared_facet)
 
         return self.mesh
 
     def generate_boundary_markers(self, boundary_eps=1e-8):
-        right_marker = lambda x: np.isclose(x[0], self.xmax)
-        top_marker = lambda x: np.isclose(x[1], self.ymax)
-        left_marker = lambda x: np.isclose(x[0], self.xmin)
-        bottom_marker = lambda x: np.isclose(x[1], self.ymin)
+        right_marker = lambda x: np.isclose(x[0], self.xmax, atol=boundary_eps)
+        top_marker = lambda x: np.isclose(x[1], self.ymax, atol=boundary_eps)
+        left_marker = lambda x: np.isclose(x[0], self.xmin, atol=boundary_eps)
+        bottom_marker = lambda x: np.isclose(x[1], self.ymin, atol=boundary_eps)
 
         marker_dict = {'right': 1, 'top': 2, 'left': 3, 'bottom': 4}
 
@@ -91,10 +92,10 @@ class MarkedRectangleMesh(MarkerCollection):
         for (key, locator) in locator_dict.items():
             facets = locate_entities(mesh, fdim, locator)
             facet_indices.append(facets)
-            facet_markers.append(np.full_like(facets, marker_dict[key]))
+            facet_markers.append(np.full_like(facets, marker_dict[key], dtype=np.int32))
 
-        facet_indices = np.hstack(facet_indices).astype(np.int32)
-        facet_markers = np.hstack(facet_markers).astype(np.int32)
+        facet_indices = np.hstack(facet_indices)
+        facet_markers = np.hstack(facet_markers)
         sorted_facets = np.argsort(facet_indices)
 
         return meshtags(mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
