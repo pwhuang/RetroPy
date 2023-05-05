@@ -30,4 +30,4 @@ class SteadyStateSolver:
 
     def solve_transport(self):
         self.__problem.solve()
-        self.fluid_components.vector.array_w = self.__u1.vector.array_r
+        self.fluid_components.x.array[:] = self.__u1.x.array
