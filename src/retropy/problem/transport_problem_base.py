@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from . import *
-from ..mesh import MarkerCollection
 import numpy as np
 
 class TransportProblemBase:
@@ -135,8 +134,7 @@ class TransportProblemBase:
 
     def quick_save(self, file_name):
         """"""
-        with XDMFFile(file_name + '.xdmf') as obj:
-            obj.parameters['flush_output'] = True
+        with XDMFFile(self.mesh.comm, file_name + '.xdmf', 'w') as obj:
             obj.write_mesh(self.mesh)
             for func in self.functions_to_save:
                 obj.write_function(func, t=0)
