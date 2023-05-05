@@ -149,9 +149,11 @@ class TracerTransportProblem(TransportProblemBase,
 
         idx = self.component_dict[component_name]
 
+        # I have no idea how this works. Need to read more fenicsx documentation to find out.
         for i, locator in enumerate(self.locator_dict.values()):
-            dof = locate_dofs_geometrical(self.func_space_list[idx], locator)
-            bc = dirichletbc(values[i], dof)
+            facets = locate_entities_boundary(self.mesh, self.mesh.topology.dim -1, locator)
+            dof = locate_dofs_topological(self.comp_func_spaces, self.mesh.topology.dim -1, facets)
+            bc = dirichletbc(values[i], dof, self.comp_func_spaces.sub(idx))
             self.__dirichlet_bcs.append(bc)
 
     def add_outflow_bc(self, f_id=0):
