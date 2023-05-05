@@ -2,16 +2,14 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from retropy.mesh import MarkedRectangleMesh
-from retropy.problem import TracerTransportProblemExp
+from retropy.problem import TracerTransportProblem
 
-from dolfinx.fem import (VectorFunctionSpace, Function, Constant,
-                         assemble_scalar, form)
+from dolfinx.fem import (Function, assemble_scalar, form)
 
 from mpi4py import MPI
 import numpy as np
-from ufl import sqrt
 
-class DiffusionBenchmark:
+class DiffusionBenchmark(TracerTransportProblem):
     """"""
 
     def get_mesh_and_markers(self, nx, mesh_type):
@@ -65,16 +63,11 @@ class DiffusionBenchmark:
         """
 
         num_marked_boundaries = len(self.marker_dict)
-
-        uD = Function(self.comp_func_spaces)
-        uD.vector.array_w = 0.0
-        values = [uD]*num_marked_boundaries
+        values = [0.0]*num_marked_boundaries
 
         return values
 
     def get_solution(self):
-        # To match the rank in mixed spaces,
-        # one should supply a list of expressions to the Expression Function.
         expr = lambda x: np.sin(np.pi*x[0])*np.sin(np.pi*x[1])
 
         self.solution = Function(self.func_space_list[0])
@@ -83,11 +76,8 @@ class DiffusionBenchmark:
         return self.solution
 
     def get_error_norm(self):
-        comm = MPI.COMM_WORLD
-        mass_error = Function(self.func_space_list[0])
-        mass_error.vector.array_w = self.fluid_components.vector.array_r - self.solution.vector.array_r
-        mass_error.x.scatter_forward()
-
+        comm = self.mesh.comm
+        mass_error = self.fluid_components.sub(0) - self.solution
         mass_error_norm = assemble_scalar(form(mass_error**2*self.dx))
 
         return np.sqrt(comm.allreduce(mass_error_norm, op=MPI.SUM))

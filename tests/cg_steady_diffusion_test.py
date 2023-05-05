@@ -4,7 +4,6 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
-from retropy.problem import TracerTransportProblem
 from retropy.physics import CGKernel
 from retropy.solver import SteadyStateSolver
 
@@ -13,8 +12,7 @@ from benchmarks import DiffusionBenchmark
 
 from math import isclose
 
-class CGSteadyDiffusionTest(TracerTransportProblem, DiffusionBenchmark,
-                            CGKernel, SteadyStateSolver):
+class CGSteadyDiffusionTest(DiffusionBenchmark, CGKernel, SteadyStateSolver):
     def __init__(self, nx):
         super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
