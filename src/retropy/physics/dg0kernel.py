@@ -79,7 +79,7 @@ class DG0Kernel:
                  1 : Centered scheme
         """
 
-        eps = Constant(1e-13)
+        eps = Constant(self.mesh, 1e-13)
 
         adv_np = self.__get_advection_tensor(self.advection_velocity, sign=1.0)
         adv_nm = self.__get_advection_tensor(self.advection_velocity, sign=-1.0)
@@ -96,8 +96,8 @@ class DG0Kernel:
         r = as_vector([down[i]/(up[i] + eps)\
                       for i in range(self.num_component)])
 
-        high_order_flux = Constant((1.0-kappa)/4.0)*grad_up\
-                        + Constant((1.0+kappa)/4.0)*grad_down
+        high_order_flux = Constant(self.mesh, (1.0-kappa)/4.0)*grad_up\
+                        + Constant(self.mesh, (1.0+kappa)/4.0)*grad_down
 
         advective_flux = as_vector([self.flux_limiter(r[i])*high_order_flux[i]\
                                     for i in range(self.num_component)])
@@ -108,7 +108,7 @@ class DG0Kernel:
         """
         """
 
-        eps = Constant(1e-13)
+        eps = Constant(self.mesh, 1e-13)
 
         adv_np = self.__get_advection_tensor(self.advection_velocity, sign=1.0)
         adv_nm = self.__get_advection_tensor(self.advection_velocity, sign=-1.0)
@@ -124,7 +124,7 @@ class DG0Kernel:
         r = as_vector([up[i]/(down[i] + eps)\
                       for i in range(self.num_component)])
 
-        high_order_flux = Constant(0.5)*grad_down
+        high_order_flux = Constant(self.mesh, 0.5)*grad_down
 
         advective_flux = as_vector([self.flux_limiter(r[i])*high_order_flux[i]\
                                     for i in range(self.num_component)])
@@ -192,7 +192,7 @@ class DG0Kernel:
     def __get_advection_tensor(self, advection_velocity, sign: float):
         adv_mat = []
 
-        sign = Constant(sign)
+        sign = Constant(self.mesh, sign)
 
         for i in range(self.num_component):
             adv_mat.append([])
@@ -201,14 +201,14 @@ class DG0Kernel:
                     adv_mat[i].append((dot(advection_velocity[i], self.n)\
                                      + sign*Abs(dot(advection_velocity[i], self.n)))/2.0)
                 else:
-                    adv_mat[i].append(Constant(0.0))
+                    adv_mat[i].append(Constant(self.mesh, 0.0))
 
         return as_matrix(adv_mat)
 
     def __get_sign_tensor(self, advection_velocity, _sign: float):
         adv_mat = []
 
-        _sign = Constant(_sign)
+        _sign = Constant(self.mesh, _sign)
 
         for i in range(self.num_component):
             adv_mat.append([])
@@ -217,6 +217,6 @@ class DG0Kernel:
                     adv_mat[i].append(sign((dot(advection_velocity[i], self.n)\
                                       + _sign*Abs(dot(advection_velocity[i], self.n)))/2.0))
                 else:
-                    adv_mat[i].append(Constant(0.0))
+                    adv_mat[i].append(Constant(self.mesh, 0.0))
 
         return as_matrix(adv_mat)

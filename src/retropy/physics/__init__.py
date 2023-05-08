@@ -3,7 +3,9 @@
 
 from ufl.algebra import Abs
 from ufl.operators import sqrt
-from ufl import (min_value, max_value, sign, inner, grad, dot, jump)
+from ufl import (min_value, max_value, sign, inner, grad, dot, jump, as_matrix)
+
+from dolfinx.fem import Constant
 
 from .dg0kernel import DG0Kernel
 from .cgkernel import CGKernel

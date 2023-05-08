@@ -4,9 +4,8 @@
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import TracerTransportProblem
 
-from dolfinx.fem import VectorFunctionSpace, Function
-from dolfinx.la import Norm
-from ufl import inner
+from dolfinx.fem import (VectorFunctionSpace, Function, Constant, assemble_scalar, form)
+from mpi4py import MPI
 
 class EllipticTransportBenchmark(TracerTransportProblem):
     """
@@ -23,20 +22,22 @@ class EllipticTransportBenchmark(TracerTransportProblem):
         mesh_factory.set_number_of_elements(nx, nx)
         mesh_factory.set_mesh_type(mesh_type)
 
-        mesh = mesh_factory.generate_mesh()
-        boundary_markers, self.marker_dict = mesh_factory.generate_boundary_markers()
+        mesh = mesh_factory.generate_mesh(mesh_shape='crossed')
+        boundary_markers, self.marker_dict, self.locator_dict = mesh_factory.generate_boundary_markers()
+        interior_markers = mesh_factory.generate_interior_markers()
         domain_markers = mesh_factory.generate_domain_markers()
 
         self.mesh_characteristic_length = 1.0/nx
 
-        return mesh, boundary_markers, domain_markers
+        return mesh, boundary_markers, interior_markers, domain_markers
 
     def get_mesh_characterisitic_length(self):
         return self.mesh_characteristic_length
 
     def set_flow_field(self):
-        V = VectorFunctionSpace(self.mesh, "CG", 1)
-        self.fluid_velocity = interpolate(Expression(('0.9', '0.9'), degree=1), V)
+        V = VectorFunctionSpace(self.mesh, ('CG', 1))
+        self.fluid_velocity = Function(V)
+        self.fluid_velocity.interpolate(lambda x: (0.9 + 0.0*x[0], 0.9 + 0.0*x[1]))
 
     def define_problem(self):
         self.set_components('solute')
@@ -48,32 +49,31 @@ class EllipticTransportBenchmark(TracerTransportProblem):
         self.add_implicit_advection(marker=0)
         self.add_implicit_diffusion('solute', marker=0)
 
-        mass_source = '(2.9-1.8*x[0])*x[1]*(1.0-x[1]) + ' + \
-                      '(2.9-1.8*x[1])*x[0]*(1.0-x[0])'
-        self.add_mass_source(['solute'], [Expression(mass_source, degree=1)])
+        expr = lambda x: (2.9-1.8*x[0])*x[1]*(1.0-x[1]) + \
+                         (2.9-1.8*x[1])*x[0]*(1.0-x[0])
+
+        mass_source = Function(self.func_space_list[0])
+        mass_source.interpolate(expr)
+        self.add_mass_source(['solute'], [mass_source])
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})
 
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.
-        self.add_component_diffusion_bc('solute', diffusivity=Constant(100.0),
-                                        values=[Constant(0.0)]*len(self.marker_dict))
+        self.add_component_diffusion_bc('solute', diffusivity=Constant(self.mesh, 100.0),
+                                        values=[Constant(self.mesh, 0.0)]*len(self.marker_dict))
 
     def get_solution(self):
-        # To match the rank in mixed spaces,
-        # one should supply a list of expressions to the Expression Function.
-        expr = Expression(['x[0]*(1.0-x[0])*x[1]*(1.0-x[1])'], degree=1)
+        expr = lambda x: x[0]*(1.0-x[0])*x[1]*(1.0-x[1])
 
-        self.solution = Function(self.comp_func_spaces)
-        self.solution.assign(interpolate(expr, self.comp_func_spaces))
+        self.solution = Function(self.func_space_list[0])
+        self.solution.interpolate(expr)
 
         return self.solution.copy()
 
     def get_error_norm(self):
-        mass_error = Function(self.comp_func_spaces)
+        comm = self.mesh.comm
+        mass_error = self.fluid_components.sub(0) - self.solution
+        mass_error_norm = assemble_scalar(form(mass_error**2*self.dx))
 
-        mass_error.assign(self.fluid_components - self.solution)
-
-        mass_error_norm = norm(mass_error, 'l2')
-
-        return mass_error_norm
+        return comm.allreduce(mass_error_norm, op=MPI.SUM)**0.5

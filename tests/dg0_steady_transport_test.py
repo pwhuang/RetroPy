@@ -14,15 +14,14 @@ from math import isclose
 
 class DG0SteadyTransportTest(EllipticTransportBenchmark, DG0Kernel, SteadyStateSolver):
     def __init__(self, nx):
-        # TODO: Find out why it does not converge for triangles with 10 < nx <~100.
-        super().__init__(*self.get_mesh_and_markers(nx, 'quadrilateral'))
+        super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
         self.set_flow_field()
         self.define_problem()
         self.generate_solver()
-        self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
+        self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
 
-list_of_nx = [15, 30]
+list_of_nx = [10, 20]
 element_diameters = []
 err_norms = []
 
@@ -39,4 +38,4 @@ convergence_rate_m = convergence_rate(err_norms, element_diameters)
 print(convergence_rate_m)
 
 def test_function():
-    assert isclose(convergence_rate_m, 1, rel_tol=0.5)
+    assert isclose(convergence_rate_m, 1, rel_tol=0.2)
