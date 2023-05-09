@@ -1,23 +1,16 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfin import XDMFFile, MPI
+from dolfinx.io import XDMFFile
+from mpi4py import MPI
 import csv
 
 class XDMFManager:
     def generate_output_instance(self, file_name: str):
         self.output_file_name = file_name
 
-        self.outputter = XDMFFile(MPI.comm_world, file_name + '.xdmf')
-        self.outputter.write(self.mesh)
-
-        self.outputter.parameters['flush_output'] = True
-        self.outputter.parameters['functions_share_mesh'] = True
-        self.outputter.parameters['rewrite_function_mesh'] = False
-
-        if MPI.rank(MPI.comm_world)==0:
-            self.csv_file = open(self.output_file_name + '_time.csv', mode='w')
-            self.csv_writer = csv.writer(self.csv_file, delimiter=',')
+        self.outputter = XDMFFile(MPI.COMM_WORLD, file_name + '.xdmf', 'w')
+        self.outputter.write_mesh(self.mesh)
 
         return True
 
@@ -30,10 +23,8 @@ class XDMFManager:
         self.outputter.close()
         return True
 
-    def write_function(self, function, name, time_step):
-        self.outputter.write_checkpoint(function, name,
-                                        time_step=time_step,
-                                        append=True)
+    def write_function(self, function, time_step):
+        self.outputter.write_function(function, t=time_step)
 
     def flush_output(self):
         pass
