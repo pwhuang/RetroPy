@@ -8,7 +8,6 @@ from dolfinx.mesh import exterior_facet_indices, locate_entities_boundary
 from dolfinx.io.utils import XDMFFile
 
 DOLFIN_EPS = 1e-16
-# parameters["std_out_all_processes"] = False
 
 from ufl.algebra import Abs
 from ufl.operators import sqrt
@@ -19,6 +18,7 @@ from ufl import (min_value, max_value, sign, Measure,
                  dot, inner, jump, as_vector, exp, grad, dx, ds, dS)
 
 from petsc4py.PETSc import ScalarType
+from typing import Any
 
 from ..material import FluidProperty, ComponentProperty
 
