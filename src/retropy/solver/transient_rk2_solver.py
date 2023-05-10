@@ -12,16 +12,17 @@ class TransientRK2Solver:
         self.__func_space = self.get_function_space()
 
         self.__u0 = self.get_fluid_components()
-        self.__u1 = Function(self.comp_func_spaces)
-        self.kappa = Constant(0.5)
-        one = Constant(1.0)
+        self.__u1 = Function(self.__func_space)
+        one = Constant(self.mesh, 1.0)
+        half = Constant(self.mesh, 0.5)
+        self.kappa = Constant(self.mesh, 0.5)
 
-        self.add_physics_to_form(self.__u0, self.kappa, f_id=0)
-        self.add_time_derivatives(self.__u0, f_id=0)
+        self.add_physics_to_form(self.__u0, kappa=one, f_id=0)
+        self.add_time_derivatives(self.__u0, kappa=one, f_id=0)
 
-        self.add_physics_to_form(self.__u1, Constant(0.5)/self.kappa, f_id=1)
+        self.add_physics_to_form(self.__u1, half/self.kappa, f_id=1)
         self.add_sources((self.__u1 - self.__u0)/self.dt,
-                         (one - Constant(0.5)/self.kappa)/self.kappa, f_id=1)
+                         (one - half/self.kappa)/self.kappa, f_id=1)
         self.add_time_derivatives(self.__u0, f_id=1)
 
     def generate_solver(self):
@@ -32,27 +33,24 @@ class TransientRK2Solver:
         a1, L1 = lhs(self.__forms[0]), rhs(self.__forms[0])
         a2, L2 = lhs(self.__forms[1]), rhs(self.__forms[1])
 
-        problem1 = LinearVariationalProblem(a1, L1, self.__u1, bcs)
-        problem2 = LinearVariationalProblem(a2, L2, __u0, bcs)
-
-        self.__solver1 = LinearVariationalSolver(problem1)
-        self.__solver2 = LinearVariationalSolver(problem2)
+        self.__problem1 = LinearProblem(a1, L1, bcs, self.__u1)
+        self.__problem2 = LinearProblem(a2, L2, bcs, __u0)
 
     def get_solver_functions(self):
         return self.fluid_components, self.__u1
 
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
-        prm = self.__solver1.parameters
-        prm['linear_solver'] = linear_solver
-        prm['preconditioner'] = preconditioner
+        prm = self.__problem1.solver
+        prm.setType(linear_solver)
+        prm.getPC().setType(preconditioner)
 
-        set_default_solver_parameters(prm['krylov_solver'])
+        set_default_solver_parameters(prm)
 
-        prm = self.__solver2.parameters
-        prm['linear_solver'] = linear_solver
-        prm['preconditioner'] = preconditioner
+        prm = self.__problem2.solver
+        prm.setType(linear_solver)
+        prm.getPC().setType(preconditioner)
 
-        set_default_solver_parameters(prm['krylov_solver'])
+        set_default_solver_parameters(prm)
 
     def set_kappa(self, kappa):
         """
@@ -62,24 +60,28 @@ class TransientRK2Solver:
         as SSP (Strong Stability Preserving) methods.
         """
 
-        self.kappa.assign(kappa)
+        self.kappa.value = kappa
 
     def set_dt(self, dt_val):
-        self.dt.assign(dt_val)
+        self.dt.value = dt_val
 
     def solve_first_step(self):
-        self.__solver1.solve()
+        self.__problem1.solve()
 
     def solve_second_step(self):
-        self.__solver2.solve()
+        self.__problem2.solve()
 
     def solve_transport(self, dt_val=1.0, timesteps=1):
         """"""
 
         self.set_dt(dt_val)
-        self.save_to_file(time=0.0)
 
-        for i in range(timesteps):
+        current_time = 0.0
+        self.save_to_file(time=current_time)
+
+        for _ in range(timesteps):
             self.solve_first_step()
             self.solve_second_step()
-            self.save_to_file(time=(i+1)*dt_val)
+
+            current_time += dt_val
+            self.save_to_file(time=current_time)

@@ -16,47 +16,50 @@ class TransientSolver:
         self.__u0 = self.get_fluid_components()
         self.__u1 = Function(self.__func_space)
 
-        self.add_physics_to_form(self.__u0)
+        self.add_physics_to_form(self.__u0, kappa=Constant(self.mesh, 1.0), f_id=0)
         self.add_time_derivatives(self.__u0)
         self.__forms = self.get_forms()
         self.__form = self.__forms[0]
 
         a, L = lhs(self.__form), rhs(self.__form)
 
-        problem = LinearVariationalProblem(a, L, self.__u1, self.get_dirichlet_bcs())
-        self.__solver = LinearVariationalSolver(problem)
+        self.__problem = LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1)
 
-    def set_solver_parameters(self, linear_solver='gmres', preconditioner='amg'):
-        prm = self.__solver.parameters
-        prm['linear_solver'] = linear_solver
-        prm['preconditioner'] = preconditioner
+    def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
+        prm = self.__problem.solver
+        prm.setType(linear_solver)
+        prm.getPC().setType(preconditioner)
 
-        set_default_solver_parameters(prm['krylov_solver'])
+        set_default_solver_parameters(prm)
 
         return prm
 
     def set_dt(self, dt_val):
-        self.dt.assign(dt_val)
+        self.dt.value = dt_val
 
     def solve_one_step(self):
-        self.__solver.solve()
+        self.__problem.solve()
 
     def get_solution(self):
         return self.__u1
 
     def assign_u1_to_u0(self):
-        self.fluid_components.assign(self.__u1)
+        self.fluid_components.x.array[:] = self.__u1.x.array
 
     def assign_u0_to_u1(self):
-        self.__u1.assign(self.fluid_components)
+        self.__u1.x.array[:] = self.fluid_components.x.array
 
     def solve_transport(self, dt_val=1.0, timesteps=1):
         """"""
 
         self.set_dt(dt_val)
-        self.save_to_file(time=0.0)
+
+        current_time = 0.0
+        self.save_to_file(time=current_time)
 
         for i in range(timesteps):
             self.solve_one_step()
             self.assign_u1_to_u0()
-            self.save_to_file(time=(i+1)*dt_val)
+
+            current_time += dt_val
+            self.save_to_file(time=current_time)
