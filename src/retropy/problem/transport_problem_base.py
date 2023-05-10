@@ -140,12 +140,10 @@ class TransportProblemBase:
                 obj.write_function(func, t=0)
 
     def save_fluid_pressure(self, time_step):
-        self.write_function(self.fluid_pressure, t=time_step)
+        self.write_function(self.fluid_pressure, time_step)
 
     def save_fluid_velocity(self, time_step):
-        self.fluid_vel_to_save = Function(self.Vec_DG0_space)
-        self.fluid_vel_to_save.interpolate(self.fluid_velocity)
-        self.write_function(self.fluid_vel_to_save, t=time_step)
+        self.write_function(self.fluid_velocity, time_step)
 
     @staticmethod
     def set_default_solver_parameters(prm):
