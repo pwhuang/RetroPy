@@ -4,7 +4,7 @@
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import TracerTransportProblem
 
-from dolfinx.fem import (VectorFunctionSpace, Function, Constant, assemble_scalar, form)
+from dolfinx.fem import (Function, Constant, assemble_scalar, form)
 from mpi4py import MPI
 
 class EllipticTransportBenchmark(TracerTransportProblem):
@@ -35,8 +35,7 @@ class EllipticTransportBenchmark(TracerTransportProblem):
         return self.mesh_characteristic_length
 
     def set_flow_field(self):
-        V = VectorFunctionSpace(self.mesh, ('CG', 1))
-        self.fluid_velocity = Function(V)
+        self.fluid_velocity = Function(self.Vec_CG1_space)
         self.fluid_velocity.interpolate(lambda x: (0.9 + 0.0*x[0], 0.9 + 0.0*x[1]))
 
     def define_problem(self):

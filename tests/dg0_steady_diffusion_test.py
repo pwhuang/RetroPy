@@ -28,7 +28,8 @@ class DG0SteadyDiffusionTest(DiffusionBenchmark, DG0Kernel, SteadyStateSolver):
         values = DiffusionBenchmark.set_problem_bc(self)
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.
-        self.add_component_diffusion_bc('solute', diffusivity=Constant(self.mesh, 1e2), values=values)
+        self.add_component_diffusion_bc('solute', diffusivity=Constant(self.mesh, 1e2),
+                                         kappa=Constant(self.mesh, 1.0), values=values)
 
 list_of_nx = [10, 20]
 element_diameters = []

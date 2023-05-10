@@ -48,7 +48,7 @@ class DG0SteadyDiffusionReadMeshTest(DiffusionBenchmark, DG0Kernel, SteadyStateS
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.
         self.add_component_diffusion_bc('solute', diffusivity=Constant(self.mesh, 1e3),
-                                        values=values)
+                                        kappa=Constant(self.mesh, 1.0), values=values)
 
 list_of_filenames = ['mesh/2d_1e-1.xdmf', 'mesh/2d_5e-2.xdmf']
 element_diameters = [1e-1, 5e-2]

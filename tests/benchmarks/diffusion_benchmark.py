@@ -4,7 +4,7 @@
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import TracerTransportProblem
 
-from dolfinx.fem import (Function, assemble_scalar, form)
+from dolfinx.fem import (Function, Constant, assemble_scalar, form)
 
 from mpi4py import MPI
 import numpy as np
@@ -40,12 +40,13 @@ class DiffusionBenchmark(TracerTransportProblem):
         self.set_component_fe_space()
         self.initialize_form()
 
+        one = Constant(self.mesh, 1.0)
         self.set_molecular_diffusivity([1.0])
-        self.add_implicit_diffusion('solute', marker=0)
+        self.add_implicit_diffusion('solute', kappa=one, marker=0)
 
         mass_source = Function(self.CG1_space)
         mass_source.interpolate(lambda x: 2.0*np.pi**2*np.sin(np.pi*x[0])*np.sin(np.pi*x[1]))
-        self.add_mass_source(['solute'], [mass_source])
+        self.add_mass_source(['solute'], [mass_source], kappa=one)
 
         self.mark_component_boundary(**{'solute': self.marker_dict.values()})
 
