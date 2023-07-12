@@ -4,7 +4,7 @@
 from dolfinx.fem import (Function, FunctionSpace, VectorFunctionSpace,
                          dirichletbc, locate_dofs_topological, locate_dofs_geometrical,
                          Constant, petsc)
-from dolfinx.mesh import exterior_facet_indices, locate_entities_boundary
+from dolfinx.mesh import exterior_facet_indices
 from dolfinx.io.utils import XDMFFile
 
 DOLFIN_EPS = 1e-16

@@ -7,7 +7,8 @@ class TracerTransportProblem(TransportProblemBase,
                              MassBalanceBase, ComponentProperty):
     """A class that solves single-phase tracer transport problems."""
 
-    def __init__(self, mesh, boundary_markers, interior_markers, domain_markers,
+    def __init__(self, mesh, boundary_markers, interior_markers,
+                 domain_markers, marker_dict, facet_dict,
                  option='cell_centered', periodic_bcs=None):
         try:
             super().num_forms
@@ -18,6 +19,8 @@ class TracerTransportProblem(TransportProblemBase,
         self.set_boundary_markers(boundary_markers)
         self.set_interior_markers(interior_markers)
         self.set_domain_markers(domain_markers)
+        self.marker_dict = marker_dict
+        self.facet_dict = facet_dict
 
         self.dt = Constant(self.mesh, 1.0)
         self.__dirichlet_bcs = []
@@ -134,9 +137,8 @@ class TracerTransportProblem(TransportProblemBase,
         idx = self.component_dict[component_name]
 
         # I have no idea how this works. Need to read more fenicsx documentation to find out.
-        for i, locator in enumerate(self.locator_dict.values()):
-            facets = locate_entities_boundary(self.mesh, self.mesh.topology.dim -1, locator)
-            dof = locate_dofs_topological(self.comp_func_spaces, self.mesh.topology.dim -1, facets)
+        for i, facet in enumerate(self.facet_dict.values()):
+            dof = locate_dofs_topological(self.comp_func_spaces, self.mesh.topology.dim - 1, facet)
             bc = dirichletbc(values[i], dof, self.comp_func_spaces.sub(idx))
             self.__dirichlet_bcs.append(bc)
 

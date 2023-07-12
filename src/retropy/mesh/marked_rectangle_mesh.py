@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfinx.mesh import (create_rectangle, locate_entities, meshtags,
-                          CellType, DiagonalType, GhostMode)
+from dolfinx.mesh import (create_rectangle, locate_entities, locate_entities_boundary,
+                          meshtags, CellType, DiagonalType, GhostMode)
 from mpi4py import MPI
 import numpy as np
 
@@ -65,12 +65,16 @@ class MarkedRectangleMesh(MarkerCollection):
             'right': right_marker,
             'top': top_marker,
             'left': left_marker,
-            'bottom': bottom_marker,
+            'bottom': bottom_marker
         }
+
+        facet_dict = {}
+        for (key, locator) in locator_dict.items():
+            facet_dict[key] = locate_entities_boundary(self.mesh, self.mesh.topology.dim - 1, locator)
 
         boundary_markers = self.generate_facet_tags(self.mesh, locator_dict, marker_dict)
 
-        return boundary_markers, marker_dict, locator_dict
+        return boundary_markers, marker_dict, facet_dict
 
     def generate_interior_markers(self):
         locator_dict = {'interior': lambda x: x[0] < np.inf}

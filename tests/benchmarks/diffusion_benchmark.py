@@ -20,13 +20,14 @@ class DiffusionBenchmark(TracerTransportProblem):
         mesh_factory.set_mesh_type(mesh_type)
 
         mesh = mesh_factory.generate_mesh(mesh_shape='crossed')
-        boundary_markers, self.marker_dict, self.locator_dict = mesh_factory.generate_boundary_markers()
+        boundary_markers, marker_dict, facet_dict = mesh_factory.generate_boundary_markers()
         interior_markers = mesh_factory.generate_interior_markers()
         domain_markers = mesh_factory.generate_domain_markers()
 
         self.mesh_characteristic_length = 1.0/nx
 
-        return mesh, boundary_markers, interior_markers, domain_markers
+        return (mesh, boundary_markers, interior_markers,
+                domain_markers, marker_dict, facet_dict)
 
     def get_mesh_characterisitic_length(self):
         return self.mesh_characteristic_length

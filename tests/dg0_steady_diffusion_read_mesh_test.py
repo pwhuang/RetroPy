@@ -25,11 +25,12 @@ class DiffusionBenchmark(DiffusionBenchmark):
         mesh_factory.set_top_right_coordinates(coord_x = 1.0, coord_y = 1.0)
 
         mesh = mesh_factory.read_mesh(filename, meshname)
-        boundary_markers, self.marker_dict, self.locator_dict = mesh_factory.generate_boundary_markers()
+        boundary_markers, marker_dict, facet_dict = mesh_factory.generate_boundary_markers()
         interior_markers = mesh_factory.generate_interior_markers()
         domain_markers = mesh_factory.generate_domain_markers()
 
-        return mesh, boundary_markers, interior_markers, domain_markers
+        return (mesh, boundary_markers, interior_markers,
+                domain_markers, marker_dict, facet_dict)
 
 class DG0SteadyDiffusionReadMeshTest(DiffusionBenchmark, DG0Kernel, SteadyStateSolver):
     def __init__(self, *args):
