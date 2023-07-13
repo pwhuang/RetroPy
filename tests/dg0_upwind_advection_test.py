@@ -12,7 +12,7 @@ from benchmarks import RotatingCone
 
 class DG0UpwindAdvectionTest(RotatingCone, DG0Kernel, TransientSolver,
                              XDMFManager):
-    def __init__(self, nx, is_output=False):
+    def __init__(self, nx, is_output):
         super().__init__(*self.get_mesh_and_markers(nx, 'quadrilateral'))
 
         self.set_flow_field()
@@ -44,7 +44,7 @@ timesteps = [100]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):
-    problem = DG0UpwindAdvectionTest(nx, is_output=True)
+    problem = DG0UpwindAdvectionTest(nx, is_output=False)
     initial_mass = problem.get_total_mass()
     initial_center_x, initial_center_y = problem.get_center_of_mass()
     problem.solve_transport(dt_val=dt, timesteps=timesteps[i])

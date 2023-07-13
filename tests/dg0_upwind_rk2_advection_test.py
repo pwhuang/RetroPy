@@ -14,7 +14,7 @@ from math import isclose
 
 class DG0UpwindRK2AdvectionTest(RotatingCone, DG0Kernel, TransientRK2Solver,
                                 XDMFManager):
-    def __init__(self, nx, is_output=False):
+    def __init__(self, nx, is_output):
         super().__init__(*self.get_mesh_and_markers(nx, 'quadrilateral'))
 
         self.set_flow_field()
@@ -48,7 +48,7 @@ timesteps = [100]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):
-    problem = DG0UpwindRK2AdvectionTest(nx, is_output=True)
+    problem = DG0UpwindRK2AdvectionTest(nx, is_output=False)
     problem.set_kappa(1.0)
     initial_mass = problem.get_total_mass()
     initial_center_x, initial_center_y = problem.get_center_of_mass()
