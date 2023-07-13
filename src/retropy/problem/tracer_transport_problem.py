@@ -267,7 +267,6 @@ class TracerTransportProblem(TransportProblemBase,
         except:
             return False
 
-        # self._save_mixed_function(time, self.fluid_components, self.component_dict)
         for i in range(self.num_component):
             self.write_function(self.fluid_comp_sub[i], time)
 
