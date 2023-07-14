@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from . import *
+from mpi4py import MPI
+from petsc4py import PETSc
+import numpy as np
 
 class TransientNLSolver(TransientSolver):
     """A solver class that is used as a mixin for problem classes."""
@@ -18,6 +21,8 @@ class TransientNLSolver(TransientSolver):
         self.__du = TrialFunction(self.__func_space)
         self._TransientSolver__u1 = self.__u1
 
+        self.initial_guess = 0.0
+
         self.add_time_derivatives(self.__u0)
         self.add_physics_to_form(self.__u0)
 
@@ -33,30 +38,40 @@ class TransientNLSolver(TransientSolver):
 
         bcs = self.get_dirichlet_bcs()
 
-        problem = NonlinearVariationalProblem(self.__form, self.__u1, bcs, J)
-        self.__solver = NonlinearVariationalSolver(problem)
-
-        self._TransientSolver__solver = self.__solver
+        problem = NonlinearProblem(self.__form, self.__u1, bcs, J)
+        self.__solver = NewtonSolver(MPI.COMM_WORLD, problem)
 
     def evaluate_jacobian(self, form):
         self.jacobian = derivative(action(form, self.__u1), self.__u1, self.__du)
 
-    def get_solver_parameters(self):
-        return self.__solver.parameters
+    def solve_one_step(self):
+        self.guess_solution()
+        num_iterations, converged = self.__solver.solve(self.__u1)
+
+        return num_iterations, converged
+
+    def guess_solution(self):
+        self.__u1.x.array[:] = self.initial_guess
+
+    def assign_u1_to_u0(self):
+        self.fluid_components.x.array[:] = np.exp(self.__u1.x.array)
+
+    def get_solver(self):
+        return self.__solver
 
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
-        prm = self.get_solver_parameters()
+        ksp = self.__solver.krylov_solver
+        opts = PETSc.Options()
+        option_prefix = ksp.getOptionsPrefix()
 
-        prm['nonlinear_solver'] = 'snes'
+        opts[f"{option_prefix}ksp_type"] = linear_solver
+        opts[f"{option_prefix}pc_type"] = preconditioner
+        # opts[f"{option_prefix}pc_factor_mat_solver_type"] = 'mumps'
+        ksp.setFromOptions()
 
-        nl_solver_type = 'snes_solver'
-
-        prm[nl_solver_type]['absolute_tolerance'] = 1e-10
-        prm[nl_solver_type]['relative_tolerance'] = 1e-14
-        prm[nl_solver_type]['maximum_iterations'] = 50
-        prm['snes_solver']['method'] = 'newtonls'
-        prm['snes_solver']['line_search'] = 'bt'
-        prm[nl_solver_type]['linear_solver'] = linear_solver
-        prm[nl_solver_type]['preconditioner'] = preconditioner
-
-        set_default_solver_parameters(prm[nl_solver_type]['krylov_solver'])
+        self.__solver.convergence_criterion = 'residual'
+        self.__solver.atol = 1e-12
+        self.__solver.rtol = 1e-14
+        self.__solver.max_it = 1000
+        self.__solver.nonzero_initial_guess = True
+        self.__solver.report = True

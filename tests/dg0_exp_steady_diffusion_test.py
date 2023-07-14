@@ -7,17 +7,15 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from retropy.problem import TracerTransportProblemExp
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientNLSolver
+from retropy.manager import XDMFManager
 
-from utility_functions import convergence_rate, quick_plot
 from benchmarks import DiffusionBenchmark
 
-from numpy import exp
-from dolfin import Constant, Function, norm
-from math import isclose
+from dolfinx.fem import Constant
 
 class DG0ExpSteadyDiffusionTest(TracerTransportProblemExp, DiffusionBenchmark,
-                                DG0Kernel, TransientNLSolver):
-    def __init__(self, nx):
+                                DG0Kernel, TransientNLSolver, XDMFManager):
+    def __init__(self, nx, is_output):
         super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
 
         self.set_flow_field()
@@ -26,35 +24,27 @@ class DG0ExpSteadyDiffusionTest(TracerTransportProblemExp, DiffusionBenchmark,
         self.set_problem_bc()
 
         self.generate_solver()
-        self.set_solver_parameters(linear_solver='gmres', preconditioner='amg')
+        self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
+
+        if is_output==True:
+            self.generate_output_instance('steady_diffusion_exp')
 
     def set_problem_bc(self):
         values = super().set_problem_bc()
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.
-        self.add_component_diffusion_bc('solute', diffusivity=Constant(1e3),
+        self.add_component_diffusion_bc('solute', diffusivity=Constant(self.mesh, 1e2),
                                         values=values)
 
-    def get_error_norm(self):
-        mass_error = Function(self.comp_func_spaces)
-        self.fluid_components.vector()[:] = exp(self.fluid_components.vector())
-
-        mass_error.assign(self.fluid_components - self.solution)
-        mass_error_norm = norm(mass_error, 'l2')
-
-        return mass_error_norm
-
 list_of_nx = [10]
-element_diameters = []
 err_norms = []
 
 for i, nx in enumerate(list_of_nx):
-    problem = DG0ExpSteadyDiffusionTest(nx)
+    problem = DG0ExpSteadyDiffusionTest(nx, is_output=False)
     problem.solve_transport()
-    numerical_solution = problem.get_solution()
+    problem.get_solution()
     error_norm = problem.get_error_norm()
     err_norms.append(error_norm)
-    element_diameters.append(problem.get_mesh_characterisitic_length())
 
 print(err_norms)
 

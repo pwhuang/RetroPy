@@ -14,56 +14,24 @@ class TracerTransportProblemExp(TracerTransportProblem):
     def initialize_form(self):
         """"""
 
-        self.__u = TrialFunction(self.comp_func_spaces)
-        self._TracerTransportProblem__w = TestFunction(self.comp_func_spaces)
-        self.__w = self._TracerTransportProblem__w
+        super().initialize_form()
+        self._TracerTransportProblem__u = as_vector([exp(u) for u in self._TracerTransportProblem__u])
 
-        self._TracerTransportProblem__u = as_vector([exp(u) for u in self.__u])
-
-        u = self._TracerTransportProblem__u
-
-        self.tracer_forms = [Constant(self.mesh, 0.0)*inner(self.__w, u)*self.dx]*super().num_forms
-
-    def save_to_file(self, time, is_exponentiated=False, is_saving_pv=False):
+    def save_to_file(self, time, is_exponentiated=True, is_saving_pv=False):
         """"""
 
-        try:
-            self.outputter
-        except:
-            return False
-
-        func_to_save = self.fluid_components
-
-        if self.num_component==1:
-            self.output_assigner.assign(self.output_func_list[0], func_to_save)
+        if is_exponentiated:
+            pass
         else:
-            self.output_assigner.assign(self.output_func_list, func_to_save)
+            self.fluid_components.x.array[:] = np.exp(self.fluid_components.x.array[:])
 
-        for key, i in self.component_dict.items():
-            if is_exponentiated:
-                pass
-            else:
-                self.output_func_list[i].vector[:] = \
-                np.exp(self.output_func_list[i].vector[:])
+        return super().save_to_file(time, is_saving_pv=is_saving_pv)
 
-            self.write_function(self.output_func_list[i], key, time)
+    def set_component_ics(self, name, expressions):
+        super().set_component_ics(name, expressions)
 
-        if is_saving_pv:
-            self.save_fluid_pressure(time)
-            self.save_fluid_velocity(time)
-
-        return True
-
-    def get_fluid_components(self):
-        return as_vector([exp(self.fluid_components[i]) for i in range(self.num_component)])
-
-    def set_component_ics(self, expressions):
-        super().set_component_ics(expressions)
-
-        if np.any(self.fluid_components.vector[:] < DOLFIN_EPS):
-            raise ValueError('fluid_components contains negative or zero values!')
-
-        self.logarithm_fluid_components()
+        if np.any(self.fluid_components.x.array[:] < DOLFIN_EPS):
+            raise ValueError('fluid_components contain negative or zero values!')
 
     def logarithm_fluid_components(self):
-        self.fluid_components.vector[:] = np.log(self.fluid_components.vector[:])
+        self.fluid_components.x.array[:] = np.log(self.fluid_components.x.array[:])

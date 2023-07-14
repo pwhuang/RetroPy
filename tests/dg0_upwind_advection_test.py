@@ -23,21 +23,6 @@ class DG0UpwindAdvectionTest(RotatingCone, DG0Kernel, TransientSolver,
         if is_output==True:
             self.generate_output_instance('rotating_cone')
 
-    def solve_transport(self, dt_val, timesteps):
-        self.dt.value = dt_val
-        current_time = 0.0
-
-        self.save_to_file(time=current_time)
-
-        for i in range(timesteps):
-            self.solve_one_step()
-            self.assign_u1_to_u0()
-            current_time += dt_val
-            self.current_time.value = current_time
-            self.save_to_file(time=current_time)
-
-        self.delete_output_instance()
-
 nx = 50
 list_of_dt = [1e-2]
 timesteps = [100]

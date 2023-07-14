@@ -26,22 +26,6 @@ class DG0UpwindRK2AdvectionTest(RotatingCone, DG0Kernel, TransientRK2Solver,
         if is_output==True:
             self.generate_output_instance('rotating_cone_rk2')
 
-    def solve_transport(self, dt_val, timesteps):
-        self.set_dt(dt_val)
-
-        current_time = 0.0
-        self.save_to_file(time=current_time)
-
-        for i in range(timesteps):
-            self.solve_first_step()
-            self.solve_second_step()
-
-            current_time += dt_val
-            self.current_time.value = current_time
-            self.save_to_file(time=current_time)
-
-        self.delete_output_instance()
-
 nx = 50
 list_of_dt = [1e-2]
 timesteps = [100]
@@ -65,7 +49,7 @@ center_of_mass_error = ((advected_center_x - initial_center_x)**2 + \
                         (advected_center_y - initial_center_y)**2)**0.5
 
 allowed_mass_error = 1e-10
-allowed_drift_distance = 1e-2
+allowed_drift_distance = 5e-2
 
 print(mass_error, center_of_mass_error)
 

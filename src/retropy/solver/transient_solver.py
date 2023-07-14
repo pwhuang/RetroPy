@@ -34,9 +34,6 @@ class TransientSolver:
 
         return prm
 
-    def set_dt(self, dt_val):
-        self.dt.value = dt_val
-
     def solve_one_step(self):
         self.__problem.solve()
 
@@ -52,14 +49,12 @@ class TransientSolver:
     def solve_transport(self, dt_val=1.0, timesteps=1):
         """"""
 
-        self.set_dt(dt_val)
-
-        current_time = 0.0
-        self.save_to_file(time=current_time)
+        self.dt.value = dt_val
+        self.save_to_file(time=self.current_time.value)
 
         for i in range(timesteps):
             self.solve_one_step()
             self.assign_u1_to_u0()
 
-            current_time += dt_val
-            self.save_to_file(time=current_time)
+            self.current_time.value += dt_val
+            self.save_to_file(time=self.current_time.value)

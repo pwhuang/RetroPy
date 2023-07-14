@@ -22,8 +22,11 @@ class TracerTransportProblem(TransportProblemBase,
         self.marker_dict = marker_dict
         self.facet_dict = facet_dict
 
-        self.dt = Constant(self.mesh, 1.0)
         self.__dirichlet_bcs = []
+
+        # TODO: Where should time be defined? There may be a better way to manage time.
+        self.current_time = Constant(self.mesh, 0.0)
+        self.dt = Constant(self.mesh, 1.0)
 
     def mark_component_boundary(self, **kwargs):
         """This method gives boundary markers physical meaning.

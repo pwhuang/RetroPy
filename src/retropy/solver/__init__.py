@@ -4,10 +4,11 @@
 from dolfinx.fem import (Function, FunctionSpace, VectorFunctionSpace,
                          dirichletbc, locate_dofs_topological, Constant)
 from dolfinx.mesh import exterior_facet_indices
-from dolfinx.fem.petsc import LinearProblem
+from dolfinx.fem.petsc import LinearProblem, NonlinearProblem
+from dolfinx.nls.petsc import NewtonSolver
 
 from ufl.algebra import Abs
-from ufl import (lhs, rhs)
+from ufl import (lhs, rhs, action, derivative, TrialFunction)
 
 from .reactive_transport_problem_base import reactive_transport_problem_base
 from .multicomponent_diffusion_problem import multicomponent_diffusion_problem

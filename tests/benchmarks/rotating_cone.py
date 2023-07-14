@@ -27,8 +27,6 @@ class RotatingCone(EllipticTransportBenchmark):
         expr = lambda x: (np.sin(np.pi*x[0])*np.sin(np.pi*x[0])*np.sin(2*np.pi*x[1]),
                           -np.sin(np.pi*x[1])*np.sin(np.pi*x[1])*np.sin(2*np.pi*x[0]))
 
-        self.current_time = Constant(self.mesh, 0.0)
-
         self.fluid_velocity = Function(self.Vec_CG1_space)
         self.fluid_velocity.interpolate(expr)
         self.fluid_velocity *= ufl.cos(ufl.pi * self.current_time)
@@ -46,7 +44,7 @@ class RotatingCone(EllipticTransportBenchmark):
         self.set_component_ics('solute', self.solution_expr)
 
     def add_physics_to_form(self, u, kappa, f_id):
-        self.add_explicit_advection(u, kappa=kappa, f_id=f_id)
+        self.add_explicit_advection(u, kappa=kappa, marker=0, f_id=f_id)
 
     def get_solution(self):
         self.solution = Function(self.func_space_list[0])

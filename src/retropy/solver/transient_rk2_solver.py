@@ -13,14 +13,15 @@ class TransientRK2Solver:
 
         self.__u0 = self.get_fluid_components()
         self.__u1 = Function(self.__func_space)
+        self.kappa = Constant(self.mesh, 0.5)
+
         one = Constant(self.mesh, 1.0)
         half = Constant(self.mesh, 0.5)
-        self.kappa = Constant(self.mesh, 0.5)
 
         self.add_physics_to_form(self.__u0, kappa=one, f_id=0)
         self.add_time_derivatives(self.__u0, kappa=one, f_id=0)
 
-        self.add_physics_to_form(self.__u1, half/self.kappa, f_id=1)
+        self.add_physics_to_form(self.__u1, kappa=half/self.kappa, f_id=1)
         self.add_sources((self.__u1 - self.__u0)/self.dt,
                          (one - half/self.kappa)/self.kappa, f_id=1)
         self.add_time_derivatives(self.__u0, f_id=1)
@@ -62,9 +63,6 @@ class TransientRK2Solver:
 
         self.kappa.value = kappa
 
-    def set_dt(self, dt_val):
-        self.dt.value = dt_val
-
     def solve_first_step(self):
         self.__problem1.solve()
 
@@ -74,14 +72,12 @@ class TransientRK2Solver:
     def solve_transport(self, dt_val=1.0, timesteps=1):
         """"""
 
-        self.set_dt(dt_val)
-
-        current_time = 0.0
-        self.save_to_file(time=current_time)
+        self.dt.value = dt_val
+        self.save_to_file(time=self.current_time.value)
 
         for _ in range(timesteps):
             self.solve_first_step()
             self.solve_second_step()
 
-            current_time += dt_val
-            self.save_to_file(time=current_time)
+            self.current_time.value += dt_val
+            self.save_to_file(time=self.current_time.value)
