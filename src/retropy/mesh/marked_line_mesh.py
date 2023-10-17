@@ -1,12 +1,18 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from dolfinx.mesh import create_interval, locate_entities, meshtags
+from dolfinx.mesh import (
+    create_interval,
+    locate_entities,
+    meshtags,
+    locate_entities_boundary,
+)
+
 from mpi4py import MPI
 import numpy as np
-from . import MarkerCollection
 
-class MarkedLineMesh(MarkerCollection):
+
+class MarkedLineMesh:
     """"""
 
     def __init__(self):
@@ -26,39 +32,70 @@ class MarkedLineMesh(MarkerCollection):
     def set_number_of_elements(self, num_elements_x):
         self.num_elements_x = num_elements_x
 
+    def locate_and_mark_boundaries(self, boundary_eps=1e-8):
+        right_marker = lambda x: np.isclose(x[0], self.xmax, atol=boundary_eps)
+        left_marker = lambda x: np.isclose(x[0], self.xmin, atol=boundary_eps)
+
+        self.marker_dict = {"right": 2, "left": 1}
+        self.locator_dict = {"right": right_marker, "left": left_marker}
+
+        return self.marker_dict, self.locator_dict
+
     def generate_mesh(self):
-        self.mesh = create_interval(MPI.COMM_WORLD, self.num_elements_x,
-                                    [self.xmin, self.xmax])
+        self.mesh = create_interval(
+            MPI.COMM_WORLD, self.num_elements_x, [self.xmin, self.xmax]
+        )
 
         return self.mesh
 
     def generate_boundary_markers(self):
-        right_marker = lambda x: np.isclose(x[0], self.xmax)
-        left_marker = lambda x: np.isclose(x[0], self.xmin)
+        self.facet_dict = {}
+        face_dim = self.mesh.topology.dim - 1
 
-        marker_dict = {'right': 2, 'left': 1}
+        for key, locator in self.locator_dict.items():
+            self.facet_dict[key] = locate_entities_boundary(
+                self.mesh, face_dim, locator
+            )
 
-        boundaries = [(marker_dict['right'], right_marker),
-                      (marker_dict['left'], left_marker)]
+        self.boundary_markers = self.generate_facet_tags(
+            self.mesh, self.locator_dict, self.marker_dict
+        )
 
-        facet_indices, facet_markers = [], []
-        fdim = self.mesh.topology.dim - 1
+        return self.boundary_markers
 
-        for (marker, locator) in boundaries:
-            facets = locate_entities(self.mesh, fdim, locator)
-            facet_indices.append(facets)
-            facet_markers.append(np.full_like(facets, marker))
+    def generate_interior_markers(self):
+        locator_dict = {"interior": lambda x: x[0] < np.inf}
+        marker_dict = {"interior": 0}
 
-        facet_indices = np.hstack(facet_indices).astype(np.int32)
-        facet_markers = np.hstack(facet_markers).astype(np.int32)
-        sorted_facets = np.argsort(facet_indices)
-        self.boundary_markers = meshtags(self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
+        self.interior_markers = self.generate_facet_tags(
+            self.mesh, locator_dict, marker_dict
+        )
 
-        return self.boundary_markers, marker_dict
+        return self.interior_markers
 
     def generate_domain_markers(self):
-        cell_indices = locate_entities(self.mesh, self.mesh.topology.dim, lambda x: x[0] < np.inf)
+        volume_dim = self.mesh.topology.dim
+
+        cell_indices = locate_entities(self.mesh, volume_dim, lambda x: x[0] < np.inf)
         cell_value = np.zeros_like(cell_indices, dtype=np.int32)
-        self.domain_markers = meshtags(self.mesh, self.mesh.topology.dim, cell_indices, cell_value)
+        self.domain_markers = meshtags(self.mesh, volume_dim, cell_indices, cell_value)
 
         return self.domain_markers
+
+    @staticmethod
+    def generate_facet_tags(mesh, locator_dict, marker_dict):
+        facet_indices, facet_markers = [], []
+        fdim = mesh.topology.dim - 1
+
+        for key, locator in locator_dict.items():
+            facets = locate_entities(mesh, fdim, locator)
+            facet_indices.append(facets)
+            facet_markers.append(np.full_like(facets, marker_dict[key], dtype=np.int32))
+
+        facet_indices = np.hstack(facet_indices)
+        facet_markers = np.hstack(facet_markers)
+        sorted_facets = np.argsort(facet_indices)
+
+        return meshtags(
+            mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets]
+        )

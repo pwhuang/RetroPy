@@ -30,8 +30,7 @@ class TracerTransportProblemExp(TracerTransportProblem):
     def set_component_ics(self, name, expressions):
         super().set_component_ics(name, expressions)
 
-        if np.any(self.fluid_components.x.array[:] < DOLFIN_EPS):
-            raise ValueError('fluid_components contain negative or zero values!')
+        # TODO: Should I raise error if input expression results in negative or zero values?
 
     def logarithm_fluid_components(self):
         self.fluid_components.x.array[:] = np.log(self.fluid_components.x.array[:])

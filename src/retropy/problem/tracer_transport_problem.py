@@ -7,20 +7,18 @@ class TracerTransportProblem(TransportProblemBase,
                              MassBalanceBase, ComponentProperty):
     """A class that solves single-phase tracer transport problems."""
 
-    def __init__(self, mesh, boundary_markers, interior_markers,
-                 domain_markers, marker_dict, facet_dict,
-                 option='cell_centered', periodic_bcs=None):
+    def __init__(self, marked_mesh, option='cell_centered', periodic_bcs=None):
         try:
             super().num_forms
         except:
             raise Exception("num_forms does not exist. Consider inherit a solver class.")
 
-        self.set_mesh(mesh, option, periodic_bcs)
-        self.set_boundary_markers(boundary_markers)
-        self.set_interior_markers(interior_markers)
-        self.set_domain_markers(domain_markers)
-        self.marker_dict = marker_dict
-        self.facet_dict = facet_dict
+        self.set_mesh(marked_mesh.mesh, option, periodic_bcs)
+        self.set_boundary_markers(marked_mesh.boundary_markers)
+        self.set_interior_markers(marked_mesh.interior_markers)
+        self.set_domain_markers(marked_mesh.domain_markers)
+        self.marker_dict = marked_mesh.marker_dict
+        self.facet_dict = marked_mesh.facet_dict
 
         self.__dirichlet_bcs = []
 

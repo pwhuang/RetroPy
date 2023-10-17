@@ -3,7 +3,8 @@
 
 from ufl.algebra import Abs
 from ufl.operators import sqrt
-from ufl import (min_value, max_value, sign, inner, grad, dot, jump, as_matrix)
+from ufl import (min_value, max_value, sign, inner, grad, dot, jump, avg,
+                 outer, as_matrix, as_vector)
 
 from dolfinx.fem import Constant
 
