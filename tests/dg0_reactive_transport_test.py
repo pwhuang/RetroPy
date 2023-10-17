@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 import os
-os.environ['OMP_NUM_THREADS'] = '1'
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientRK2Solver
@@ -10,19 +11,23 @@ from retropy.manager import XDMFManager
 
 from benchmarks import ReactingSpecies
 
-class DG0ReactiveTransportTest(ReactingSpecies, DG0Kernel, TransientRK2Solver,
-                               XDMFManager):
+
+class DG0ReactiveTransportTest(
+    ReactingSpecies, DG0Kernel, TransientRK2Solver, XDMFManager
+):
     def __init__(self, nx, is_output):
-        super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
+        marked_mesh = self.get_mesh_and_markers(nx, "triangle")
+        super().__init__(marked_mesh)
 
         self.set_flow_field()
         self.define_problem()
         self.set_solver_forms()
         self.generate_solver()
-        self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
+        self.set_solver_parameters(linear_solver="gmres", preconditioner="jacobi")
 
-        if is_output==True:
-            self.generate_output_instance('reacting_species')
+        if is_output == True:
+            self.generate_output_instance("reacting_species")
+
 
 nx = 20
 list_of_dt = [1e-1]
@@ -45,6 +50,7 @@ for i, dt in enumerate(list_of_dt):
 # this particular problem.
 # problem.mpl_output()
 print(err_norms)
+
 
 def test_function():
     assert err_norms[-1] < 1.0

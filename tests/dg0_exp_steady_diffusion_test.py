@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 import os
-os.environ['OMP_NUM_THREADS'] = '1'
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.problem import TracerTransportProblemExp
 from retropy.physics import DG0Kernel
@@ -13,10 +14,17 @@ from benchmarks import DiffusionBenchmark
 
 from dolfinx.fem import Constant
 
-class DG0ExpSteadyDiffusionTest(TracerTransportProblemExp, DiffusionBenchmark,
-                                DG0Kernel, TransientNLSolver, XDMFManager):
+
+class DG0ExpSteadyDiffusionTest(
+    TracerTransportProblemExp,
+    DiffusionBenchmark,
+    DG0Kernel,
+    TransientNLSolver,
+    XDMFManager,
+):
     def __init__(self, nx, is_output):
-        super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
+        marked_mesh = self.get_mesh_and_markers(nx, "triangle")
+        super().__init__(marked_mesh)
 
         self.set_flow_field()
         self.define_problem()
@@ -24,17 +32,19 @@ class DG0ExpSteadyDiffusionTest(TracerTransportProblemExp, DiffusionBenchmark,
         self.set_problem_bc()
 
         self.generate_solver()
-        self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
+        self.set_solver_parameters(linear_solver="gmres", preconditioner="jacobi")
 
-        if is_output==True:
-            self.generate_output_instance('steady_diffusion_exp')
+        if is_output == True:
+            self.generate_output_instance("steady_diffusion_exp")
 
     def set_problem_bc(self):
         values = super().set_problem_bc()
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.
-        self.add_component_diffusion_bc('solute', diffusivity=Constant(self.mesh, 1e2),
-                                        values=values)
+        self.add_component_diffusion_bc(
+            "solute", diffusivity=Constant(self.mesh, 1e2), values=values
+        )
+
 
 list_of_nx = [10]
 err_norms = []
@@ -47,6 +57,7 @@ for i, nx in enumerate(list_of_nx):
     err_norms.append(error_norm)
 
 print(err_norms)
+
 
 def test_function():
     assert err_norms[0] < 1e-1

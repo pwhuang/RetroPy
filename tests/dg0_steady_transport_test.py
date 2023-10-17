@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 import os
-os.environ['OMP_NUM_THREADS'] = '1'
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
 from retropy.solver import SteadyStateSolver
@@ -12,14 +13,17 @@ from benchmarks import EllipticTransportBenchmark
 
 from math import isclose
 
+
 class DG0SteadyTransportTest(EllipticTransportBenchmark, DG0Kernel, SteadyStateSolver):
     def __init__(self, nx):
-        super().__init__(*self.get_mesh_and_markers(nx, 'triangle'))
+        marked_mesh = self.get_mesh_and_markers(nx, "triangle")
+        super().__init__(marked_mesh)
 
         self.set_flow_field()
         self.define_problem()
         self.generate_solver()
-        self.set_solver_parameters(linear_solver='gmres', preconditioner='jacobi')
+        self.set_solver_parameters(linear_solver="gmres", preconditioner="jacobi")
+
 
 list_of_nx = [10, 20]
 element_diameters = []
@@ -36,6 +40,7 @@ for nx in list_of_nx:
 convergence_rate_m = convergence_rate(err_norms, element_diameters)
 
 print(convergence_rate_m)
+
 
 def test_function():
     assert isclose(convergence_rate_m, 1, rel_tol=0.2)
