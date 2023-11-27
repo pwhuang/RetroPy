@@ -3,7 +3,9 @@
 
 from dolfinx.fem import (Function, FunctionSpace, VectorFunctionSpace,
                          dirichletbc, locate_dofs_topological, locate_dofs_geometrical,
-                         Constant, petsc)
+                         form, Constant, petsc)
+from dolfinx.fem.petsc import (LinearProblem, assemble_vector, assemble_matrix, 
+                               create_vector, apply_lifting, set_bc)
 from dolfinx.mesh import exterior_facet_indices
 from dolfinx.io.utils import XDMFFile
 
@@ -11,13 +13,14 @@ DOLFIN_EPS = 1e-16
 
 from ufl.algebra import Abs
 from ufl.operators import sqrt
-from ufl import (min_value, max_value, sign, Measure,
+from ufl import (min_value, max_value, sign, lhs, rhs, Measure,
                  FacetNormal, FacetArea, CellVolume,
                  VectorElement, FiniteElement, MixedElement,
                  TestFunction, TestFunctions, TrialFunction, TrialFunctions,
-                 dot, inner, jump, as_vector, exp, grad, dx, ds, dS)
+                 dot, inner, div, jump, as_vector, exp, grad, dx, ds, dS)
 
 from petsc4py.PETSc import ScalarType
+from petsc4py import PETSc
 from typing import Any
 
 from ..material import FluidProperty, ComponentProperty

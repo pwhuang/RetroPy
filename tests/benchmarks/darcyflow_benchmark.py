@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from retropy.mesh import MarkedRectangleMesh
-from dolfinx.fem import Function
-from dolfinx.la import Norm
+from dolfinx.fem import Function, assemble_scalar, form
 from ufl import inner
+
+from mpi4py import MPI
 import numpy as np
 
 class DarcyFlowBenchmark:
@@ -14,19 +15,21 @@ class DarcyFlowBenchmark:
     """
 
     def get_mesh_and_markers(self, nx):
-        mesh_factory = MarkedRectangleMesh()
-        mesh_factory.set_bottom_left_coordinates(coord_x = -1.0, coord_y = -1.0)
-        mesh_factory.set_top_right_coordinates(coord_x = 1.0, coord_y = 1.0)
-        mesh_factory.set_number_of_elements(nx, nx)
-        mesh_factory.set_mesh_type('triangle')
+        marked_mesh = MarkedRectangleMesh()
+        marked_mesh.set_bottom_left_coordinates(coord_x = -1.0, coord_y = -1.0)
+        marked_mesh.set_top_right_coordinates(coord_x = 1.0, coord_y = 1.0)
+        marked_mesh.set_number_of_elements(nx, nx)
+        marked_mesh.set_mesh_type('triangle')
+        marked_mesh.locate_and_mark_boundaries()
 
-        mesh = mesh_factory.generate_mesh()
-        boundary_markers, self.marker_dict = mesh_factory.generate_boundary_markers()
-        domain_markers = mesh_factory.generate_domain_markers()
+        marked_mesh.generate_mesh(mesh_shape='left/right')
+        marked_mesh.generate_boundary_markers()
+        marked_mesh.generate_interior_markers()
+        marked_mesh.generate_domain_markers()
 
-        self.mesh_characteristic_length = 2.0/nx
+        self.mesh_characteristic_length = 2.0 / nx
 
-        return mesh, boundary_markers, domain_markers
+        return marked_mesh
 
     def get_mesh_characterisitic_length(self):
         return self.mesh_characteristic_length
@@ -40,24 +43,35 @@ class DarcyFlowBenchmark:
 
     def set_boundary_conditions(self):
         self.mark_flow_boundary(pressure = [self.marker_dict['left'], self.marker_dict['right']],
-                                velocity = [self.marker_dict['top'], self.marker_dict['bottom']])
+                                velocity = ['top', 'bottom'])
 
-        self.set_pressure_bc([lambda x: np.exp(x[1])*np.sin(np.pi*x[0])]*2)
+        pressure_bc = Function(self.pressure_func_space)
+        pressure_bc.interpolate(lambda x: np.exp(x[1]) * np.sin(np.pi*x[0]))
+        self.set_pressure_bc([pressure_bc, pressure_bc])
+        
         self.generate_form()
         self.generate_residual_form()
-        self.set_velocity_bc([lambda x: (np.sin(np.pi*x[1]), np.cos(np.pi*x[0]))]*2)
+
+        velocity_bc = Function(self.velocity_func_space)
+        velocity_bc.interpolate(lambda x: (np.sin(np.pi * x[1]), np.cos(np.pi * x[0])))
+        self.set_velocity_bc([velocity_bc, velocity_bc])
 
     def set_momentum_sources(self):
-        # momentum_sources = [self._mu/self._k*('sin(M_PI*x[1])', 'cos(M_PI*x[0])'),
-        #                     ('M_PI*cos(M_PI*x[0])*exp(x[1])', 'sin(M_PI*x[0])*exp(x[1])')]
-        momemtum_sources = []
+        momentum_top = Function(self.velocity_func_space)
+        momentum_top.interpolate(lambda x: (np.sin(np.pi * x[1]), np.cos(np.pi * x[0])))
 
+        momentum_bottom = Function(self.velocity_func_space)
+        momentum_bottom.interpolate(lambda x: (np.pi * np.exp(x[1]) * np.cos(np.pi * x[0]),
+                                               np.exp(x[1]) * np.sin(np.pi * x[0])))
+
+        momentum_sources = [self._mu / self._k * momentum_top, momentum_bottom]
+        
         self.add_momentum_source(momentum_sources)
         self.add_momentum_source_to_residual_form(momentum_sources)
 
     def get_solution(self):
         self.sol_pressure = Function(self.pressure_func_space)
-        self.sol_pressure.interpolate(lambda x: np.exp(x[1])*np.sin(np.pi*x[0]))
+        self.sol_pressure.interpolate(lambda x: np.exp(x[1]) * np.sin(np.pi*x[0]))
 
         self.sol_velocity = Function(self.velocity_func_space)
         self.sol_velocity.interpolate(lambda x: (np.sin(np.pi*x[1]), np.cos(np.pi*x[0])))
@@ -65,13 +79,14 @@ class DarcyFlowBenchmark:
         return self.sol_pressure, self.sol_velocity
 
     def get_error_norm(self):
-        pressure_error = Function(self.pressure_func_space)
-        velocity_error = Function(self.velocity_func_space)
+        pressure_error = self.fluid_pressure - self.sol_pressure
+        velocity_error = self.fluid_velocity - self.sol_velocity
 
-        pressure_error.vector[:] = self.fluid_pressure.vector[:] - self.sol_pressure.vector[:]
-        velocity_error.vector[:] = self.fluid_velocity.vector[:] - self.sol_velocity.vector[:]
+        pressure_error_local = assemble_scalar(form(pressure_error ** 2 * self.dx))
+        velocity_error_local = assemble_scalar(form(inner(velocity_error, velocity_error) * self.dx))
 
-        pressure_error_norm = Norm(pressure_error, 'l2')
-        velocity_error_norm = Norm(velocity_error, 'l2')
+        comm = self.mesh.comm
+        pressure_error_global = np.sqrt(comm.allreduce(pressure_error_local, op=MPI.SUM))
+        velocity_error_global = np.sqrt(comm.allreduce(velocity_error_local, op=MPI.SUM))
 
-        return pressure_error_norm, velocity_error_norm
+        return pressure_error_global, velocity_error_global

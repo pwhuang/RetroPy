@@ -6,10 +6,13 @@ from . import *
 class DarcyFlowBase(FluidProperty):
     """The base class for Darcy flow problems."""
 
-    def __init__(self, mesh, boundary_markers, domain_markers):
-        self.set_mesh(mesh)
-        self.set_boundary_markers(boundary_markers)
-        self.set_domain_markers(domain_markers)
+    def __init__(self, marked_mesh):
+        self.set_mesh(marked_mesh.mesh)
+        self.set_boundary_markers(marked_mesh.boundary_markers)
+        self.set_interior_markers(marked_mesh.interior_markers)
+        self.set_domain_markers(marked_mesh.domain_markers)
+        self.marker_dict = marked_mesh.marker_dict
+        self.facet_dict = marked_mesh.facet_dict
 
         self.velocity_bc = []
 
@@ -42,10 +45,12 @@ class DarcyFlowBase(FluidProperty):
 
         self.velocity_bc = []
 
-        for i, marker in enumerate(self.darcyflow_boundary_dict['velocity']):
-            self.velocity_bc.append(DirichletBC(self.velocity_func_space,
-                                                velocity_bc_val[i],
-                                                self.boundary_markers, marker))
+        for i, key in enumerate(self.darcyflow_boundary_dict['velocity']):
+            dofs = locate_dofs_topological(V = self.velocity_func_space, 
+                                           entity_dim = self.mesh.topology.dim - 1,
+                                           entities = self.facet_dict[key])
+            bc = dirichletbc(value = velocity_bc_val[i], dofs = dofs)
+            self.velocity_bc.append(bc)
 
     def generate_residual_form(self):
         """"""
@@ -89,13 +94,12 @@ class DarcyFlowBase(FluidProperty):
 
         u0 = self.fluid_velocity
 
-        residual_momentum = assemble(self.residual_momentum_form)
-        residual_mass = assemble(self.residual_mass_form)
+        residual_momentum = assemble_vector(form(self.residual_momentum_form))
+        residual_mass = assemble_vector(form(self.residual_mass_form))
 
-        for bc in self.velocity_bc:
-            bc.apply(residual_momentum, u0.vector())
+        set_bc(residual_momentum, bcs=self.velocity_bc)
 
-        residual = residual_momentum.norm('l2')
-        residual += residual_mass.norm('l2')
+        residual = residual_momentum.norm(2)
+        residual += residual_mass.norm(2)
 
         return residual

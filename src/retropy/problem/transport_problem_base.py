@@ -35,8 +35,8 @@ class TransportProblemBase:
 
         mesh_dim = self.mesh.topology.dim
         facet_dim = mesh_dim - 1
-        cell_vertex_num = np.abs(self.mesh.topology.cell_type.value)
-
+        cell_vertex_num = np.abs(self.mesh.topology.cell_types[0].value)
+        
         self.mesh.topology.create_connectivity(facet_dim, mesh_dim)
         boundary_facets = exterior_facet_indices(self.mesh.topology)
         boundary_dofs = locate_dofs_topological(self.Vec_CG1_space, facet_dim, boundary_facets)
@@ -49,19 +49,6 @@ class TransportProblemBase:
         if option=='cell_centered':
             self.cell_coord.interpolate(self.vertex_coord)
 
-        # TODO: Fix the voronoi option
-        elif option=='voronoi':
-            circumcenter_list = []
-
-            for c in cells(self.mesh):
-                circumcenter_list.append(self.circumcenter_from_points(*c.get_coordinate_dofs()))
-
-            self.cell_coord.vector[:] = np.array(circumcenter_list).flatten()
-
-        else:
-            raise ValueError("Valid inputs are 'cell_centered' or 'voronoi'. ")
-
-
         self.delta_h = sqrt(dot(jump(self.cell_coord), jump(self.cell_coord)))
 
         self.boundary_vertex_coord = Function(self.Vec_CG1_space)
@@ -70,7 +57,7 @@ class TransportProblemBase:
 
         self.boundary_cell_coord = Function(self.Vec_DG0_space)
         self.boundary_cell_coord.interpolate(self.boundary_vertex_coord)
-        self.boundary_cell_coord.vector.array_w *= cell_vertex_num/mesh_dim
+        self.boundary_cell_coord.vector.array_w *= cell_vertex_num / mesh_dim
 
     def set_boundary_markers(self, boundary_markers):
         self.boundary_markers = boundary_markers
@@ -95,7 +82,7 @@ class TransportProblemBase:
 
     def set_velocity_vector_fe_space(self, fe_space, fe_degree):
         self.velocity_finite_element = VectorElement(fe_space,
-                                                     self.mesh.cell_name(),
+                                                     self.mesh.ufl_cell(),
                                                      fe_degree)
 
         self.velocity_func_space = FunctionSpace(self.mesh,
@@ -106,7 +93,7 @@ class TransportProblemBase:
 
     def set_velocity_fe_space(self, fe_space, fe_degree):
         self.velocity_finite_element = FiniteElement(fe_space,
-                                                     self.mesh.cell_name(),
+                                                     self.mesh.ufl_cell(),
                                                      fe_degree)
 
         self.velocity_func_space = FunctionSpace(self.mesh,
@@ -117,7 +104,7 @@ class TransportProblemBase:
 
     def set_pressure_fe_space(self, fe_space, fe_degree):
         self.pressure_finite_element = FiniteElement(fe_space,
-                                                     self.mesh.cell_name(),
+                                                     self.mesh.ufl_cell(),
                                                      fe_degree)
 
         self.pressure_func_space = FunctionSpace(self.mesh,
