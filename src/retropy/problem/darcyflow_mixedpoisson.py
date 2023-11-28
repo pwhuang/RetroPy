@@ -37,7 +37,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
                           - inner(v, rho*g)*dx \
                           + q*div(phi*rho*u)*dx
 
-        for i, marker in enumerate(self.darcyflow_boundary_dict['pressure']):
+        for i, key in enumerate(self.darcyflow_boundary_dict['pressure']):
+            marker = self.marker_dict[key]
             self.mixed_form +=  self.pressure_bc[i] * inner(n, v) * ds(marker)
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]

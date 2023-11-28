@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from retropy.mesh import MarkedRectangleMesh
-from dolfinx.fem import Function, assemble_scalar, form, FunctionSpace
+from dolfinx.fem import Function, Constant, assemble_scalar, form
+from petsc4py.PETSc import ScalarType
 from ufl import inner
 
 from mpi4py import MPI
@@ -42,9 +43,11 @@ class DarcyFlowBenchmark:
         self.set_gravity((0.0, 0.0))
 
     def set_boundary_conditions(self):
-        self.mark_flow_boundary(pressure = [],
+        self.mark_flow_boundary(pressure = ['left', 'right'],
                                 velocity = ['top', 'bottom'])
         
+        self.set_pressure_bc([Constant(self.mesh, ScalarType(0.0))] * 2)
+
         self.generate_form()
         self.generate_residual_form()
 
