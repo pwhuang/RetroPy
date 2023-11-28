@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from retropy.mesh import MarkedRectangleMesh
-from dolfinx.fem import Function, assemble_scalar, form
+from dolfinx.fem import Function, assemble_scalar, form, FunctionSpace
 from ufl import inner
 
 from mpi4py import MPI
@@ -27,7 +27,7 @@ class DarcyFlowBenchmark:
         marked_mesh.generate_interior_markers()
         marked_mesh.generate_domain_markers()
 
-        self.mesh_characteristic_length = 2.0 / nx
+        self.mesh_characteristic_length = 1.0 / nx
 
         return marked_mesh
 
@@ -42,29 +42,25 @@ class DarcyFlowBenchmark:
         self.set_gravity((0.0, 0.0))
 
     def set_boundary_conditions(self):
-        self.mark_flow_boundary(pressure = [self.marker_dict['left'], self.marker_dict['right']],
+        self.mark_flow_boundary(pressure = [],
                                 velocity = ['top', 'bottom'])
-
-        pressure_bc = Function(self.pressure_func_space)
-        pressure_bc.interpolate(lambda x: np.exp(x[1]) * np.sin(np.pi*x[0]))
-        self.set_pressure_bc([pressure_bc, pressure_bc])
         
         self.generate_form()
         self.generate_residual_form()
 
         velocity_bc = Function(self.velocity_func_space)
         velocity_bc.interpolate(lambda x: (np.sin(np.pi * x[1]), np.cos(np.pi * x[0])))
-        self.set_velocity_bc([velocity_bc, velocity_bc])
+        self.set_velocity_bc([velocity_bc]*2)
 
     def set_momentum_sources(self):
-        momentum_top = Function(self.velocity_func_space)
-        momentum_top.interpolate(lambda x: (np.sin(np.pi * x[1]), np.cos(np.pi * x[0])))
+        momentum1 = Function(self.velocity_func_space)
+        momentum1.interpolate(lambda x: (np.sin(np.pi * x[1]), np.cos(np.pi * x[0])))
 
-        momentum_bottom = Function(self.velocity_func_space)
-        momentum_bottom.interpolate(lambda x: (np.pi * np.exp(x[1]) * np.cos(np.pi * x[0]),
-                                               np.exp(x[1]) * np.sin(np.pi * x[0])))
+        momentum2 = Function(self.velocity_func_space)
+        momentum2.interpolate(lambda x: (np.pi * np.exp(x[1]) * np.cos(np.pi * x[0]),
+                                         np.exp(x[1]) * np.sin(np.pi * x[0])))
 
-        momentum_sources = [self._mu / self._k * momentum_top, momentum_bottom]
+        momentum_sources = [self._mu / self._k * momentum1 + momentum2]
         
         self.add_momentum_source(momentum_sources)
         self.add_momentum_source_to_residual_form(momentum_sources)

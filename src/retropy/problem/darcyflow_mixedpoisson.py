@@ -11,9 +11,6 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
     def generate_form(self):
         """Sets up the FeNiCs form of Darcy flow"""
 
-        if len(self.pressure_bc)!=len(self.darcyflow_boundary_dict['pressure']):
-            raise Exception("length of pressure_bc != length of boundary_dict")
-
         self.func_space_list = [self.velocity_finite_element,
                                 self.pressure_finite_element]
 
@@ -65,10 +62,11 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         self.mixed_velocity_bc = []
         
         for i, key in enumerate(self.darcyflow_boundary_dict['velocity']):
-            dofs = locate_dofs_topological(V = self.velocity_func_space, 
+            dofs = locate_dofs_topological(V = (self.mixed_func_space.sub(0), self.velocity_func_space), 
                                            entity_dim = self.mesh.topology.dim - 1,
                                            entities = self.facet_dict[key])
-            bc = dirichletbc(value = velocity_bc_val[i], dofs = dofs)
+            bc = dirichletbc(value = velocity_bc_val[i], dofs = dofs, 
+                             V = self.mixed_func_space.sub(0))
             self.mixed_velocity_bc.append(bc)
 
     def set_additional_parameters(self, r_val: float, **kwargs):
@@ -88,3 +86,6 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
  
         self.fluid_velocity.x.array[:] = u.x.array
         self.fluid_pressure.x.array[:] = p.x.array
+
+        self.fluid_velocity.x.scatter_forward()
+        self.fluid_pressure.x.scatter_forward()

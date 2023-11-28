@@ -14,8 +14,6 @@ class DarcyFlowBase(FluidProperty):
         self.marker_dict = marked_mesh.marker_dict
         self.facet_dict = marked_mesh.facet_dict
 
-        self.velocity_bc = []
-
     def mark_flow_boundary(self, **kwargs):
         """This method gives boundary markers physical meaning.
 
@@ -46,10 +44,11 @@ class DarcyFlowBase(FluidProperty):
         self.velocity_bc = []
 
         for i, key in enumerate(self.darcyflow_boundary_dict['velocity']):
-            dofs = locate_dofs_topological(V = self.velocity_func_space, 
+            dofs = locate_dofs_topological(V = (self.mixed_func_space.sub(0), self.velocity_func_space), 
                                            entity_dim = self.mesh.topology.dim - 1,
                                            entities = self.facet_dict[key])
-            bc = dirichletbc(value = velocity_bc_val[i], dofs = dofs)
+            bc = dirichletbc(value = velocity_bc_val[i], dofs = dofs,
+                             V = self.mixed_func_space.sub(0))
             self.velocity_bc.append(bc)
 
     def generate_residual_form(self):
@@ -74,8 +73,7 @@ class DarcyFlowBase(FluidProperty):
         self.residual_mass_form = q*div(phi*rho*u0)*dx
 
         for i, marker in enumerate(self.darcyflow_boundary_dict['pressure']):
-            self.residual_momentum_form += self.pressure_bc[i]*inner(n, v) \
-                                           *ds(marker)
+            self.residual_momentum_form += self.pressure_bc[i] * inner(n, v) * ds(marker)
 
     def add_mass_source_to_residual_form(self, sources: list):
         q = self.__q
@@ -91,9 +89,6 @@ class DarcyFlowBase(FluidProperty):
 
     def get_flow_residual(self):
         """"""
-
-        u0 = self.fluid_velocity
-
         residual_momentum = assemble_vector(form(self.residual_momentum_form))
         residual_mass = assemble_vector(form(self.residual_mass_form))
 
