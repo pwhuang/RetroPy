@@ -15,7 +15,8 @@ class FluidProperty:
         self._k = Function(self.DG0_space)
 
         if type(permeability)==float:
-            self._k.vector.array = permeability
+            self._k.x.array[:] = permeability
+            self._k.x.scatter_forward()
         else:
             self._k.interpolate(permeability)
 
@@ -25,7 +26,8 @@ class FluidProperty:
         self._phi = Function(self.DG0_space)
 
         if type(porosity)==float:
-            self._phi.vector.array = porosity
+            self._phi.x.array[:] = porosity
+            self._phi.x.scatter_forward()
         else:
             self._phi.interpolate(porosity)
 
@@ -35,7 +37,8 @@ class FluidProperty:
         self._rho = Function(self.DG0_space)
 
         if type(density)==float:
-            self._rho.vector.array = density
+            self._rho.x.array[:] = density
+            self._rho.x.scatter_forward()
         else:
             self._rho.interpolate(density)
 
