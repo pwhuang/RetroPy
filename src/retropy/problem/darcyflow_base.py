@@ -3,6 +3,7 @@
 
 from . import *
 
+
 class DarcyFlowBase(FluidProperty):
     """The base class for Darcy flow problems."""
 
@@ -14,26 +15,15 @@ class DarcyFlowBase(FluidProperty):
         self.marker_dict = marked_mesh.marker_dict
         self.facet_dict = marked_mesh.facet_dict
 
-    def mark_flow_boundary(self, **kwargs):
-        """This method gives boundary markers physical meaning.
-
-        Keywords
-        --------
-        velocity: Sets the boundary flow rate.
-        pressure: Sets the DirichletBC of pressure.
-        """
-
-        self.darcyflow_boundary_dict = kwargs
-
     def set_pressure_ic(self, init_cond_pressure):
         """Sets up the initial condition of pressure."""
         self.init_cond_pressure = init_cond_pressure
 
-    def set_pressure_bc(self, pressure_bc: list):
+    def set_pressure_bc(self, bc: dict):
         """Sets up the boundary condition of pressure."""
-        self.pressure_bc = pressure_bc
+        self.pressure_bc = bc
 
-    def set_velocity_bc(self, velocity_bc_val: list):
+    def set_velocity_bc(self, bc: dict):
         """
         Arguments
         ---------
@@ -42,14 +32,19 @@ class DarcyFlowBase(FluidProperty):
         """
 
         self.velocity_bc = []
+        self.zero_bc = []
+        zero_func = Function(self.velocity_func_space)
+        zero_func.x.array[:] = 0.0
+        zero_func.x.scatter_forward()
 
-        for i, key in enumerate(self.darcyflow_boundary_dict['velocity']):
-            dofs = locate_dofs_topological(V = (self.mixed_func_space.sub(0), self.velocity_func_space), 
-                                           entity_dim = self.mesh.topology.dim - 1,
-                                           entities = self.facet_dict[key])
-            bc = dirichletbc(value = velocity_bc_val[i], dofs = dofs,
-                             V = self.mixed_func_space.sub(0))
-            self.velocity_bc.append(bc)
+        for key, velocity_bc in bc.items():
+            dofs = locate_dofs_topological(
+                V=self.velocity_func_space,
+                entity_dim=self.mesh.topology.dim - 1,
+                entities=self.facet_dict[key],
+            )
+            self.velocity_bc.append(dirichletbc(velocity_bc, dofs=dofs))
+            self.zero_bc.append(dirichletbc(zero_func, dofs=dofs))
 
     def generate_residual_form(self):
         """"""
@@ -67,35 +62,41 @@ class DarcyFlowBase(FluidProperty):
         n = self.n
         dx, ds, dS = self.dx, self.ds, self.dS
 
-        self.residual_momentum_form = mu/k*inner(v, u0)*dx \
-                                      - inner(div(v), p0)*dx \
-                                      - inner(v, rho*g)*dx
-        self.residual_mass_form = q*div(phi*rho*u0)*dx
+        self.residual_momentum_form = (
+            mu / k * inner(v, u0) * dx - inner(div(v), p0) * dx - inner(v, rho * g) * dx
+        )
+        self.residual_mass_form = q * div(phi * rho * u0) * dx
 
-        for i, key in enumerate(self.darcyflow_boundary_dict['pressure']):
+        for key, pressure_bc in self.pressure_bc.items():
             marker = self.marker_dict[key]
-            self.residual_momentum_form += self.pressure_bc[i] * inner(n, v) * ds(marker)
+            self.residual_momentum_form += pressure_bc * inner(n, v) * ds(marker)
 
     def add_mass_source_to_residual_form(self, sources: list):
         q = self.__q
 
         for source in sources:
-            self.residual_mass_form -= q*source*self.dx
+            self.residual_mass_form -= q * source * self.dx
 
     def add_momentum_source_to_residual_form(self, sources: list):
-        v  = self.__v
+        v = self.__v
 
         for source in sources:
-            self.residual_momentum_form -= inner(v, source)*self.dx
+            self.residual_momentum_form -= inner(v, source) * self.dx
 
     def get_flow_residual(self):
         """"""
+
         residual_momentum = assemble_vector(form(self.residual_momentum_form))
+        residual_momentum.ghostUpdate(
+            addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE
+        )
+        set_bc(residual_momentum, bcs=self.zero_bc)
+        residual_momentum.ghostUpdate(
+            addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD
+        )
+
         residual_mass = assemble_vector(form(self.residual_mass_form))
 
-        set_bc(residual_momentum, bcs=self.velocity_bc)
-
-        residual = residual_momentum.norm(2)
-        residual += residual_mass.norm(2)
+        residual = residual_momentum.norm() + residual_mass.norm()
 
         return residual
