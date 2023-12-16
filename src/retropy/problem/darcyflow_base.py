@@ -24,12 +24,7 @@ class DarcyFlowBase(FluidProperty):
         self.pressure_bc = bc
 
     def set_velocity_bc(self, bc: dict):
-        """
-        Arguments
-        ---------
-        velocity_bc_val : list of Constants,
-                          e.g., [Constant((1.0, -1.0)), Constant((0.0, -2.0))]
-        """
+        """Sets up the boundary condition of velocity."""
 
         self.velocity_bc = []
         self.zero_bc = []
