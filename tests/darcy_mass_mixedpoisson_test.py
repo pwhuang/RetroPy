@@ -14,7 +14,8 @@ class DarcyMassMixedPoissonTest(DarcyFlowMixedPoisson, DarcyMassSourceBenchmark)
     """"""
 
     def __init__(self, nx):
-        DarcyFlowMixedPoisson.__init__(self, *self.get_mesh_and_markers(nx))
+        marked_mesh = DarcyMassSourceBenchmark.get_mesh_and_markers(self, nx)
+        DarcyFlowMixedPoisson.__init__(self, marked_mesh)
 
         self.set_pressure_fe_space('DG', 0)
         self.set_velocity_fe_space('BDM', 1)
@@ -24,9 +25,10 @@ class DarcyMassMixedPoissonTest(DarcyFlowMixedPoisson, DarcyMassSourceBenchmark)
         self.set_boundary_conditions()
         self.set_mass_sources()
 
-        self.set_flow_solver_params('bicgstab', 'jacobi')
         self.set_additional_parameters(r_val=1e-2)
         self.assemble_matrix()
+        self.set_flow_solver_params({"ksp_type": "bicg", "ksp_rtol": 1e-10, "ksp_atol": 1e-12,
+                                     "ksp_max_it": 1000, "pc_type": "jacobi"})
 
 # nx is the mesh element in one direction.
 list_of_nx = [10, 15]
