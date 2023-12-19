@@ -54,8 +54,7 @@ class DarcyFlowBase(FluidProperty):
 
         mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
 
-        n = self.n
-        dx, ds, dS = self.dx, self.ds, self.dS
+        n, dx, ds = self.n, self.dx, self.ds
 
         self.residual_momentum_form = (
             mu / k * inner(v, u0) * dx - inner(div(v), p0) * dx - inner(v, rho * g) * dx
