@@ -20,15 +20,17 @@ class DarcyUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
 
         self.set_pressure_fe_space("DG", 0)
         self.set_velocity_fe_space("BDM", 1)
-        self.get_solution()
 
         self.set_material_properties()
+        self.generate_form()
         self.set_boundary_conditions()
         self.set_momentum_sources()
 
         self.set_additional_parameters(r_val=4e2, omega_by_r=0.3)
         self.assemble_matrix()
         self.set_flow_solver_params()
+
+        self.get_solution()
 
 
 # nx is the mesh element in one direction.

@@ -48,9 +48,6 @@ class DarcyFlowBenchmark:
         zero = Constant(self.mesh, ScalarType(0.0))
         self.set_pressure_bc({"left": zero, "right": zero})
 
-        self.generate_form()
-        self.generate_residual_form()
-
         velocity_bc = Function(self.velocity_func_space)
         velocity_bc.interpolate(lambda x: (np.sin(np.pi * x[1]), np.cos(np.pi * x[0])))
         self.set_velocity_bc({"top": velocity_bc, "bottom": velocity_bc})
@@ -70,7 +67,6 @@ class DarcyFlowBenchmark:
         momentum_sources = [self._mu / self._k * momentum1 + momentum2]
 
         self.add_momentum_source(momentum_sources)
-        self.add_momentum_source_to_residual_form(momentum_sources)
 
     def get_solution(self):
         self.sol_pressure = Function(self.pressure_func_space)

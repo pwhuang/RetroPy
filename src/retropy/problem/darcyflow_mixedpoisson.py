@@ -11,6 +11,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
     def generate_form(self):
         """Sets up the FeNiCs form of Darcy flow"""
+        self.generate_residual_form()
 
         self.func_space_list = [
             self.velocity_finite_element,
@@ -44,13 +45,10 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
             + q * div(phi * rho * u) * dx
         )
 
-        for key, pressure_bc in self.pressure_bc.items():
-            marker = self.marker_dict[key]
-            self.mixed_form += pressure_bc * inner(n, v) * ds(marker)
-
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
 
     def add_mass_source(self, sources):
+        self.add_mass_source_to_residual_form(sources)
         q, v, r = self.__q, self.__v, self.__r
         dx = self.dx
 
@@ -58,15 +56,24 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
             self.mixed_form -= q * source * dx + r * inner(div(v), source) * dx
 
     def add_momentum_source(self, sources: list):
+        self.add_momentum_source_to_residual_form(sources)
         v = self.__v
 
         for source in sources:
             self.mixed_form -= inner(v, source) * self.dx
 
+    def set_pressure_bc(self, bc: dict):
+        super().set_pressure_bc(bc)
+        v, n, ds = self.__v, self.n, self.ds
+
+        for key, pressure_bc in self.pressure_bc.items():
+            marker = self.marker_dict[key]
+            self.mixed_form += pressure_bc * inner(n, v) * ds(marker)
+
     def set_velocity_bc(self, bc: dict):
         """"""
 
-        DarcyFlowBase.set_velocity_bc(self, bc)
+        super().set_velocity_bc(bc)
         self.mixed_velocity_bc = []
 
         for key, velocity_bc in bc.items():

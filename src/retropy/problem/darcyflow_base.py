@@ -22,6 +22,11 @@ class DarcyFlowBase(FluidProperty):
     def set_pressure_bc(self, bc: dict):
         """Sets up the boundary condition of pressure."""
         self.pressure_bc = bc
+        v, n, ds = self.__v, self.n, self.ds
+
+        for key, pressure_bc in self.pressure_bc.items():
+            marker = self.marker_dict[key]
+            self.residual_momentum_form += pressure_bc * inner(n, v) * ds(marker)
 
     def set_velocity_bc(self, bc: dict):
         """Sets up the boundary condition of velocity."""
@@ -54,16 +59,12 @@ class DarcyFlowBase(FluidProperty):
 
         mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
 
-        n, dx, ds = self.n, self.dx, self.ds
+        dx = self.dx
 
         self.residual_momentum_form = (
             mu / k * inner(v, u0) * dx - inner(div(v), p0) * dx - inner(v, rho * g) * dx
         )
         self.residual_mass_form = q * div(phi * rho * u0) * dx
-
-        for key, pressure_bc in self.pressure_bc.items():
-            marker = self.marker_dict[key]
-            self.residual_momentum_form += pressure_bc * inner(n, v) * ds(marker)
 
     def add_mass_source_to_residual_form(self, sources: list):
         q = self.__q

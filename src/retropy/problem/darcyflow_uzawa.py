@@ -11,6 +11,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
     def generate_form(self):
         """Sets up the FeNiCs form of Darcy flow."""
+        self.generate_residual_form()
 
         V = self.velocity_func_space
         Q = self.pressure_func_space
@@ -32,7 +33,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         self.omega = Constant(self.mesh, 1.0)
         r, omega = self.__r, self.omega
 
-        n, dx, ds = self.n, self.dx, self.ds
+        dx = self.dx
 
         self.form_update_velocity = (
             mu / k * inner(v, u) * dx
@@ -45,13 +46,10 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             q * (p - p0) * dx + omega * q * (div(rho * phi * u0)) * dx
         )
 
-        for key, pressure_bc in self.pressure_bc.items():
-            marker = self.marker_dict[key]
-            self.form_update_velocity += pressure_bc * inner(n, v) * ds(marker)
-
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
 
     def add_mass_source(self, sources: list):
+        self.add_mass_source_to_residual_form(sources)
         q, v, r, omega = self.__q, self.__v, self.__r, self.omega
         dx = self.dx
 
@@ -60,10 +58,19 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             self.form_update_pressure -= q * omega * source * dx
 
     def add_momentum_source(self, sources: list):
+        self.add_momentum_source_to_residual_form(sources)
         v = self.__v
 
         for source in sources:
             self.form_update_velocity -= inner(v, source) * self.dx
+
+    def set_pressure_bc(self, bc: dict):
+        super().set_pressure_bc(bc)
+        v, n, ds = self.__v, self.n, self.ds
+
+        for key, pressure_bc in self.pressure_bc.items():
+            marker = self.marker_dict[key]
+            self.form_update_velocity += pressure_bc * inner(n, v) * ds(marker)
 
     def set_additional_parameters(self, r_val: float, omega_by_r: float):
         """For 0 < omega/r < 2, the augmented system converges."""
@@ -100,7 +107,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         pc = self.solver_v.getPC()
         pc.setType("lu")
-        pc.setFactorSolverType("mumps")
+        pc.setFactorSolverType("superlu_dist")
         pc.setFactorSetUpSolverType()
 
         self.solver_p = PETSc.KSP().create(self.mesh.comm)
@@ -136,7 +143,6 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             self.b_p = assemble_vector(self.L_p)
 
             steps += 1
-
             residual = self.get_flow_residual()
 
         if MPI.COMM_WORLD.rank == 0:

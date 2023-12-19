@@ -8,8 +8,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 from retropy.problem import DarcyFlowMixedPoisson
 from utility_functions import convergence_rate
 from benchmarks import DarcyFlowBenchmark
-
-from math import isclose
+import numpy as np
 
 
 class DarcyMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
@@ -21,9 +20,9 @@ class DarcyMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
 
         self.set_pressure_fe_space("DG", 0)
         self.set_velocity_fe_space("BDM", 1)
-        self.get_solution()
 
         self.set_material_properties()
+        self.generate_form()
         self.set_boundary_conditions()
         self.set_momentum_sources()
 
@@ -39,6 +38,7 @@ class DarcyMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
         }
 
         self.set_flow_solver_params(solver_params)
+        self.get_solution()
 
 
 # nx is the mesh element in one direction.
@@ -60,11 +60,9 @@ for nx in list_of_nx:
 
 convergence_rate_p = convergence_rate(p_err_norms, element_diameters)
 convergence_rate_v = convergence_rate(v_err_norms, element_diameters)
-
-print(convergence_rate_p, convergence_rate_v)
+rates = np.append(convergence_rate_p, convergence_rate_v)
+print(rates)
 
 
 def test_function():
-    assert isclose(convergence_rate_p, 2, rel_tol=0.05) and isclose(
-        convergence_rate_v, 2, rel_tol=0.05
-    )
+    assert np.allclose(rates, np.ones_like(rates) * 2, rtol=0.05)
