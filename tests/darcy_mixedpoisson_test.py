@@ -2,16 +2,15 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 import os
-os.environ['OMP_NUM_THREADS'] = '1'
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.problem import DarcyFlowMixedPoisson
 from utility_functions import convergence_rate
 from benchmarks import DarcyFlowBenchmark
 
-import matplotlib.pyplot as plt
 from math import isclose
 
-from dolfinx.fem import Function
 
 class DarcyMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
     """"""
@@ -20,8 +19,8 @@ class DarcyMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
         marked_mesh = DarcyFlowBenchmark.get_mesh_and_markers(self, nx)
         DarcyFlowMixedPoisson.__init__(self, marked_mesh)
 
-        self.set_pressure_fe_space('DG', 0)
-        self.set_velocity_fe_space('BDM', 1)
+        self.set_pressure_fe_space("DG", 0)
+        self.set_velocity_fe_space("BDM", 1)
         self.get_solution()
 
         self.set_material_properties()
@@ -30,26 +29,17 @@ class DarcyMixedPoissonTest(DarcyFlowMixedPoisson, DarcyFlowBenchmark):
 
         self.set_additional_parameters(r_val=1e-1)
         self.assemble_matrix()
-        self.set_flow_solver_params({"ksp_type": "bicg", "ksp_rtol": 1e-10, "ksp_atol": 1e-12, 
-                                     "ksp_max_it": 1000, "pc_type": "jacobi"})
-        
-    def mpl_output(self):
-        x_DG, y_DG, _ = self.DG0_space.tabulate_dof_coordinates().T
-        x, y, _ = self.Vec_CG1_space.tabulate_dof_coordinates().T
 
-        v, num_v = Function(self.Vec_CG1_space), Function(self.Vec_CG1_space)
-        v.interpolate(self.sol_velocity)
-        num_v.interpolate(self.fluid_velocity)
+        solver_params = {
+            "ksp_type": "bicg",
+            "ksp_rtol": 1e-10,
+            "ksp_atol": 1e-12,
+            "ksp_max_it": 1000,
+            "pc_type": "jacobi",
+        }
 
-        vx, vy = v.x.array.reshape(-1, 2).T
-        num_vx, num_vy = num_v.x.array.reshape(-1, 2).T
+        self.set_flow_solver_params(solver_params)
 
-        fig, ax = plt.subplots(1, 2, figsize = (10, 5))
-        ax[0].tricontourf(x_DG, y_DG, self.sol_pressure.x.array)
-        ax[0].quiver(x, y, vx, vy)
-        ax[1].tricontourf(x_DG, y_DG, self.fluid_pressure.x.array)
-        ax[1].quiver(x, y, num_vx, num_vy)
-        plt.show()
 
 # nx is the mesh element in one direction.
 list_of_nx = [10, 20]
@@ -73,6 +63,8 @@ convergence_rate_v = convergence_rate(v_err_norms, element_diameters)
 
 print(convergence_rate_p, convergence_rate_v)
 
+
 def test_function():
-    assert isclose(convergence_rate_p, 2, rel_tol=0.05)\
-       and isclose(convergence_rate_v, 2, rel_tol=0.05)
+    assert isclose(convergence_rate_p, 2, rel_tol=0.05) and isclose(
+        convergence_rate_v, 2, rel_tol=0.05
+    )

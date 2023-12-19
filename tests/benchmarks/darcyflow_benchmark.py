@@ -8,6 +8,7 @@ from ufl import inner
 
 from mpi4py import MPI
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class DarcyFlowBenchmark:
@@ -94,3 +95,21 @@ class DarcyFlowBenchmark:
         velocity_error_global = np.sqrt(comm.allreduce(v_error_local, op=MPI.SUM))
 
         return pressure_error_global, velocity_error_global
+
+    def mpl_output(self):
+        x_DG, y_DG, _ = self.DG0_space.tabulate_dof_coordinates().T
+        x, y, _ = self.Vec_CG1_space.tabulate_dof_coordinates().T
+
+        v, num_v = Function(self.Vec_CG1_space), Function(self.Vec_CG1_space)
+        v.interpolate(self.sol_velocity)
+        num_v.interpolate(self.fluid_velocity)
+
+        vx, vy = v.x.array.reshape(-1, 2).T
+        num_vx, num_vy = num_v.x.array.reshape(-1, 2).T
+
+        _, ax = plt.subplots(1, 2, figsize=(10, 5))
+        ax[0].tricontourf(x_DG, y_DG, self.sol_pressure.x.array)
+        ax[0].quiver(x, y, vx, vy)
+        ax[1].tricontourf(x_DG, y_DG, self.fluid_pressure.x.array)
+        ax[1].quiver(x, y, num_vx, num_vy)
+        plt.show()
