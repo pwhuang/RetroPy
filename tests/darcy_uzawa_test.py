@@ -8,10 +8,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 from retropy.problem import DarcyFlowUzawa
 from utility_functions import convergence_rate
 from benchmarks import DarcyFlowBenchmark
-
-import matplotlib.pyplot as plt
-from math import isclose
-from dolfinx.fem import Function
+import numpy as np
 
 
 class DarcyUzawaTest(DarcyFlowUzawa, DarcyFlowBenchmark):
@@ -53,11 +50,9 @@ for nx in list_of_nx:
 
 convergence_rate_p = convergence_rate(p_err_norms, element_diameters)
 convergence_rate_v = convergence_rate(v_err_norms, element_diameters)
-
-print(convergence_rate_p, convergence_rate_v)
+rates = np.append(convergence_rate_p, convergence_rate_v)
+print(rates)
 
 
 def test_function():
-    assert isclose(convergence_rate_p, 2, rel_tol=0.05) and isclose(
-        convergence_rate_v, 2, rel_tol=0.05
-    )
+    assert np.allclose(rates, np.ones_like(rates) * 2, rtol=0.05)
