@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
+from mpi4py import MPI
+
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
@@ -12,6 +14,7 @@ from utility_functions import convergence_rate
 from benchmarks import DiffusionBenchmark
 
 from dolfinx.fem import Constant
+import numpy as np
 from math import isclose
 
 class XDMFRectangleMesh(MarkedRectangleMesh, XDMFMesh):
@@ -19,23 +22,35 @@ class XDMFRectangleMesh(MarkedRectangleMesh, XDMFMesh):
         super().__init__()
 
 class DiffusionBenchmark(DiffusionBenchmark):
-    def get_mesh_and_markers(self, filename, meshname):
-        mesh_factory = XDMFRectangleMesh()
-        mesh_factory.set_bottom_left_coordinates(coord_x = 0.0, coord_y = 0.0)
-        mesh_factory.set_top_right_coordinates(coord_x = 1.0, coord_y = 1.0)
+    def get_mesh_and_markers(self, filename: str, meshname: str):
+        marked_mesh = XDMFRectangleMesh()
+        marked_mesh.read_mesh(filename, meshname)
 
-        mesh = mesh_factory.read_mesh(filename, meshname)
-        boundary_markers, marker_dict, facet_dict = mesh_factory.generate_boundary_markers()
-        interior_markers = mesh_factory.generate_interior_markers()
-        domain_markers = mesh_factory.generate_domain_markers()
+        x_min = marked_mesh.mesh.geometry.x[:, 0].min()[np.newaxis]
+        x_max = marked_mesh.mesh.geometry.x[:, 0].max()[np.newaxis]
+        y_min = marked_mesh.mesh.geometry.x[:, 1].min()[np.newaxis]
+        y_max = marked_mesh.mesh.geometry.x[:, 1].max()[np.newaxis]
 
-        return (mesh, boundary_markers, interior_markers,
-                domain_markers, marker_dict, facet_dict)
+        comm = marked_mesh.mesh.comm
+        comm.Allreduce(MPI.IN_PLACE, x_min, op=MPI.MIN)
+        comm.Allreduce(MPI.IN_PLACE, x_max, op=MPI.MAX)
+        comm.Allreduce(MPI.IN_PLACE, y_min, op=MPI.MIN)
+        comm.Allreduce(MPI.IN_PLACE, y_max, op=MPI.MAX)
+
+        marked_mesh.set_bottom_left_coordinates(coord_x = x_min[0], coord_y = y_min[0])
+        marked_mesh.set_top_right_coordinates(coord_x = x_max[0], coord_y = y_max[0])
+        marked_mesh.locate_and_mark_boundaries()
+
+        marked_mesh.generate_boundary_markers()
+        marked_mesh.generate_interior_markers()
+        marked_mesh.generate_domain_markers()
+
+        return marked_mesh
 
 class DG0SteadyDiffusionReadMeshTest(DiffusionBenchmark, DG0Kernel, SteadyStateSolver):
-    def __init__(self, *args):
-        super().__init__(*self.get_mesh_and_markers(*args),
-                         option='cell_centered')
+    def __init__(self, filename):
+        marked_mesh = self.get_mesh_and_markers(filename, meshname='Grid')
+        super().__init__(marked_mesh)
 
         self.set_flow_field()
         self.define_problem()
@@ -56,9 +71,9 @@ element_diameters = [1e-1, 5e-2]
 err_norms = []
 
 for filename in list_of_filenames:
-    problem = DG0SteadyDiffusionReadMeshTest(filename, 'Grid')
+    problem = DG0SteadyDiffusionReadMeshTest(filename)
     problem.solve_transport()
-    numerical_solution = problem.get_solution()
+    problem.get_solution()
     error_norm = problem.get_error_norm()
     err_norms.append(error_norm)
 
