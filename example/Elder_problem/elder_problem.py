@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
+from mpi4py import MPI
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
@@ -10,45 +11,38 @@ from retropy.physics import DG0Kernel
 from retropy.solver import TransientSolver
 from retropy.manager import XDMFManager as OutputManager
 
-from dolfin import (Constant, Function, MPI, SubDomain, near, DOLFIN_EPS)
+from dolfinx.fem import Constant, Function
+from petsc4py.PETSc import ScalarType
 from ufl import as_vector
 import numpy as np
 
+DOLFIN_EPS = 1e-16
+
 class MeshFactory(MarkedRectangleMesh):
-    class BottomHalfBoundary(SubDomain):
-        def __init__(self):
-            super().__init__()
-
-        def inside(self, x, on_boundary):
-            return on_boundary and near(x[1], 0.0, DOLFIN_EPS)\
-                   and (x[0]<(3.0 + DOLFIN_EPS)) and (x[0]>(1.0 - DOLFIN_EPS))
-
-    def __init__(self):
-        super().__init__()
-
-    def get_mesh_and_markers(self, nx, ny, mesh_type='triangle'):
+    def __init__(self, nx, ny, mesh_type, mesh_shape):
         self.set_bottom_left_coordinates(coord_x = 0.0, coord_y = 0.0)
         self.set_top_right_coordinates(coord_x = 4.0, coord_y = 1.0)
         self.set_number_of_elements(nx, ny)
         self.set_mesh_type(mesh_type)
+        self.locate_and_mark_boundaries()
 
-        mesh = self.generate_mesh('crossed')
+        self.generate_mesh(mesh_shape)
+        self.generate_boundary_markers()
+        self.generate_interior_markers()
+        self.generate_domain_markers()
 
-        boundary_markers, self.marker_dict = self.generate_boundary_markers()
-        domain_markers = self.generate_domain_markers()
+    def locate_and_mark_boundaries(self, boundary_eps=1e-8):
+        super().locate_and_mark_boundaries(boundary_eps)
 
-        return mesh, boundary_markers, domain_markers
+        bottom_inner_marker = lambda x: np.logical_and.reduce(
+            (np.isclose(x[1], self.ymin, atol=boundary_eps),
+            x[0] < 3.0 + boundary_eps,
+            x[0] > 1.0 - boundary_eps))
 
-    def generate_boundary_markers(self):
-        super().generate_boundary_markers()
+        self.marker_dict['bottom_inner'] = 5
+        self.locator_dict['bottom_inner'] = bottom_inner_marker
 
-        bottom_half_marker = self.BottomHalfBoundary()
-        bottom_half_marker.mark(self.boundary_markers, 5)
-
-        marker_dict = {'right': 1, 'top': 2, 'left': 3,
-                       'bottom_outer': 4, 'bottom_inner': 5}
-
-        return self.boundary_markers, marker_dict
+        return self.marker_dict, self.locator_dict
 
 class FlowManager(DarcyFlowUzawa):
     def set_fluid_properties(self):
@@ -56,68 +50,65 @@ class FlowManager(DarcyFlowUzawa):
         self.set_permeability(1.0)
         self.set_fluid_density(1.0)
         self.set_fluid_viscosity(1.0)
-        self.set_gravity([0.0, 0.0])
+        self.set_gravity((0.0, 0.0))
 
     def setup_flow_solver(self):
         self.set_pressure_fe_space('DG', 0)
-        self.set_velocity_fe_space('RT', 1)
+        self.set_velocity_fe_space('RTCF', 1)
 
         self.set_fluid_properties()
-        self.set_advection_velocity()
 
-        self.mark_flow_boundary(pressure = [],
-                                velocity = self.marker_dict.values())
-
-        self.set_pressure_ic(Constant(0.0))
-        self.set_pressure_bc([])
         self.generate_form()
         self.generate_residual_form()
+        self.fluid_pressure.interpolate(lambda x: 0.0 * x[0])
+        self.set_pressure_bc({})
+        
+        zero = Constant(self.mesh, ScalarType(0.0))
+        self.add_momentum_source([as_vector([zero, self.fluid_components[0]])])
+        self.add_momentum_source_to_residual_form([as_vector([zero, self.fluid_components[0]])])
+        
+        velocity_bc = Function(self.velocity_func_space)
+        velocity_bc.x.array[:] = 0.0
+        velocity_bc.x.scatter_forward()
+        self.set_velocity_bc({'top': velocity_bc,
+                              'right': velocity_bc,
+                              'bottom': velocity_bc,
+                              'bottom_inner': velocity_bc,
+                              'left': velocity_bc})
 
-        self.add_momentum_source([as_vector([Constant(0.0), self.fluid_components[0]])])
-        self.add_momentum_source_to_residual_form([as_vector([Constant(0.0), self.fluid_components[0]])])
-        self.set_velocity_bc([Constant([0.0, 0.0])]*5)
-
-        self.set_flow_solver_params()
-        self.set_additional_parameters(r_val=5e2, omega_by_r=1.0)
+        self.set_additional_parameters(r_val=50.0, omega_by_r=1.0)
         self.assemble_matrix()
-
-    def set_krylov_solver_params(self, prm):
-        prm['absolute_tolerance'] = 1e-13
-        prm['relative_tolerance'] = 1e-12
-        prm['maximum_iterations'] = 8000
-        prm['error_on_nonconvergence'] = True
-        prm['monitor_convergence'] = True
-        prm['nonzero_initial_guess'] = True
+        self.set_flow_solver_params()
 
 class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
-    def __init__(self, nx, ny):
-        TracerTransportProblem.__init__(self, *self.get_mesh_and_markers(nx, ny))
-
-    def set_component_properties(self):
-        self.set_molecular_diffusivity([1.0])
+    def __init__(self, nx, ny, mesh_type, mesh_shape):
+        marked_mesh = MeshFactory(nx, ny, mesh_type, mesh_shape)
+        TracerTransportProblem.__init__(self, marked_mesh)
 
     def define_problem(self, Rayleigh_number=400.0):
         self.set_components('Temp')
-        self.set_component_properties()
-        self.mark_component_boundary(**{'Temp': [self.marker_dict['top'], self.marker_dict['bottom_inner']]})
-
-        self.temp_bc = [Constant(0.0), Constant(1.0)]
-
         self.set_component_fe_space()
         self.initialize_form()
 
-        self.set_component_ics(Constant([0.0, ]))
-        self.Ra = Constant(Rayleigh_number)
+        self.set_molecular_diffusivity([1.0])
+        self.mark_component_boundary({'Temp': [self.marker_dict['top'], self.marker_dict['bottom_inner']]})
 
-    def add_physics_to_form(self, u, kappa=Constant(1.0), f_id=0):
+        self.temp_bc = [Constant(self.mesh, ScalarType(0.0)), 
+                        Constant(self.mesh, ScalarType(1.0))]
+
+        self.set_component_ics('Temp', lambda x: 0.0 * x[0])
+        self.Ra = Constant(self.mesh, Rayleigh_number)
+
+    def add_physics_to_form(self, u, kappa, f_id=0):
         self.add_explicit_advection(u, kappa=self.Ra, marker=0, f_id=f_id)
 
         for component in self.component_dict.keys():
             self.add_implicit_diffusion(component, kappa=kappa, marker=0)
-            self.add_component_diffusion_bc(component, Constant(5e2),\
+            self.add_component_diffusion_bc(component, Constant(self.mesh, ScalarType(5e2)),\
                                             self.temp_bc, kappa, f_id)
 
     def setup_transport_solver(self):
+        self.set_advection_velocity()
         self.generate_solver()
         self.set_solver_parameters('gmres', 'jacobi')
 
@@ -125,35 +116,35 @@ class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
         self.solve_one_step()
         self.assign_u1_to_u0()
 
-class ElderProblem(TransportManager, FlowManager, MeshFactory, OutputManager):
+class ElderProblem(TransportManager, FlowManager, OutputManager):
     """
     This is an example of solving the Elder problem using the Boussinesq approx-
-    imation. Note that we set the fluid density to 1, and utilize the
-    add_momentum_source method to apply the density term (a function of tempera-
+    imation. Note that we set the fluid density to 1 and utilize the
+    add_momentum_source method to apply the body force term (a function of tempera-
     ture).
     """
 
-    def __init__(self, nx, ny):
-        TransportManager.__init__(self, nx, ny)
-        self.define_problem()
+    def __init__(self, nx, ny, mesh_type, mesh_shape):
+        TransportManager.__init__(self, nx, ny, mesh_type, mesh_shape)
+        self.define_problem()        
         self.setup_flow_solver()
         self.setup_transport_solver()
         self.generate_output_instance('elder_problem')
 
     def solve(self, dt_val=1.0, timesteps=1):
-        self.set_dt(dt_val)
+        self.dt.value = dt_val
         saved_times = []
 
         for i in range(timesteps):
             self.solve_transport()
             self.solve_flow(target_residual=5e-10, max_steps=10)
 
-            self.save_to_file(time=(i+1)*dt_val, is_saving_pv=True)
-            saved_times.append((i+1)*dt_val)
+            self.save_to_file(time=(i+1)*self.dt.value, is_saving_pv=False)
+            saved_times.append((i+1)*self.dt.value)
 
-        if MPI.rank(MPI.comm_world)==0:
+        if self.mesh.comm.Get_rank()==0:
             np.save(self.output_file_name + '_time', np.array(saved_times), allow_pickle=False)
 
 
-problem = ElderProblem(nx=60, ny=15)
+problem = ElderProblem(nx=64, ny=16, mesh_type="quadrilateral", mesh_shape="crossed")
 problem.solve(dt_val=2e-4, timesteps=100)
