@@ -78,7 +78,7 @@ class ChargeBalancedDiffusion(TracerTransportProblem):
         self.set_molar_mass([1.0, 1.0])
 
         self.mark_component_boundary(
-            **{"Na": self.marker_dict.values(), "Cl": self.marker_dict.values()}
+            {"Na": self.marker_dict.values(), "Cl": self.marker_dict.values()}
         )
 
         D = self.avg_D

@@ -44,7 +44,7 @@ class RotatingCone(EllipticTransportBenchmark):
         self.set_advection_velocity()
 
         self.initialize_form()
-        self.mark_component_boundary(**{"solute": self.marker_dict.values()})
+        self.mark_component_boundary({"solute": self.marker_dict.values()})
 
         self.set_component_ics("solute", self.solution_expr)
 

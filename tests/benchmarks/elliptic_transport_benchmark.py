@@ -58,7 +58,7 @@ class EllipticTransportBenchmark(TracerTransportProblem):
         mass_source.interpolate(expr)
         self.add_mass_source(["solute"], [mass_source])
 
-        self.mark_component_boundary(**{"solute": self.marker_dict.values()})
+        self.mark_component_boundary({"solute": self.marker_dict.values()})
 
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.

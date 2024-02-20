@@ -67,7 +67,7 @@ class ReactingSpecies(TracerTransportProblem):
         ]
 
         self.mark_component_boundary(
-            **{
+            {
                 "c1": flux_boundaries,
                 "c2": flux_boundaries,
                 "outlet": [self.marker_dict["bottom"]],

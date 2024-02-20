@@ -26,7 +26,7 @@ class TracerTransportProblem(TransportProblemBase,
         self.current_time = Constant(self.mesh, 0.0)
         self.dt = Constant(self.mesh, 1.0)
 
-    def mark_component_boundary(self, **kwargs):
+    def mark_component_boundary(self, boundary_dict: dict):
         """This method gives boundary markers physical meaning.
 
         Keywords
@@ -35,7 +35,7 @@ class TracerTransportProblem(TransportProblemBase,
         Example: {'Na+': [1, 2, 3], 'outlet': [4]}
         """
 
-        self.__boundary_dict = kwargs
+        self.__boundary_dict = boundary_dict
 
     def set_component_fe_space(self):
         self.FiniteElement = FiniteElement(super().fe_space,

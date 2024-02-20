@@ -52,7 +52,7 @@ class DiffusionBenchmark(TracerTransportProblem):
         )
         self.add_mass_source(["solute"], [mass_source], kappa=one)
 
-        self.mark_component_boundary(**{"solute": self.marker_dict.values()})
+        self.mark_component_boundary({"solute": self.marker_dict.values()})
 
     def add_physics_to_form(self, u0):
         pass
