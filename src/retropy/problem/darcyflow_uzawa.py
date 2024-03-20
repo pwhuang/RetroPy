@@ -29,8 +29,8 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
 
-        self.__r = Constant(self.mesh, 1.0)
-        self.omega = Constant(self.mesh, 1.0)
+        self.__r = Constant(self.mesh, ScalarType(1.0))
+        self.omega = Constant(self.mesh, ScalarType(1.0))
         r, omega = self.__r, self.omega
 
         dx = self.dx

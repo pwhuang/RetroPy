@@ -18,7 +18,7 @@ class MarkedRectangleMesh:
     """"""
 
     def __init__(self):
-        super().__init__()
+        pass
 
     def set_bottom_left_coordinates(self, coord_x, coord_y):
         self.bottom_left_point = (coord_x, coord_y)
