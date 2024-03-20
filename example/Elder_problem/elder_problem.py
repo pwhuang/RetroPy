@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from mpi4py import MPI
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
@@ -20,8 +19,8 @@ DOLFIN_EPS = 1e-16
 
 class MeshFactory(MarkedRectangleMesh):
     def __init__(self, nx, ny, mesh_type, mesh_shape):
-        self.set_bottom_left_coordinates(coord_x = 0.0, coord_y = 0.0)
-        self.set_top_right_coordinates(coord_x = 4.0, coord_y = 1.0)
+        self.set_bottom_left_coordinates(coord_x = 0.0, coord_y = 1e-15)
+        self.set_top_right_coordinates(coord_x = 4.0, coord_y = 1.0 + 1e-15)
         self.set_number_of_elements(nx, ny)
         self.set_mesh_type(mesh_type)
         self.locate_and_mark_boundaries()
@@ -32,15 +31,29 @@ class MeshFactory(MarkedRectangleMesh):
         self.generate_domain_markers()
 
     def locate_and_mark_boundaries(self, boundary_eps=1e-8):
-        super().locate_and_mark_boundaries(boundary_eps)
-
+        right_marker = lambda x: np.isclose(x[0], self.xmax, atol=boundary_eps)
+        top_marker = lambda x: np.isclose(x[1], self.ymax, atol=boundary_eps)
+        left_marker = lambda x: np.isclose(x[0], self.xmin, atol=boundary_eps)
+        
         bottom_inner_marker = lambda x: np.logical_and.reduce(
             (np.isclose(x[1], self.ymin, atol=boundary_eps),
             x[0] < 3.0 + boundary_eps,
             x[0] > 1.0 - boundary_eps))
+        
+        bottom_outer_marker = lambda x: np.logical_and(
+            np.isclose(x[1], self.ymin, atol=boundary_eps),
+            np.logical_or(x[0] > 3.0 - boundary_eps,
+                          x[0] < 1.0 + boundary_eps))
 
-        self.marker_dict['bottom_inner'] = 5
-        self.locator_dict['bottom_inner'] = bottom_inner_marker
+        self.marker_dict = {"right": 1, "top": 2, "left": 3, "bottom_inner": 4, "bottom_outer": 5}
+
+        self.locator_dict = {
+            "right": right_marker,
+            "top": top_marker,
+            "left": left_marker,
+            "bottom_inner": bottom_inner_marker,
+            "bottom_outer": bottom_outer_marker
+        }
 
         return self.marker_dict, self.locator_dict
 
@@ -65,18 +78,17 @@ class FlowManager(DarcyFlowUzawa):
         
         zero = Constant(self.mesh, ScalarType(0.0))
         self.add_momentum_source([as_vector([zero, self.fluid_components[0]])])
-        self.add_momentum_source_to_residual_form([as_vector([zero, self.fluid_components[0]])])
         
         velocity_bc = Function(self.velocity_func_space)
         velocity_bc.x.array[:] = 0.0
         velocity_bc.x.scatter_forward()
         self.set_velocity_bc({'top': velocity_bc,
                               'right': velocity_bc,
-                              'bottom': velocity_bc,
                               'bottom_inner': velocity_bc,
+                              'bottom_outer': velocity_bc,
                               'left': velocity_bc})
 
-        self.set_additional_parameters(r_val=50.0, omega_by_r=1.0)
+        self.set_additional_parameters(r_val=4.0, omega_by_r=0.4)
         self.assemble_matrix()
         self.set_flow_solver_params()
 
@@ -91,7 +103,8 @@ class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
         self.initialize_form()
 
         self.set_molecular_diffusivity([1.0])
-        self.mark_component_boundary({'Temp': [self.marker_dict['top'], self.marker_dict['bottom_inner']]})
+        self.mark_component_boundary({'Temp': [self.marker_dict['top'], 
+                                               self.marker_dict['bottom_inner']]})
 
         self.temp_bc = [Constant(self.mesh, ScalarType(0.0)), 
                         Constant(self.mesh, ScalarType(1.0))]
@@ -100,14 +113,15 @@ class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
         self.Ra = Constant(self.mesh, Rayleigh_number)
 
     def add_physics_to_form(self, u, kappa, f_id=0):
-        self.add_explicit_advection(u, kappa=self.Ra, marker=0, f_id=f_id)
-
+        self.add_explicit_advection(u, kappa=kappa, marker=0, f_id=f_id)
+        
         for component in self.component_dict.keys():
             self.add_implicit_diffusion(component, kappa=kappa, marker=0)
-            self.add_component_diffusion_bc(component, Constant(self.mesh, ScalarType(5e2)),\
+            self.add_component_diffusion_bc(component, Constant(self.mesh, ScalarType(1e2)),\
                                             self.temp_bc, kappa, f_id)
 
     def setup_transport_solver(self):
+        self.fluid_velocity = self.Ra * self.fluid_velocity
         self.set_advection_velocity()
         self.generate_solver()
         self.set_solver_parameters('gmres', 'jacobi')
@@ -137,7 +151,7 @@ class ElderProblem(TransportManager, FlowManager, OutputManager):
 
         for i in range(timesteps):
             self.solve_transport()
-            self.solve_flow(target_residual=5e-10, max_steps=10)
+            self.solve_flow(target_residual=5e-9, max_steps=50)
 
             self.save_to_file(time=(i+1)*self.dt.value, is_saving_pv=False)
             saved_times.append((i+1)*self.dt.value)
@@ -146,5 +160,5 @@ class ElderProblem(TransportManager, FlowManager, OutputManager):
             np.save(self.output_file_name + '_time', np.array(saved_times), allow_pickle=False)
 
 
-problem = ElderProblem(nx=64, ny=16, mesh_type="quadrilateral", mesh_shape="crossed")
-problem.solve(dt_val=2e-4, timesteps=100)
+problem = ElderProblem(nx=80, ny=20, mesh_type="quadrilateral", mesh_shape="crossed")
+problem.solve(dt_val=2e-4, timesteps=50)
