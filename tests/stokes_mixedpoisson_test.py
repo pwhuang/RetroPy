@@ -2,28 +2,29 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 import os
-os.environ['OMP_NUM_THREADS'] = '1'
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.problem import StokesFlowMixedPoisson
 from utility_functions import convergence_rate
 from benchmarks import StokesFlowBenchmark
 
-from math import isclose
-from dolfin import Constant, plot, Expression, PETScOptions, div
+from dolfinx import io
+from dolfinx.fem import Function
+import numpy as np
 
-import matplotlib.pyplot as plt
 
 class StokesMixedPoissonTest(StokesFlowMixedPoisson, StokesFlowBenchmark):
     """"""
 
     def __init__(self, nx):
-        mesh, boundary_markers, domain_markers = StokesFlowBenchmark.get_mesh_and_markers(self, nx)
-        StokesFlowMixedPoisson.__init__(self, mesh, boundary_markers, domain_markers)
+        marked_mesh = StokesFlowBenchmark.get_mesh_and_markers(self, nx)
+        StokesFlowMixedPoisson.__init__(self, marked_mesh)
 
-        self.set_pressure_fe_space('CG', 1)
-        self.set_velocity_vector_fe_space('CG', 2)
+        self.set_pressure_fe_space("CG", 1)
+        self.set_velocity_vector_fe_space("CG", 2)
 
-        self.set_pressure_ic(Constant(0.0))
+        self.set_pressure_ic(0.0)
         self.get_solution()
 
         self.set_material_properties()
@@ -31,32 +32,41 @@ class StokesMixedPoissonTest(StokesFlowMixedPoisson, StokesFlowBenchmark):
         self.set_momentum_sources()
 
         self.set_additional_parameters(r_val=0.0)
-        self.set_flow_solver_params(solver_type='default', preconditioner='none')
-
-        PETScOptions.set("pc_hypre_boomeramg_strong_threshold", 0.4)
-        PETScOptions.set("pc_hypre_boomeramg_truncfactor", 0.0)
-        PETScOptions.set("pc_hypre_boomeramg_print_statistics", 0)
         self.assemble_matrix()
 
-    def set_boundary_conditions(self):
-        self.mark_flow_boundary(inlet = [self.marker_dict['left'], self.marker_dict['right']],
-                                velocity_bc = [self.marker_dict['top'], self.marker_dict['bottom'],],
-                                noslip = [])
+        solver_params = {
+            "ksp_type": "preonly",
+            "pc_type": "lu",
+            "pc_factor_mat_solver_type": "superlu_dist",
+        }
 
-        self.generate_form()
-        self.set_pressure_dirichlet_bc([Expression(('exp(x[1])*sin(M_PI*x[0])'), degree=1)]*2)
-        #self.set_pressure_bc([Expression(('exp(x[1])*sin(M_PI*x[0])'), degree=1)]*2)
-        self.set_velocity_bc([Expression(('sin(M_PI*x[1])', 'cos(M_PI*x[0])'), degree=1)]*4)
+        self.set_flow_solver_params(solver_params)
+
+    def xdmf_output(self):
+        with io.XDMFFile(self.mesh.comm, "out/u.xdmf", "w") as file:
+            file.write_mesh(self.mesh)
+            file.write_function(self.fluid_pressure)
+            file.write_function(self.sol_pressure)
+
+            velocity_CG1 = Function(self.Vec_CG1_space)
+            velocity_CG1.name = "fluid_velocity"
+            velocity_CG1.interpolate(self.fluid_velocity)
+            file.write_function(velocity_CG1)
+
+            velocity_CG1.interpolate(self.sol_velocity)
+            velocity_CG1.name = "sol_velocity"
+            file.write_function(velocity_CG1)
+
 
 # nx is the mesh element in one direction.
-list_of_nx = [15, 30]
+list_of_nx = [10, 20]
 element_diameters = []
 p_err_norms = []
 v_err_norms = []
 
 for nx in list_of_nx:
     problem = StokesMixedPoissonTest(nx)
-    u, p = problem.solve_flow()
+    problem.solve_flow()
     pressure_error_norm, velocity_error_norm = problem.get_error_norm()
 
     p_err_norms.append(pressure_error_norm)
@@ -67,13 +77,11 @@ for nx in list_of_nx:
 
 convergence_rate_p = convergence_rate(p_err_norms, element_diameters)
 convergence_rate_v = convergence_rate(v_err_norms, element_diameters)
+rates = np.append(convergence_rate_p, convergence_rate_v)
 
-print(convergence_rate_p, convergence_rate_v)
+print(rates)
+# problem.xdmf_output()
 
-# The relative tolerance of convergence_rate_p is ~1.3 when the number of
-# mesh elements is tiny (for faster testings). It converges to 1 when the
-# mesh is refined.
 
 def test_function():
-    assert isclose(convergence_rate_p, 2, rel_tol=0.05)\
-       and isclose(convergence_rate_v, 2, rel_tol=0.05)
+    assert np.allclose(rates, [2.0, 3.0], rtol=0.05)
