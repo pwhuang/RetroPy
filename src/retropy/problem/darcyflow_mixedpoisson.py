@@ -31,8 +31,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         v, q = self.__v, self.__q
 
         mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
-        dx, ds = self.dx, self.ds
-        n = self.n
+        dx = self.dx
 
         self.__r = Constant(self.mesh, 0.0)
         r = self.__r
@@ -82,8 +81,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
                 entity_dim=self.mesh.topology.dim - 1,
                 entities=self.facet_dict[key],
             )
-            bc = dirichletbc(velocity_bc, dofs, self.mixed_func_space.sub(0))
-            self.mixed_velocity_bc.append(bc)
+            _bc = dirichletbc(velocity_bc, dofs, self.mixed_func_space.sub(0))
+            self.mixed_velocity_bc.append(_bc)
 
     def set_additional_parameters(self, r_val: float, **kwargs):
         self.__r.value = r_val
