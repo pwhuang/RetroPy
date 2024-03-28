@@ -44,8 +44,8 @@ class StokesFlowBenchmark:
         self.generate_form()
 
         pressure_bc = Function(self.pressure_func_space)
-        pressure_bc.interpolate(lambda x: np.exp(x[1]) * np.sin(np.pi * x[0]))
-        self.set_pressure_dirichlet_bc({"left": pressure_bc, "right": pressure_bc})
+        pressure_bc.interpolate(lambda x: 0.0 * np.exp(x[1]) * np.sin(np.pi * x[0]))
+        self.set_pressure_bc({"left": pressure_bc, "right": pressure_bc})
 
         velocity_bc = Function(self.velocity_func_space)
         velocity_bc.interpolate(lambda x: (np.sin(np.pi * x[1]), np.cos(np.pi * x[0])))
@@ -70,8 +70,7 @@ class StokesFlowBenchmark:
 
         momentum_sources = [self._mu * momentum1, momentum2]
         self.add_momentum_source(momentum_sources)
-        self.add_momentum_source_to_residual_form(momentum_sources)
-
+        
     def get_solution(self):
         self.sol_pressure = Function(self.pressure_func_space)
         self.sol_pressure.name = "sol_pressure"

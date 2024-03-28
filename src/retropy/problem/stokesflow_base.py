@@ -20,7 +20,7 @@ class StokesFlowBase(FluidProperty):
         self.init_cond_pressure = init_cond_pressure
 
     def set_pressure_bc(self, bc: dict):
-        self.pressure_bc = bc
+        self.pressure_bc = []
 
         v = self.__v
         n = self.n
@@ -28,18 +28,23 @@ class StokesFlowBase(FluidProperty):
         mu = self._mu
         u0 = self.fluid_velocity
 
-        for key, pressure_bc in self.pressure_bc.items():
+        for key, pressure_bc in bc.items():
             marker = self.marker_dict[key]
-            self.residual_form += pressure_bc * inner(n, v) * ds(marker) - mu * inner(
-                dot(grad(u0), n), v
-            ) * ds(marker)
+            self.residual_form += pressure_bc * inner(n, v) * ds(marker)
+            self.residual_form -= mu * inner(dot(grad(u0), n), v) * ds(marker)
+
+            dofs = locate_dofs_topological(
+                V=self.pressure_func_space,
+                entity_dim=self.mesh.topology.dim - 1,
+                entities=self.facet_dict[key],
+            )
+            self.pressure_bc.append(dirichletbc(pressure_bc, dofs=dofs))
 
     def set_velocity_bc(self, bc: list):
         """
         Arguments
         ---------
-        velocity_bc_val : list of Constants,
-                          e.g., [Constant((1.0, -1.0)), Constant((0.0, -2.0))]
+        velocity_bc_val : list of Constants.
         """
 
         self.velocity_bc = []

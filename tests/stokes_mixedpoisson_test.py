@@ -42,6 +42,9 @@ class StokesMixedPoissonTest(StokesFlowMixedPoisson, StokesFlowBenchmark):
 
         self.set_flow_solver_params(solver_params)
 
+    def set_pressure_bc(self, bc: dict):
+        self.set_pressure_dirichlet_bc(bc)
+
     def xdmf_output(self):
         with io.XDMFFile(self.mesh.comm, "out/u.xdmf", "w") as file:
             file.write_mesh(self.mesh)
@@ -80,7 +83,7 @@ convergence_rate_v = convergence_rate(v_err_norms, element_diameters)
 rates = np.append(convergence_rate_p, convergence_rate_v)
 
 print(rates)
-# problem.xdmf_output()
+problem.xdmf_output()
 
 
 def test_function():

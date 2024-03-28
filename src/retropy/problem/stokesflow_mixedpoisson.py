@@ -41,6 +41,7 @@ class StokesFlowMixedPoisson(TransportProblemBase, StokesFlowBase):
         self.mixed_bc = []
 
     def add_mass_source(self, sources):
+        super().add_mass_source_to_residual_form(sources)
         q, v, r = self.__q, self.__v, self.__r
         dx = self.dx
 
@@ -48,6 +49,7 @@ class StokesFlowMixedPoisson(TransportProblemBase, StokesFlowBase):
             self.mixed_form -= q * source * dx + r * inner(div(v), source) * dx
 
     def add_momentum_source(self, sources: list):
+        super().add_momentum_source_to_residual_form(sources)
         v = self.__v
 
         for source in sources:
