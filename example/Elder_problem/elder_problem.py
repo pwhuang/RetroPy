@@ -88,7 +88,7 @@ class FlowManager(DarcyFlowUzawa):
                               'bottom_outer': velocity_bc,
                               'left': velocity_bc})
 
-        self.set_additional_parameters(r_val=4.0, omega_by_r=0.4)
+        self.set_additional_parameters(r_val=4.0, omega_by_r=1.0)
         self.assemble_matrix()
         self.set_flow_solver_params()
 

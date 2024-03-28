@@ -49,7 +49,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
 
     def add_mass_source(self, sources: list):
-        self.add_mass_source_to_residual_form(sources)
+        super().add_mass_source_to_residual_form(sources)
         q, v, r, omega = self.__q, self.__v, self.__r, self.omega
         dx = self.dx
 
@@ -58,7 +58,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             self.form_update_pressure -= q * omega * source * dx
 
     def add_momentum_source(self, sources: list):
-        self.add_momentum_source_to_residual_form(sources)
+        super().add_momentum_source_to_residual_form(sources)
         v = self.__v
 
         for source in sources:
@@ -128,10 +128,11 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
                 print(f"Darcy flow residual = {str(residual)}")
 
             self.solver_v.solve(self.b_v, self.__u0.vector)
-            self.solver_p.solve(self.b_p, self.__p0.vector)
-
             # TODO: figure out why scattering of p0 is not necessary here.
             self.__u0.x.scatter_forward()
+            
+            self.b_p = assemble_vector(self.L_p)
+            self.solver_p.solve(self.b_p, self.__p0.vector)
 
             self.b_v = assemble_vector(self.L_v)
             apply_lifting(self.b_v, [self.a_v], bcs=[self.velocity_bc])
@@ -139,8 +140,6 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
                 addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE
             )
             set_bc(self.b_v, self.velocity_bc)
-
-            self.b_p = assemble_vector(self.L_p)
 
             steps += 1
             residual = self.get_flow_residual()
