@@ -13,9 +13,9 @@ class EquilibriumProblem(MassBalanceBase, ReactionManager):
 
 try:
     problem = EquilibriumProblem()
-    problem.set_components('Na+', 'Cl-', 'H+', 'OH-')
+    problem.set_components('Na+ Cl- H+ OH-')
     problem.H_idx = problem.component_dict['H+']
-    problem.set_solvent('H2O(l)')
+    problem.set_solvent('H2O(aq)')
     problem.initialize_Reaktoro()
 
     problem._set_temperature(298, 'K')
@@ -25,8 +25,6 @@ try:
     problem.solve_chemical_equilibrium()
 
     print(problem._get_species_amounts())
-    print(problem._get_species_log_activity_coeffs())
-    print(problem._get_species_chemical_potentials())
     print(problem._get_fluid_density())
     print(problem._get_fluid_pH())
 

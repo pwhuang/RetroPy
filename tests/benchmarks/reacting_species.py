@@ -50,7 +50,7 @@ class ReactingSpecies(TracerTransportProblem):
         self.fluid_velocity.interpolate(lambda x: (0.0 + 0.0 * x[0], -1.0 + 0.0 * x[1]))
 
     def define_problem(self):
-        self.set_components("c1", "c2")
+        self.set_components("c1 c2")
         self.set_component_fe_space()
         self.set_advection_velocity()
         self.initialize_form()

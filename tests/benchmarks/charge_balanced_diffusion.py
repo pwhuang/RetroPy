@@ -60,7 +60,7 @@ class ChargeBalancedDiffusion(TracerTransportProblem):
         self.fluid_velocity.interpolate(lambda x: (0.0 * x[0]))
 
     def define_problem(self, t0):
-        self.set_components("Na", "Cl")
+        self.set_components("Na+ Cl-")
         self.set_component_fe_space()
         self.initialize_form()
 
@@ -78,23 +78,23 @@ class ChargeBalancedDiffusion(TracerTransportProblem):
         self.set_molar_mass([1.0, 1.0])
 
         self.mark_component_boundary(
-            {"Na": self.marker_dict.values(), "Cl": self.marker_dict.values()}
+            {"Na+": self.marker_dict.values(), "Cl-": self.marker_dict.values()}
         )
 
         D = self.avg_D
         x0 = self.center_of_mass
 
-        self.set_component_ics("Na", self.initial_expr(x0, t0, D))
-        self.set_component_ics("Cl", self.initial_expr(x0, t0, D))
+        self.set_component_ics("Na+", self.initial_expr(x0, t0, D))
+        self.set_component_ics("Cl-", self.initial_expr(x0, t0, D))
 
     def add_physics_to_form(self, u, **kwargs):
         theta = Constant(self.mesh, 0.5)
         one = Constant(self.mesh, 1.0)
 
-        self.add_implicit_diffusion("Na", kappa=theta, marker=0)
-        self.add_explicit_diffusion("Na", u, kappa=one - theta, marker=0)
-        self.add_implicit_diffusion("Cl", kappa=theta, marker=0)
-        self.add_explicit_diffusion("Cl", u, kappa=one - theta, marker=0)
+        self.add_implicit_diffusion("Na+", kappa=theta, marker=0)
+        self.add_explicit_diffusion("Na+", u, kappa=one - theta, marker=0)
+        self.add_implicit_diffusion("Cl-", kappa=theta, marker=0)
+        self.add_explicit_diffusion("Cl-", u, kappa=one - theta, marker=0)
 
     def get_solution(self, t_end):
         D = self.avg_D

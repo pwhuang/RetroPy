@@ -6,14 +6,15 @@ from . import *
 class MassBalanceBase:
     """Base class for mass balance problems"""
 
-    def set_components(self, *args):
+    def set_components(self, comp: str):
         """
         Sets up the component dictionary.
 
-        Input example: 'Na+', 'Cl-'
+        Input example: 'Na+ Cl-'
         """
 
-        self.component_dict = {comp: idx for idx, comp in enumerate(args)}
+        self.component_str = comp
+        self.component_dict = {comp: idx for idx, comp in enumerate(comp.split(' '))}
         self.num_component = len(self.component_dict)
 
     def set_solvent(self, solvent='H2O(l)'):
