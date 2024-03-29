@@ -83,7 +83,7 @@ convergence_rate_v = convergence_rate(v_err_norms, element_diameters)
 rates = np.append(convergence_rate_p, convergence_rate_v)
 
 print(rates)
-problem.xdmf_output()
+# problem.xdmf_output()
 
 
 def test_function():
