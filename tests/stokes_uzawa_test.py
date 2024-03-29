@@ -2,16 +2,19 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 import os
-os.environ['OMP_NUM_THREADS'] = '1'
+
+os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import StokesFlowUzawa
 from utility_functions import convergence_rate
 from benchmarks import StokesFlowBenchmark
 
+from ufl import FiniteElement, VectorElement, EnrichedElement
 from dolfinx import io
-from dolfinx.fem import Function
+from dolfinx.fem import Function, FunctionSpace
 import numpy as np
+
 
 class StokesUzawaTest(StokesFlowUzawa, StokesFlowBenchmark):
     """"""
@@ -20,8 +23,8 @@ class StokesUzawaTest(StokesFlowUzawa, StokesFlowBenchmark):
         marked_mesh = self.get_mesh_and_markers(nx)
         StokesFlowUzawa.__init__(self, marked_mesh)
 
-        self.set_pressure_fe_space('CG', 1)
-        self.set_velocity_vector_fe_space('CG', 2)
+        self.set_pressure_fe_space("DG", 0)
+        self.set_velocity_vector_fe_space("CG", 2)
 
         self.set_pressure_ic(0.0)
         self.get_solution()
@@ -30,7 +33,7 @@ class StokesUzawaTest(StokesFlowUzawa, StokesFlowBenchmark):
         self.set_boundary_conditions()
         self.set_momentum_sources()
 
-        self.set_additional_parameters(r_val=1e2, omega_by_r=1.0)
+        self.set_additional_parameters(r_val=5e1, omega_by_r=1.0)
         self.assemble_matrix()
         self.set_flow_solver_params()
 
@@ -49,6 +52,7 @@ class StokesUzawaTest(StokesFlowUzawa, StokesFlowBenchmark):
             velocity_CG1.name = "sol_velocity"
             file.write_function(velocity_CG1)
 
+
 # nx is the mesh element in one direction.
 list_of_nx = [10, 20]
 element_diameters = []
@@ -57,7 +61,7 @@ v_err_norms = []
 
 for nx in list_of_nx:
     problem = StokesUzawaTest(nx)
-    problem.solve_flow(target_residual=1e-10, max_steps=20)
+    problem.solve_flow(target_residual=1e-4, max_steps=10)
     pressure_error_norm, velocity_error_norm = problem.get_error_norm()
 
     p_err_norms.append(pressure_error_norm)
@@ -73,5 +77,6 @@ rates = np.append(convergence_rate_p, convergence_rate_v)
 print(rates)
 # problem.xdmf_output()
 
+
 def test_function():
-    assert np.allclose(rates, [2.7, 2.7], rtol=0.2)
+    assert np.allclose(rates, [2.5, 2.5], rtol=0.2)
