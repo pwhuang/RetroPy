@@ -63,11 +63,10 @@ class StokesFlowMixedPoisson(TransportProblemBase, StokesFlowBase):
         mu = self._mu
         u = self.__u
 
-        for key, pressure_bc in self.pressure_bc.items():
+        for key, pressure_bc in bc.items():
             marker = self.marker_dict[key]
-            self.mixed_form += +inner(pressure_bc * n, v) * ds(marker) - mu * inner(
-                dot(grad(u), n), v
-            ) * ds(marker)
+            self.mixed_form += pressure_bc * inner(n, v) * ds(marker)
+            self.mixed_form -= mu * inner(dot(grad(u), n), v) * ds(marker)
 
     def set_pressure_dirichlet_bc(self, bc: dict):
         self.pressure_zero_bc = []

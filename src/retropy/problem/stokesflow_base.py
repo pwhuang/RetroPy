@@ -22,9 +22,7 @@ class StokesFlowBase(FluidProperty):
     def set_pressure_bc(self, bc: dict):
         self.pressure_bc = []
 
-        v = self.__v
-        n = self.n
-        ds = self.ds
+        v, n, ds = self.__v, self.n, self.ds
         mu = self._mu
         u0 = self.fluid_velocity
 
@@ -40,11 +38,11 @@ class StokesFlowBase(FluidProperty):
             )
             self.pressure_bc.append(dirichletbc(pressure_bc, dofs=dofs))
 
-    def set_velocity_bc(self, bc: list):
+    def set_velocity_bc(self, bc: dict):
         """
         Arguments
         ---------
-        velocity_bc_val : list of Constants.
+        bc
         """
 
         self.velocity_bc = []
@@ -70,15 +68,16 @@ class StokesFlowBase(FluidProperty):
 
         self.__v, self.__q = TestFunction(V), TestFunction(Q)
 
-        v, q = self.__v, self.__q
+        v = self.__v
         u0, p0 = self.fluid_velocity, self.fluid_pressure
 
         mu, rho, g = self._mu, self._rho, self._g
-
         dx = self.dx
 
         self.residual_form = mu * inner(grad(v), grad(u0)) * dx - inner(div(v), p0) * dx
         self.residual_form -= inner(v, rho * g) * dx
+
+        return self.__v, self.__q
 
     def add_mass_source_to_residual_form(self, sources: list):
         q = self.__q
