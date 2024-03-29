@@ -49,4 +49,4 @@ print(convergence_rate_m)
 
 
 def test_function():
-    assert isclose(convergence_rate_m, 2, rel_tol=0.2)
+    assert isclose(convergence_rate_m[0], 2, rel_tol=0.2)

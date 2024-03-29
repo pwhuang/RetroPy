@@ -83,4 +83,4 @@ convergence_rate_m = convergence_rate(err_norms, element_diameters)
 print(convergence_rate_m)
 
 def test_function():
-    assert isclose(convergence_rate_m, 1, rel_tol=0.5)
+    assert isclose(convergence_rate_m[0], 1, rel_tol=0.5)
