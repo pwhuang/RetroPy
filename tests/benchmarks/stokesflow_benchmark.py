@@ -70,7 +70,7 @@ class StokesFlowBenchmark:
 
         momentum_sources = [self._mu * momentum1, momentum2]
         self.add_momentum_source(momentum_sources)
-        
+
     def get_solution(self):
         self.sol_pressure = Function(self.pressure_func_space)
         self.sol_pressure.name = "sol_pressure"
