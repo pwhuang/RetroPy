@@ -16,15 +16,10 @@ from .multicomponent_transport_problem import multicomponent_transport_problem
 
 def set_default_solver_parameters(prm):
     prm.setTolerances(rtol = 1e-12, atol=1e-14, divtol=None, max_it=5000)
-    # prm['error_on_nonconvergence'] = True
-    # prm['monitor_convergence'] = True
-    # prm['nonzero_initial_guess'] = True
 
 from .steady_state_solver import SteadyStateSolver
 from .transient_solver import TransientSolver
 from .transient_rk2_solver import TransientRK2Solver
-from .projection_solver import ProjectionSolver
-from .gradient_solver import GradientSolver
 from .electric_field_solver import ElectricFieldSolver
 from .transient_nl_solver import TransientNLSolver
 from .custom_nl_solver import CustomNLSolver
