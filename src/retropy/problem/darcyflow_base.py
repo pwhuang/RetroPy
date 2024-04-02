@@ -15,9 +15,9 @@ class DarcyFlowBase(FluidProperty):
         self.marker_dict = marked_mesh.marker_dict
         self.facet_dict = marked_mesh.facet_dict
 
-    def set_pressure_ic(self, init_cond_pressure):
+    def set_pressure_ic(self, ic):
         """Sets up the initial condition of pressure."""
-        self.init_cond_pressure = init_cond_pressure
+        self.fluid_pressure.interpolate(ic)
 
     def set_pressure_bc(self, bc: dict):
         """Sets up the boundary condition of pressure."""
