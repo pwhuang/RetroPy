@@ -37,7 +37,7 @@ class TransientSolver:
     def solve_one_step(self):
         self.__problem.solve()
 
-    def get_solution(self):
+    def get_solver_u1(self):
         return self.__u1
 
     def assign_u1_to_u0(self):
@@ -52,7 +52,7 @@ class TransientSolver:
         self.dt.value = dt_val
         self.save_to_file(time=self.current_time.value)
 
-        for i in range(timesteps):
+        for _ in range(timesteps):
             self.solve_one_step()
             self.assign_u1_to_u0()
 

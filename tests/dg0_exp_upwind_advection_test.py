@@ -32,7 +32,7 @@ class DG0ExpUpwindAdvectionTest(
             self.generate_output_instance("rotating_cone_exp")
 
     def add_physics_to_form(self, u, kappa=1.0, f_id=0):
-        super().add_physics_to_form(u, Constant(self.mesh, kappa), f_id=f_id)
+        super().add_physics_to_form(u, kappa, f_id)
 
     def solve_transport(self, dt_val, timesteps):
         self.initial_guess = 0.1 * self.get_solution().x.array

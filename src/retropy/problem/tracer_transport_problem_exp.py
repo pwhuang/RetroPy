@@ -17,14 +17,7 @@ class TracerTransportProblemExp(TracerTransportProblem):
         super().initialize_form()
         self._TracerTransportProblem__u = as_vector([exp(u) for u in self._TracerTransportProblem__u])
 
-    def save_to_file(self, time, is_exponentiated=True, is_saving_pv=False):
-        """"""
-
-        if is_exponentiated:
-            pass
-        else:
-            self.fluid_components.x.array[:] = np.exp(self.fluid_components.x.array[:])
-
+    def save_to_file(self, time, is_saving_pv=False):
         return super().save_to_file(time, is_saving_pv=is_saving_pv)
 
     def set_component_ics(self, name, expressions):
@@ -34,3 +27,6 @@ class TracerTransportProblemExp(TracerTransportProblem):
 
     def logarithm_fluid_components(self):
         self.fluid_components.x.array[:] = np.log(self.fluid_components.x.array[:])
+    
+    def assign_u1_to_u0(self):
+        self.fluid_components.x.array[:] = np.exp(self.get_solver_u1().x.array)

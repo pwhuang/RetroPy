@@ -40,26 +40,9 @@ class DG0ExpChargeBalanceTest(
     def set_solver_parameters(self, linear_solver="gmres", preconditioner="jacobi"):
         super().set_solver_parameters(linear_solver, preconditioner)
 
-        # prm[nl_solver_type]["absolute_tolerance"] = 1e-10
-        # prm[nl_solver_type]["relative_tolerance"] = 1e-14
-        # prm[nl_solver_type]["maximum_iterations"] = 50
-        # prm["snes_solver"]["method"] = "newtonls"
-        # prm["snes_solver"]["line_search"] = "bt"
-        # prm[nl_solver_type]["linear_solver"] = linear_solver
-        # prm[nl_solver_type]["preconditioner"] = preconditioner
-
         set_default_solver_parameters(self.get_solver())
 
-    # def set_advection_velocity(self):
-    #     E = self.electric_field
-    #     D = self.molecular_diffusivity
-    #     z = self.charge
-
-    #     self.advection_velocity = as_vector(
-    #         [self.fluid_velocity + z[i] * D[i] * E for i in range(self.num_component)]
-    #     )
-
-    def add_physics_to_form(self, u):
+    def add_physics_to_form(self, u, kappa, f_id):
         super().add_physics_to_form(u)
 
         theta = Constant(self.mesh, 0.5)
@@ -68,17 +51,6 @@ class DG0ExpChargeBalanceTest(
         self.add_explicit_charge_balanced_diffusion(u, kappa=one - theta, marker=0)
         # self.add_semi_implicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
         self.add_implicit_charge_balanced_diffusion(kappa=theta, marker=0)
-
-    # def get_error_norm(self):
-    #     self.output_func = Function(self.comp_func_spaces)
-    #     self.output_func.vector()[:] = exp(self.fluid_components.vector())
-
-    #     mass_error = Function(self.comp_func_spaces)
-    #     mass_error.assign(self.output_func - self.solution)
-
-    #     mass_error_norm = norm(mass_error, "l2")
-
-    #     return mass_error_norm
 
     def mpl_output(self):
         x_space = self.cell_coord.x.array

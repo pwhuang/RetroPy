@@ -4,7 +4,6 @@
 from . import *
 from mpi4py import MPI
 from petsc4py import PETSc
-import numpy as np
 
 class TransientNLSolver(TransientSolver):
     """A solver class that is used as a mixin for problem classes."""
@@ -18,13 +17,14 @@ class TransientNLSolver(TransientSolver):
 
         self.__u0 = self.get_fluid_components()
         self.__u1 = Function(self.__func_space)
+        
         self.__du = TrialFunction(self.__func_space)
         self._TransientSolver__u1 = self.__u1
 
         self.initial_guess = 0.0
 
         self.add_time_derivatives(self.__u0)
-        self.add_physics_to_form(self.__u0)
+        self.add_physics_to_form(self.__u0, kappa=Constant(self.mesh, 1.0), f_id=0)
 
         self.__forms = self.get_forms()
         self.__form = self.__forms[0]
@@ -52,9 +52,6 @@ class TransientNLSolver(TransientSolver):
 
     def guess_solution(self):
         self.__u1.x.array[:] = self.initial_guess
-
-    def assign_u1_to_u0(self):
-        self.fluid_components.x.array[:] = np.exp(self.__u1.x.array)
 
     def get_solver(self):
         return self.__solver
