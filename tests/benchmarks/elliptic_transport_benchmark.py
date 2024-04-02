@@ -47,6 +47,10 @@ class EllipticTransportBenchmark(TracerTransportProblem):
         self.initialize_form()
 
         self.set_molecular_diffusivity([1.0])
+
+        self.mark_component_boundary({"solute": self.marker_dict.values()})
+
+    def add_physics_to_form(self, u, kappa, f_id=0):
         self.add_implicit_advection(marker=0)
         self.add_implicit_diffusion("solute", marker=0)
 
@@ -57,8 +61,6 @@ class EllipticTransportBenchmark(TracerTransportProblem):
         mass_source = Function(self.func_space_list[0])
         mass_source.interpolate(expr)
         self.add_mass_source(["solute"], [mass_source])
-
-        self.mark_component_boundary({"solute": self.marker_dict.values()})
 
         # When solving steady-state problems, the diffusivity of the diffusion
         # boundary is a penalty term to the variational form.

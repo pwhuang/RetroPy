@@ -11,11 +11,14 @@ class SteadyStateSolver:
     def generate_solver(self):
         """"""
 
+        self.__func_space = self.get_function_space()
+
+        self.__u0 = self.get_fluid_components()
+        self.__u1 = Function(self.__func_space)
+
+        self.add_physics_to_form(self.__u0, kappa=Constant(self.mesh, 1.0), f_id=0)
         self.__forms = self.get_forms()
         self.__form = self.__forms[0]
-
-        self.__func_space = self.get_function_space()
-        self.__u1 = Function(self.__func_space)
 
         a, L = lhs(self.__form), rhs(self.__form)
 

@@ -42,23 +42,17 @@ class DiffusionBenchmark(TracerTransportProblem):
         self.set_component_fe_space()
         self.initialize_form()
 
-        one = Constant(self.mesh, 1.0)
+        self.mark_component_boundary({"solute": self.marker_dict.values()})
+
+    def add_physics_to_form(self, u, kappa, f_id=0):
         self.set_molecular_diffusivity([1.0])
-        self.add_implicit_diffusion("solute", kappa=one, marker=0)
+        self.add_implicit_diffusion("solute", kappa=kappa, marker=0, f_id=f_id)
 
         mass_source = Function(self.CG1_space)
         mass_source.interpolate(
             lambda x: 2.0 * np.pi**2 * np.sin(np.pi * x[0]) * np.sin(np.pi * x[1])
         )
-        self.add_mass_source(["solute"], [mass_source], kappa=one)
-
-        self.mark_component_boundary({"solute": self.marker_dict.values()})
-
-    def add_physics_to_form(self, u0):
-        pass
-
-    def add_time_derivatives(self, u0):
-        pass
+        self.add_mass_source(["solute"], [mass_source], kappa=kappa)  
 
     def set_problem_bc(self):
         """
