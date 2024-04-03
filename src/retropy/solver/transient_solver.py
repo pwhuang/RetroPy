@@ -8,7 +8,7 @@ class TransientSolver:
 
     num_forms = 1
 
-    def generate_solver(self):
+    def generate_solver(self, **kwargs):
         """"""
 
         self.__func_space = self.get_function_space()
@@ -25,6 +25,9 @@ class TransientSolver:
 
         self.__problem = LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1)
 
+    def get_solver(self):
+        return self.__problem.solver
+
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
         prm = self.__problem.solver
         prm.setType(linear_solver)
@@ -35,7 +38,7 @@ class TransientSolver:
         return prm
 
     def solve_one_step(self):
-        self.__problem.solve()
+        return self.__problem.solve()
 
     def get_solver_u1(self):
         return self.__u1
