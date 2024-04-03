@@ -7,17 +7,23 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from mesh_factory import MeshFactory
 from retropy.manager import DarcyFlowManagerUzawa as FlowManager
 from retropy.manager import ReactiveTransportManager
-from retropy.manager import HDF5Manager as OutputManager
+from retropy.manager import XDMFManager as OutputManager
 from retropy.solver import TransientNLSolver
 
-from dolfin import Expression, Constant
+from dolfinx.fem import Expression
+from ufl import SpatialCoordinate, conditional, lt
 
-class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
+class FlowManager(FlowManager):
+    def set_flow_fe_space(self):
+        self.set_pressure_fe_space('DG', 0)
+        self.set_velocity_fe_space('RTCF', 1)
+
+class Problem(ReactiveTransportManager, FlowManager, OutputManager,
               TransientNLSolver):
     """This class solves the chemically driven convection problem."""
 
     def __init__(self, nx, ny, const_diff):
-        super().__init__(*self.get_mesh_and_markers(nx, ny))
+        super().__init__(MeshFactory(nx, ny))
         self.is_same_diffusivity = const_diff
 
     def set_component_properties(self):
@@ -26,8 +32,8 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
         self.set_charge([1.0, -1.0, 1.0, -1.0])
 
     def define_problem(self):
-        self.set_components('Na+', 'Cl-', 'H+', 'OH-')
-        self.set_solvent('H2O(l)')
+        self.set_components("Na+ Cl- H+ OH-")
+        self.set_solvent("H2O(aq)")
         self.set_component_properties()
 
         self.set_component_fe_space()
@@ -38,13 +44,16 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
         HCl_amounts = [1e-15, 1.0, 1.0, 1e-15, 54.17] # micro mol/mm^3 # mol/L
         NaOH_amounts = [1.0, 1e-15, 1e-15, 1.0, 55.36]
 
-        init_expr_list = []
+        x = SpatialCoordinate(self.mesh)
 
-        for i in range(self.num_component):
-            init_expr_list.append('x[1]<=25.0 ?' + str(NaOH_amounts[i]) + ':' + str(HCl_amounts[i]))
-
-        self.set_component_ics(Expression(init_expr_list, degree=1))
-        self.set_solvent_ic(Expression('x[1]<=25.0 ?' + str(NaOH_amounts[-1]) + ':' + str(HCl_amounts[-1]) , degree=1))
+        for i, comp in enumerate(self.component_dict.keys()):
+            ic_expr = Expression(conditional(lt(x[1], 25.0), NaOH_amounts[i], HCl_amounts[i]),
+                                 self.comp_func_spaces.sub(i).element.interpolation_points())
+            self.set_component_ics(comp, ic_expr)
+        
+        ic_expr = Expression(conditional(lt(x[1], 25.0), NaOH_amounts[-1], HCl_amounts[-1]),
+                             self.DG0_space.element.interpolation_points())
+        self.set_solvent_ic(ic_expr)
 
     def set_fluid_properties(self):
         self.set_porosity(1.0)
@@ -53,18 +62,9 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
         self.set_gravity([0.0, -9806.65]) # mm/sec^2
         self.set_permeability(0.5**2/12.0) # mm^2
 
-    def set_flow_ibc(self):
-        self.mark_flow_boundary(pressure = [],
-                                velocity = [self.marker_dict['top'], self.marker_dict['bottom'],
-                                            self.marker_dict['left'], self.marker_dict['right']])
-
-        self.set_pressure_bc([]) # Pa
-        self.set_pressure_ic(Constant(0.0))
-        self.set_velocity_bc([Constant([0.0, 0.0])]*4)
-
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
-        min_dt, max_dt = 3e-2, 2.0
+        min_dt, max_dt = 5e-3, 2.0
 
         if (dt_val := dt_val*1.1) > max_dt:
             dt_val = max_dt

@@ -3,31 +3,28 @@
 
 from . import ReactionManager, TransportManager
 import numpy as np
-from dolfin import info, end, MPI
 
 class ReactiveTransportManager(TransportManager, ReactionManager):
     """Defines the default behavior of solving reactive transport problems."""
 
-    def __init__(self, mesh, boundary_markers, domain_markers):
-        super().__init__(mesh, boundary_markers, domain_markers)
-        self.__MPI_rank = MPI.rank(MPI.comm_world)
-        self.set_flow_residual(1e-10)
+    def __init__(self, marked_mesh):
+        super().__init__(marked_mesh)
+        self.__MPI_rank = self.mesh.comm.Get_rank()
+        self.set_flow_residual(5e-10)
 
     def solve_species_transport(self):
         max_trials = 7
 
         try:
-            self.solve_one_step()
-            is_solved = True
+            newton_steps, is_solved = self.solve_one_step()
         except:
             self.assign_u0_to_u1()
 
             if self.trial_count >= max_trials:
                 raise RuntimeError('Reached max trial count. Abort!')
-            end() # Added to avoid unbalanced indentation in logs.
-            is_solved = False
-
-        return is_solved
+            newton_steps, is_solved = -1, False
+            
+        return newton_steps, is_solved
 
     @staticmethod
     def timestepper(dt_val, current_time, time_stamp):
@@ -52,8 +49,8 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
         # updates the pressure assuming constant density
         self.solve_flow(target_residual=self.flow_residual, max_steps=50)
 
-        fluid_comp = np.exp(self.get_solution().vector()[:].reshape(-1, self.num_component))
-        pressure = self.fluid_pressure.vector()[:] + self.background_pressure
+        fluid_comp = self.fluid_components.x.array.reshape(-1, self.num_component)
+        pressure = self.fluid_pressure.x.array + self.background_pressure
         self._solve_chem_equi_over_dofs(pressure, fluid_comp)
         self._assign_chem_equi_results()
 
@@ -61,13 +58,10 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
         self.solve_flow(target_residual=self.flow_residual, max_steps=50)
 
     def save_to_file(self, time):
-        super().save_to_file(time, is_exponentiated=True, is_saving_pv=True)
-        self.write_function(self.solvent, self.solvent.name(), time)
-        self.write_function(self.fluid_density, self.fluid_density.name(), time)
-        self.write_function(self.fluid_pH, self.fluid_pH.name(), time)
-        # self._save_mixed_function(time, self.ln_activity, self.ln_activity_dict)
-        if self.__MPI_rank==0:
-            self.csv_writer.writerow([time])
+        super().save_to_file(time, is_saving_pv=False)
+        self.write_function(self.solvent, time)
+        self.write_function(self.fluid_density, time)
+        self.write_function(self.fluid_pH, time)
 
     def solve(self, dt_val=1.0, endtime=10.0, time_stamps=[]):
         current_time = 0.0
@@ -82,7 +76,6 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
 
         self.solve_initial_condition()
         self.save_to_file(time=current_time)
-        self.logarithm_fluid_components()
 
         saved_times.append(current_time)
         flow_residuals.append(self.get_flow_residual())
@@ -91,21 +84,26 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
 
         while current_time < endtime:
             if self.__MPI_rank==0:
-                info(f"timestep = {timestep}, dt = {dt_val:.6f}, "\
-                     f"current_time = {current_time:.6f}\n")
+                print(f"timestep = {timestep}, dt = {dt_val:.6f}, "\
+                      f"current_time = {current_time:.6f}\n")
 
-            self.set_dt(dt_val)
+            self.dt.value = dt_val
 
-            if self.solve_species_transport() is False:
+            newton_steps, is_solved = self.solve_species_transport()
+
+            if is_solved is False:
                 dt_val = 0.7*dt_val
                 self.trial_count += 1
                 continue
 
+            if self.__MPI_rank==0:
+                print(f"Transport solve converged. Newton steps = {newton_steps}.\n")
+
             self.trial_count = 0
             self.solve_solvent_transport()
 
-            fluid_comp = np.exp(self.get_solution().vector()[:].reshape(-1, self.num_component))
-            pressure = self.fluid_pressure.vector()[:] + self.background_pressure
+            fluid_comp = np.exp(self.get_solver_u1().x.array.reshape(-1, self.num_component))
+            pressure = self.fluid_pressure.x.array + self.background_pressure
             self._solve_chem_equi_over_dofs(pressure, fluid_comp)
             self._assign_chem_equi_results()
             self.solve_flow(target_residual=self.flow_residual, max_steps=20)
@@ -129,8 +127,6 @@ class ReactiveTransportManager(TransportManager, ReactionManager):
 
             if timestep % flush_interval == 0:
                 self.flush_output()
-
-            self.logarithm_fluid_components()
 
         if self.__MPI_rank==0:
             np.save(self.output_file_name + '_time', np.array(saved_times), allow_pickle=False)
