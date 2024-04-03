@@ -57,12 +57,12 @@ class TracerTransportProblem(TransportProblemBase,
 
         self.func_space_list = []
 
-        for name, idx in self.component_dict.items():
+        for name, idx in self.component_dict_for_func.items():
             self.func_space_list.append(self.comp_func_spaces.sub(idx).collapse()[0])
             self.fluid_comp_sub[idx].name = name
 
     def get_num_dof_per_component(self):
-        return len(self.fluid_components.vector[:].reshape(-1, self.num_component))
+        return len(self.fluid_components.x.array.reshape(-1, self.num_component))
 
     def get_function_space(self):
         return self.comp_func_spaces
