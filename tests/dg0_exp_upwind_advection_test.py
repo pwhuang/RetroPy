@@ -13,7 +13,7 @@ from retropy.manager import XDMFManager
 from benchmarks import RotatingCone
 
 from dolfinx.fem import Constant
-from numpy import abs
+import numpy as np
 
 
 class DG0ExpUpwindAdvectionTest(
@@ -31,19 +31,14 @@ class DG0ExpUpwindAdvectionTest(
         if is_output == True:
             self.generate_output_instance("rotating_cone_exp")
 
-    def add_physics_to_form(self, u, kappa=1.0, f_id=0):
-        super().add_physics_to_form(u, kappa, f_id)
-
-    def solve_transport(self, dt_val, timesteps):
-        self.initial_guess = 0.1 * self.get_solution().x.array
-        super().solve_transport(dt_val, timesteps)
-
+    def guess_solution(self):
+        self.get_solver_u1().x.array[:] = 0.1 * self.fluid_components.x.array
 
 nx = 50
 dt = 1e-2
 timesteps = 100
 
-problem = DG0ExpUpwindAdvectionTest(nx, is_output=False)
+problem = DG0ExpUpwindAdvectionTest(nx, is_output=True)
 
 initial_mass = problem.get_total_mass()
 initial_center_x, initial_center_y = problem.get_center_of_mass()
@@ -53,7 +48,7 @@ problem.get_solution()
 advected_mass = problem.get_total_mass()
 advected_center_x, advected_center_y = problem.get_center_of_mass()
 
-mass_error = abs(initial_mass - advected_mass)
+mass_error = np.abs(initial_mass - advected_mass)
 center_of_mass_error = (
     (advected_center_x - initial_center_x) ** 2
     + (advected_center_y - initial_center_y) ** 2

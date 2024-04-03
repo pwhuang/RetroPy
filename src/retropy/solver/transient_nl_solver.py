@@ -42,7 +42,11 @@ class TransientNLSolver(TransientSolver):
     def evaluate_jacobian(self, form):
         self.jacobian = derivative(action(form, self.__u1), self.__u1, self.__du)
 
+    def guess_solution(self):
+        pass
+
     def solve_one_step(self):
+        self.guess_solution()
         num_iterations, converged = self.__solver.solve(self.__u1)
 
         return num_iterations, converged
