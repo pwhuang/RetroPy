@@ -8,8 +8,8 @@ class EquilibriumProblem(MassBalanceBase, ReactionManager):
     pass
 
 init_cond = EquilibriumProblem()
-init_cond.set_components('Na+', 'NO3-', 'H+', 'OH-')
-init_cond.set_solvent('H2O(l)')
+init_cond.set_components('Na+ NO3- H+ OH-')
+init_cond.set_solvent('H2O(aq)')
 
 init_cond.initialize_Reaktoro()
 init_cond._set_temperature(298.15, 'K')
