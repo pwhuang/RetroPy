@@ -44,17 +44,16 @@ class ReactionManager:
         self.fluid_components.x.array[:] = self.molar_density_temp[:, :-1].flatten()
         self.solvent.x.array[:] = self.molar_density_temp[:, -1].flatten()
 
+        self.fluid_density.x.scatter_forward()
+        self.fluid_pH.x.scatter_forward()
+        self.fluid_components.x.scatter_forward()
+        self.solvent.x.scatter_forward()
+
     def initialize_Reaktoro(self):
         """
         """
 
-        db = rkt.SupcrtDatabase("supcrt07")
-
-        aqueous_components = self.component_str + ' ' + self.solvent_name
-
-        self.aqueous_phase = rkt.AqueousPhase(aqueous_components)
-        self.chem_system = rkt.ChemicalSystem(db, self.aqueous_phase)
-
+        self.set_chem_system()
         self.set_activity_models()
 
         self.chem_equi_solver = rkt.EquilibriumSolver(self.chem_system)
@@ -64,6 +63,13 @@ class ReactionManager:
         self.aqueous_prop = rkt.AqueousProps(self.chem_state)
 
         self.one_over_ln10 = 1.0/log(10.0)
+
+    def set_chem_system(self):
+        db = rkt.SupcrtDatabase("supcrt07")
+        aqueous_components = self.component_str + ' ' + self.solvent_name
+
+        self.aqueous_phase = rkt.AqueousPhase(aqueous_components)
+        self.chem_system = rkt.ChemicalSystem(db, self.aqueous_phase)
 
     def set_activity_models(self):
         self.aqueous_phase.set(rkt.ActivityModelHKF())
@@ -89,7 +95,7 @@ class ReactionManager:
 
     def _get_fluid_density(self):
         """The unit of density is kg/m3."""
-        return self.chem_prop.density().val()
+        return self.chem_prop.phaseProps("AqueousPhase").density().val()
 
     def _get_fluid_pH(self):
         return self.aqueous_prop.pH().val()
