@@ -16,9 +16,11 @@ class MassBalanceBase:
         self.component_str = comp
         self.component_dict = {comp: idx for idx, comp in enumerate(comp.split(' '))}
 
-        # replace + - for function names
+        # replace +, -, (, ) for dolfinx function names
         comp = comp.replace('+', '_p')
         comp = comp.replace('-', '_m')
+        comp = comp.replace('(', '_')
+        comp = comp.replace(')', '_')
         self.component_dict_for_func = {comp: idx for idx, comp in enumerate(comp.split(' '))}
         self.num_component = len(self.component_dict)
 
