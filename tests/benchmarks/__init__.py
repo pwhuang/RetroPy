@@ -8,4 +8,5 @@ from .diffusion_benchmark import DiffusionBenchmark
 from .rotating_cone import RotatingCone
 from .reacting_species import ReactingSpecies
 from .charge_balanced_diffusion import ChargeBalancedDiffusion
+from .tracer_breakthrough import TracerBreakthrough
 from .stokesflow_benchmark import StokesFlowBenchmark
