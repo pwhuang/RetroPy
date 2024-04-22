@@ -38,7 +38,7 @@ nx = 50
 dt = 1e-2
 timesteps = 100
 
-problem = DG0ExpUpwindAdvectionTest(nx, is_output=True)
+problem = DG0ExpUpwindAdvectionTest(nx, is_output=False)
 
 initial_mass = problem.get_total_mass()
 initial_center_x, initial_center_y = problem.get_center_of_mass()
