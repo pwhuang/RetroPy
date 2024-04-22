@@ -197,7 +197,7 @@ class DG0Kernel:
         for i in range(self.num_component):
             adv_mat.append([])
             for j in range(self.num_component):
-                if i==j:
+                if i==j and self.component_mobility_idx[i]==True:
                     adv_mat[i].append((dot(advection_velocity[i], self.n)\
                                      + sign*Abs(dot(advection_velocity[i], self.n)))/2.0)
                 else:

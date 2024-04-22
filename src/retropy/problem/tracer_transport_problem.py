@@ -83,6 +83,9 @@ class TracerTransportProblem(TransportProblemBase,
     def get_trial_function(self):
         return self.__u
 
+    def get_test_function(self):
+        return self.__w
+
     def set_advection_velocity(self):
         self.advection_velocity = \
         as_vector([self.fluid_velocity for _ in range(self.num_component)])
@@ -100,8 +103,8 @@ class TracerTransportProblem(TransportProblemBase,
         idx = self.component_dict[component_name]
         markers = self.__boundary_dict[component_name]
 
-        for i, marker in enumerate(markers):
-            self.tracer_forms[f_id] += kappa*self.advection_flux_bc(self.__w[idx], values[i], marker)
+        for value, marker in zip(values, markers):
+            self.tracer_forms[f_id] += kappa*self.advection_flux_bc(self.__w[idx], value, marker)
 
     def add_component_flux_bc(self, component_name, values, kappa: Any = 1, f_id = 0):
         """"""
@@ -112,9 +115,8 @@ class TracerTransportProblem(TransportProblemBase,
         idx = self.component_dict[component_name]
         markers = self.__boundary_dict[component_name]
 
-        for i, marker in enumerate(markers):
-            self.tracer_forms[f_id] += kappa*self.general_flux_bc(self.__w[idx],
-                                                                  values[i], marker)
+        for value, marker in zip(values, markers):
+            self.tracer_forms[f_id] += kappa*self.general_flux_bc(self.__w[idx], value, marker)
 
     def add_component_diffusion_bc(self, component_name, diffusivity, values, kappa: Any = 1, f_id = 0):
         """"""
@@ -125,9 +127,9 @@ class TracerTransportProblem(TransportProblemBase,
         idx = self.component_dict[component_name]
         markers = self.__boundary_dict[component_name]
 
-        for i, marker in enumerate(markers):
+        for value, marker in zip(values, markers):
             self.tracer_forms[f_id] += kappa*self.diffusion_flux_bc(self.__w[idx], self.__u[idx],
-                                                                    diffusivity, values[i], marker)
+                                                                    diffusivity, value, marker)
 
     def add_component_dirichlet_bc(self, component_name, values):
         """"""
@@ -138,15 +140,15 @@ class TracerTransportProblem(TransportProblemBase,
         idx = self.component_dict[component_name]
 
         # I have no idea how this works. Need to read more fenicsx documentation to find out.
-        for i, facet in enumerate(self.facet_dict.values()):
+        for value, facet in zip(values, self.facet_dict.values()):
             dof = locate_dofs_topological(self.comp_func_spaces, self.mesh.topology.dim - 1, facet)
-            bc = dirichletbc(values[i], dof, self.comp_func_spaces.sub(idx))
+            bc = dirichletbc(value, dof, self.comp_func_spaces.sub(idx))
             self.__dirichlet_bcs.append(bc)
 
     def add_outflow_bc(self, f_id=0):
         """"""
 
-        for i, marker in enumerate(self.__boundary_dict['outlet']):
+        for marker in self.__boundary_dict['outlet']:
             self.tracer_forms[f_id] += self.advection_outflow_bc(self.__w, self.__u, marker)
 
     def add_time_derivatives(self, u, kappa: Any = 1, f_id = 0):
@@ -247,9 +249,9 @@ class TracerTransportProblem(TransportProblemBase,
     def add_mass_source(self, component_names, sources, kappa: Any = 1, f_id = 0):
         """Adds mass source to the variational form by component names."""
 
-        for i, component_name in enumerate(component_names):
+        for component_name, source in zip(component_names, sources):
             idx = self.component_dict[component_name]
-            self.tracer_forms[f_id] -= kappa*self.__w[idx]*sources[i]*self.dx
+            self.tracer_forms[f_id] -= kappa*self.__w[idx]*source*self.dx
 
     def add_sources(self, sources, kappa: Any = 1, f_id = 0):
         self.tracer_forms[f_id] -= kappa*dot(self.__w, sources)*self.dx
