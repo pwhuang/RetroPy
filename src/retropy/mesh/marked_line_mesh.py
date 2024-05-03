@@ -15,13 +15,16 @@ import numpy as np
 class MarkedLineMesh:
     """"""
 
-    def __init__(self):
-        """Initialize default values."""
+    def __init__(self, xmin, xmax, num_elements):
+        self.set_left_coordinates(xmin)
+        self.set_right_coordinates(xmax)
+        self.set_number_of_elements(num_elements)
+        self.locate_and_mark_boundaries()
 
-        super().__init__()
-        self.xmin = 0.0
-        self.xmax = 1.0
-        self.num_elements_x = 10
+        self.generate_mesh()
+        self.generate_boundary_markers()
+        self.generate_interior_markers()
+        self.generate_domain_markers()
 
     def set_left_coordinates(self, coord_x):
         self.xmin = coord_x
@@ -29,8 +32,8 @@ class MarkedLineMesh:
     def set_right_coordinates(self, coord_x):
         self.xmax = coord_x
 
-    def set_number_of_elements(self, num_elements_x):
-        self.num_elements_x = num_elements_x
+    def set_number_of_elements(self, num_elements):
+        self.num_elements = num_elements
 
     def locate_and_mark_boundaries(self, boundary_eps=1e-8):
         right_marker = lambda x: np.isclose(x[0], self.xmax, atol=boundary_eps)
@@ -43,7 +46,7 @@ class MarkedLineMesh:
 
     def generate_mesh(self):
         self.mesh = create_interval(
-            MPI.COMM_WORLD, self.num_elements_x, [self.xmin, self.xmax]
+            MPI.COMM_WORLD, self.num_elements, [self.xmin, self.xmax]
         )
 
         return self.mesh

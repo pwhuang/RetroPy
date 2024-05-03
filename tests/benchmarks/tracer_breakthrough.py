@@ -53,18 +53,7 @@ class TracerBreakthrough(TracerTransportProblem):
         return lambda x: 0.0 * x[0]
 
     def get_mesh_and_markers(self, nx):
-        marked_mesh = MarkedLineMesh()
-
-        marked_mesh.set_left_coordinates(coord_x=0.0)
-        marked_mesh.set_right_coordinates(coord_x=1.0)
-        marked_mesh.set_number_of_elements(nx)
-        marked_mesh.locate_and_mark_boundaries()
-
-        marked_mesh.generate_mesh()
-        marked_mesh.generate_boundary_markers()
-        marked_mesh.generate_interior_markers()
-        marked_mesh.generate_domain_markers()
-
+        marked_mesh = MarkedLineMesh(xmin=0.0, xmax=1.0, num_elements=nx)
         self.mesh_characteristic_length = 1.0 / nx
 
         return marked_mesh

@@ -3,15 +3,17 @@
 
 from . import *
 
-class TracerTransportProblem(TransportProblemBase,
-                             MassBalanceBase, ComponentProperty):
+
+class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentProperty):
     """A class that solves single-phase tracer transport problems."""
 
-    def __init__(self, marked_mesh, option='cell_centered', periodic_bcs=None):
+    def __init__(self, marked_mesh, option="cell_centered", periodic_bcs=None):
         try:
             super().num_forms
         except:
-            raise Exception("num_forms does not exist. Consider inherit a solver class.")
+            raise Exception(
+                "num_forms does not exist. Consider inherit a solver class."
+            )
 
         self.set_mesh(marked_mesh.mesh, option, periodic_bcs)
         self.set_boundary_markers(marked_mesh.boundary_markers)
@@ -38,9 +40,9 @@ class TracerTransportProblem(TransportProblemBase,
         self.__boundary_dict = boundary_dict
 
     def set_component_fe_space(self):
-        self.FiniteElement = FiniteElement(super().fe_space,
-                                           self.mesh.ufl_cell(),
-                                           super().fe_degree)
+        self.FiniteElement = FiniteElement(
+            super().fe_space, self.mesh.ufl_cell(), super().fe_degree
+        )
 
         element_list = [self.FiniteElement for _ in range(self.num_component)]
 
@@ -78,7 +80,9 @@ class TracerTransportProblem(TransportProblemBase,
         self.__u = TrialFunction(self.comp_func_spaces)
         self.__w = TestFunction(self.comp_func_spaces)
 
-        self.tracer_forms = [Constant(self.mesh, 0.0)*inner(self.__w, self.__u)*self.dx]*super().num_forms
+        self.tracer_forms = [
+            Constant(self.mesh, 0.0) * inner(self.__w, self.__u) * self.dx
+        ] * super().num_forms
 
     def get_trial_function(self):
         return self.__u
@@ -87,174 +91,176 @@ class TracerTransportProblem(TransportProblemBase,
         return self.__w
 
     def set_advection_velocity(self):
-        self.advection_velocity = \
-        as_vector([self.fluid_velocity for _ in range(self.num_component)])
+        self.advection_velocity = as_vector(
+            [self.fluid_velocity for _ in range(self.num_component)]
+        )
 
     def set_component_ics(self, name, expressions):
         idx = self.component_dict[name]
         self.fluid_components.sub(idx).interpolate(expressions)
 
-    def add_component_advection_bc(self, component_name: str, values, kappa: Any = 1, f_id = 0):
+    def add_component_advection_bc(
+        self, component_name: str, values, kappa: Any = 1, f_id=0
+    ):
         """"""
 
-        if len(values)!=len(self.__boundary_dict[component_name]):
+        if len(values) != len(self.__boundary_dict[component_name]):
             raise Exception("length of values != number of markers")
 
         idx = self.component_dict[component_name]
         markers = self.__boundary_dict[component_name]
 
         for value, marker in zip(values, markers):
-            self.tracer_forms[f_id] += kappa*self.advection_flux_bc(self.__w[idx], value, marker)
+            self.tracer_forms[f_id] += kappa * self.advection_flux_bc(
+                self.__w[idx], value, marker
+            )
 
-    def add_component_flux_bc(self, component_name, values, kappa: Any = 1, f_id = 0):
+    def add_component_flux_bc(self, component_name, values, kappa: Any = 1, f_id=0):
         """"""
 
-        if len(values)!=len(self.__boundary_dict[component_name]):
+        if len(values) != len(self.__boundary_dict[component_name]):
             raise Exception("length of values != number of markers")
 
         idx = self.component_dict[component_name]
         markers = self.__boundary_dict[component_name]
 
         for value, marker in zip(values, markers):
-            self.tracer_forms[f_id] += kappa*self.general_flux_bc(self.__w[idx], value, marker)
+            self.tracer_forms[f_id] += kappa * self.general_flux_bc(
+                self.__w[idx], value, marker
+            )
 
-    def add_component_diffusion_bc(self, component_name, diffusivity, values, kappa: Any = 1, f_id = 0):
+    def add_component_diffusion_bc(
+        self, component_name, diffusivity, values, kappa: Any = 1, f_id=0
+    ):
         """"""
 
-        if len(values)!=len(self.__boundary_dict[component_name]):
+        if len(values) != len(self.__boundary_dict[component_name]):
             raise Exception("length of values != number of markers")
 
         idx = self.component_dict[component_name]
         markers = self.__boundary_dict[component_name]
 
         for value, marker in zip(values, markers):
-            self.tracer_forms[f_id] += kappa*self.diffusion_flux_bc(self.__w[idx], self.__u[idx],
-                                                                    diffusivity, value, marker)
+            self.tracer_forms[f_id] += kappa * self.diffusion_flux_bc(
+                self.__w[idx], self.__u[idx], diffusivity, value, marker
+            )
 
     def add_component_dirichlet_bc(self, component_name, values):
         """"""
 
-        if len(values)!=len(self.__boundary_dict[component_name]):
+        if len(values) != len(self.__boundary_dict[component_name]):
             raise Exception("length of values != number of markers")
 
         idx = self.component_dict[component_name]
 
         # I have no idea how this works. Need to read more fenicsx documentation to find out.
         for value, facet in zip(values, self.facet_dict.values()):
-            dof = locate_dofs_topological(self.comp_func_spaces, self.mesh.topology.dim - 1, facet)
+            dof = locate_dofs_topological(
+                self.comp_func_spaces, self.mesh.topology.dim - 1, facet
+            )
             bc = dirichletbc(value, dof, self.comp_func_spaces.sub(idx))
             self.__dirichlet_bcs.append(bc)
 
     def add_outflow_bc(self, f_id=0):
         """"""
 
-        for marker in self.__boundary_dict['outlet']:
-            self.tracer_forms[f_id] += self.advection_outflow_bc(self.__w, self.__u, marker)
+        for marker in self.__boundary_dict["outlet"]:
+            self.tracer_forms[f_id] += self.advection_outflow_bc(
+                self.__w, self.__u, marker
+            )
 
-    def add_time_derivatives(self, u, kappa: Any = 1, f_id = 0):
-        self.tracer_forms[f_id] += kappa*self.d_dt(self.__w, self.__u, u)
+    def add_time_derivatives(self, u, kappa: Any = 1, f_id=0):
+        self.tracer_forms[f_id] += kappa * self.d_dt(self.__w, self.__u, u)
 
-    def add_explicit_advection(self, u, kappa: Any = 1, marker = 0, f_id = 0):
+    def add_explicit_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
         """Adds explicit advection physics to the variational form."""
 
-        self.tracer_forms[f_id] += kappa*self.advection(self.__w, u, marker)
+        self.tracer_forms[f_id] += kappa * self.advection(self.__w, u, marker)
 
-    def add_explicit_downwind_advection(self, u, kappa: Any = 1, marker = 0, f_id = 0):
-        self.tracer_forms[f_id] += kappa*self.downwind_advection(self.__w, u, marker)
+    def add_explicit_downwind_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa * self.downwind_advection(self.__w, u, marker)
 
-    def add_explicit_centered_advection(self, u, kappa: Any = 1, marker = 0, f_id = 0):
-        self.tracer_forms[f_id] += kappa*self.centered_advection(self.__w, u, marker)
+    def add_explicit_centered_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa * self.centered_advection(self.__w, u, marker)
 
-    def add_explicit_periodic_advection(self, u, kappa: Any = 1, marker_l = [], marker_r = [], f_id=0):
+    def add_explicit_periodic_advection(
+        self, u, kappa: Any = 1, marker_l=[], marker_r=[], f_id=0
+    ):
         # This method has not yet been tested.
         # TODO: Write a test and test it.
 
         for ml, mr in zip(marker_l, marker_r):
-            self.tracer_forms[f_id] += kappa*self.periodic_advection(self.__w, u, ml, mr)
+            self.tracer_forms[f_id] += kappa * self.periodic_advection(
+                self.__w, u, ml, mr
+            )
 
-    def add_implicit_advection(self, kappa: Any = 1, marker = 0, f_id = 0):
+    def add_implicit_advection(self, kappa: Any = 1, marker=0, f_id=0):
         """Adds implicit advection physics to the variational form."""
-        self.tracer_forms[f_id] += kappa*self.advection(self.__w, self.__u, marker)
+        self.tracer_forms[f_id] += kappa * self.advection(self.__w, self.__u, marker)
 
-    def add_implicit_downwind_advection(self, kappa: Any = 1, marker = 0, f_id = 0):
-        self.tracer_forms[f_id] += kappa*self.downwind_advection(self.__w, self.__u, marker)
+    def add_implicit_downwind_advection(self, kappa: Any = 1, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa * self.downwind_advection(
+            self.__w, self.__u, marker
+        )
 
-    def add_implicit_centered_advection(self, kappa: Any = 1, marker = 0, f_id = 0):
-        self.tracer_forms[f_id] += kappa*self.centered_advection(self.__w, self.__u, marker)
+    def add_implicit_centered_advection(self, kappa: Any = 1, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa * self.centered_advection(
+            self.__w, self.__u, marker
+        )
 
-    def add_explicit_diffusion(self, component_name, u, kappa: Any = 1, marker = 0, f_id = 0):
+    def add_explicit_diffusion(
+        self, component_name, u, kappa: Any = 1, marker=0, f_id=0
+    ):
         """Adds explicit diffusion physics to the variational form."""
 
         D = self.molecular_diffusivity
         idx = self.component_dict[component_name]
 
-        self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], u[idx], D[idx], marker)
+        self.tracer_forms[f_id] += kappa * self.diffusion(
+            self.__w[idx], u[idx], D[idx], marker
+        )
 
-    def add_implicit_diffusion(self, component_name, kappa: Any = 1, marker = 0, f_id = 0):
+    def add_implicit_diffusion(self, component_name, kappa: Any = 1, marker=0, f_id=0):
         """Adds implicit diffusion physics to the variational form."""
 
         D = self.molecular_diffusivity
         idx = self.component_dict[component_name]
 
-        self.tracer_forms[f_id] += kappa*self.diffusion(self.__w[idx], self.__u[idx], D[idx], marker)
+        self.tracer_forms[f_id] += kappa * self.diffusion(
+            self.__w[idx], self.__u[idx], D[idx], marker
+        )
 
-    def add_explicit_charge_balanced_diffusion(self, u, kappa: Any = 1, marker = 0, f_id = 0):
-        self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, u, u, marker)
+    def add_explicit_charge_balanced_diffusion(
+        self, u, kappa: Any = 1, marker=0, f_id=0
+    ):
+        self.tracer_forms[f_id] += kappa * self.charge_balanced_diffusion(
+            self.__w, u, u, marker
+        )
 
-    def add_semi_implicit_charge_balanced_diffusion(self, u, kappa: Any = 1, marker = 0, f_id = 0):
-        self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, u, marker)
+    def add_semi_implicit_charge_balanced_diffusion(
+        self, u, kappa: Any = 1, marker=0, f_id=0
+    ):
+        self.tracer_forms[f_id] += kappa * self.charge_balanced_diffusion(
+            self.__w, self.__u, u, marker
+        )
 
-    def add_implicit_charge_balanced_diffusion(self, kappa: Any = 1, marker = 0, f_id = 0):
-        self.tracer_forms[f_id] += kappa*self.charge_balanced_diffusion(self.__w, self.__u, self.__u, marker)
-
-    def add_electric_field_advection(self, u, kappa: Any = 1, marker = 0, f_id = 0):
-        D = self.molecular_diffusivity
-        z = self.charge
-
-        E = as_vector([z[i]*D[i]*self.electric_field for i in range(self.num_component)])
-
-    def add_flux_limiter(self, u, u_up, k=-1.0, kappa: Any = 1, marker = 0, f_id = 0):
-        """Sets up the components for flux limiters and add them to form."""
-
-        self.tracer_forms[f_id] += \
-        kappa*self.advection_flux_limited(self.__w, u, u_up, k, marker)
-
-    def add_implicit_flux_limiter(self, u0, u_up, kappa: Any = 1, marker = 0, f_id = 0):
-        # Consider renaming this function.
-
-        self.tracer_forms[f_id] += \
-        kappa*self.advection_implicit_flux_limited(self.__w, self.__u, u0, u_up, marker)
-
-    def get_upwind_form(self, u):
-        """"""
-
-        # Consider renaming this function.
-
-        adv = self.fluid_velocity
-        n = self.n
-
-        adv_np = (dot(adv, n) + Abs(dot(adv, n))) / 2.0
-        adv_nm = (dot(adv, n) - Abs(dot(adv, n))) / 2.0
-
-        np = sign(adv_np)
-        nm = sign(adv_nm)
-
-        upwind_form = dot(jump(nm*self.__w), jump(np*u/self.facet_area))*self.dS
-
-        return upwind_form
+    def add_implicit_charge_balanced_diffusion(self, kappa: Any = 1, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa * self.charge_balanced_diffusion(
+            self.__w, self.__u, self.__u, marker
+        )
 
     def add_dispersion(self):
-        return #TODO: Setup this method.
+        return  # TODO: Setup this method.
 
-    def add_mass_source(self, component_names, sources, kappa: Any = 1, f_id = 0):
+    def add_mass_source(self, component_names, sources, kappa: Any = 1, f_id=0):
         """Adds mass source to the variational form by component names."""
 
         for component_name, source in zip(component_names, sources):
             idx = self.component_dict[component_name]
-            self.tracer_forms[f_id] -= kappa*self.__w[idx]*source*self.dx
+            self.tracer_forms[f_id] -= kappa * self.__w[idx] * source * self.dx
 
-    def add_sources(self, sources, kappa: Any = 1, f_id = 0):
-        self.tracer_forms[f_id] -= kappa*dot(self.__w, sources)*self.dx
+    def add_sources(self, sources, kappa: Any = 1, f_id=0):
+        self.tracer_forms[f_id] -= kappa * dot(self.__w, sources) * self.dx
 
     def get_forms(self):
         return self.tracer_forms

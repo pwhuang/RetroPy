@@ -27,16 +27,6 @@ class MassBalanceBase:
         # All components are mobile by default
         self.component_mobility_idx = [True] * self.num_component
 
-    def set_component_mobility(self, idx: list):
-        """
-        Sets up the mobility of components.
-
-        Input example: [True, True, False],
-        where True stands for mobile and False stands for immobile.
-        """
-
-        self.component_mobility_idx = idx
-
     def set_solvent(self, solvent='H2O(l)'):
         """The solvent is not included in transport calculations."""
 

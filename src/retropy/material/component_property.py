@@ -8,6 +8,16 @@ class ComponentProperty:
     Used as components for problem classes.
     """
 
+    def set_component_mobility(self, idx: list):
+        """
+        Sets up the mobility of components.
+
+        Input example: [True, True, False],
+        where True stands for mobile and False stands for immobile.
+        """
+
+        self.component_mobility_idx = idx
+
     def set_molecular_diffusivity(self, molecular_diffusivity):
         """
         Sets the molecular diffusivity in the unit of length squared over time.
