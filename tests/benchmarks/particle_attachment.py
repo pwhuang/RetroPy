@@ -5,25 +5,31 @@ from retropy.mesh import MarkedLineMesh
 from retropy.problem import TracerTransportProblem
 
 from dolfinx.fem import Function, Constant, assemble_scalar, form
-from ufl import exp, as_vector
+# from ufl import exp, conditional, lt, as_vector
 from mpi4py import MPI
+import numpy as np
 
 
 class ParticleAttachment(TracerTransportProblem):
     """
-    This benchmark problem is based on the following work: Optimal order
-    convergence of a modified BDM1 mixed finite element scheme for reactive
-    transport in porous media by Fabian Brunner et. al., 2012, published in
-    Advances in Water Resources. doi: 10.1016/j.advwatres.2011.10.001
+    This benchmark problem of particle transport and attachment is based on 
+    the following work: Analytic solutions for colloid transport with time-
+    and depth-dependent retention in porous media by Leij et. al., 2016, 
+    published in Journal of Contaminant Hydrology, 195
+    doi: 10.1016/j.jconhyd.2016.10.006
     """
-
+    
     @staticmethod
-    def solution_expr_c1(t):
-        return lambda x: x[0] * (2.0 - x[0]) * x[1] ** 3 / 27.0 * exp(-0.1 * t)
+    def irreversible_attachment(x, t, t0, Da, M):
+        H = lambda x: np.heaviside(x, 0.5)
+        G = np.exp(Da * x) - H(t - x) + (H(x - t + t0) - H(x - t)) * np.exp(Da / M * (t-x)) + H(t - t0 - x) * np.exp(Da / M * t0)
 
-    @staticmethod
-    def solution_expr_c2(t):
-        return lambda x: (x[0] - 1.0) ** 2 * x[1] ** 2 / 9.0 * exp(-0.1 * t)
+        G[G==np.nan] = 1.0
+
+        C = (H(x - t + t0) - H(x - t)) * np.exp(-Da / M * (x - t)) / G
+        S = 1. - np.exp(Da * x) / G
+
+        return C, S
 
     def get_mesh_and_markers(self, nx):
         marked_mesh = MarkedLineMesh(xmin=0.0, xmax=1.0, num_elements=nx)
@@ -36,109 +42,74 @@ class ParticleAttachment(TracerTransportProblem):
 
     def set_flow_field(self):
         self.fluid_velocity = Function(self.Vec_CG1_space)
-        self.fluid_velocity.interpolate(lambda x: (0.0 + 0.0 * x[0], -1.0 + 0.0 * x[1]))
-
-    def define_problem(self):
-        self.set_components("c1 c2")
-        self.set_component_fe_space()
+        self.fluid_velocity.interpolate(lambda x: (1.0 + 0.0 * x[0]))
         self.set_advection_velocity()
+
+    def define_problem(self, Pe, Da_att, Da_det, M, t0):
+        self.set_components("C S")
+        self.set_component_fe_space()
+        self.set_flow_field()
         self.initialize_form()
 
-        self.set_molecular_diffusivity([0.1, 0.1])
+        Pe_inverse = Constant(self.mesh, 1.0 / Pe)
+        self.Da_att = Constant(self.mesh, Da_att)
+        self.Da_det = Constant(self.mesh, Da_det)
+        self.__M = Constant(self.mesh, M)
+        self.t0 = Constant(self.mesh, t0)
+        
+        zero = Constant(self.mesh, 0.0)
 
-        self.set_component_ics("c1", self.solution_expr_c1(t=0.0))
-        self.set_component_ics("c2", self.solution_expr_c2(t=0.0))
+        self.set_molecular_diffusivity([Pe_inverse, zero])
 
-        flux_boundaries = [
-            self.marker_dict["top"],
-            self.marker_dict["left"],
-            self.marker_dict["right"],
-        ]
+        self.set_component_ics("C", lambda x: 0.0 * x[0])
+        self.set_component_ics("S", lambda x: 0.0 * x[0])
+        self.set_component_mobility([True, False])
 
         self.mark_component_boundary(
             {
-                "c1": flux_boundaries,
-                "c2": flux_boundaries,
-                "outlet": [self.marker_dict["bottom"]],
+                "C": [self.marker_dict["left"]],
+                "outlet": [self.marker_dict["right"]],
             }
         )
 
+    def langmuir_kinetics(self, C, S):
+        one = Constant(self.mesh, 1.0)
+        return self.Da_att * (one - S) * C - self.Da_det * S
+
     def add_physics_to_form(self, u, kappa=1.0, f_id=0):
         self.add_explicit_advection(u, kappa, marker=0, f_id=f_id)
+        
+        S, C = self.get_trial_function()[1], u[0]  # implicit in S, explicit in C
+
+        self.add_mass_source(['C'], [-self.langmuir_kinetics(C, S)], kappa, f_id)
+        self.add_mass_source(['S'], [self.langmuir_kinetics(C, S) / self.__M], kappa, f_id)
+
+        self.inlet_flux = Constant(self.mesh, -1.0)
+        self.add_component_flux_bc("C", [self.inlet_flux])
         self.add_outflow_bc(f_id)
-
-        self.add_implicit_diffusion("c1", kappa, marker=0, f_id=f_id)
-        self.add_implicit_diffusion("c2", kappa, marker=0, f_id=f_id)
-
-        source_c1 = Function(self.func_space_list[0])
-        source_c1.interpolate(
-            lambda x: (
-                x[1] * (x[0] - 2.0) * x[0] * (0.1 * x[1] ** 2 + 3.0 * x[1] + 0.6)
-                + 0.2 * x[1] ** 3
-            )
-            / 27
-        )
-
-        source_c2 = Function(self.func_space_list[1])
-        source_c2.interpolate(
-            lambda x: (
-                (x[0] - 1.0) ** 2 * (0.1 * x[1] ** 2 + 2.0 * x[1] + 0.2)
-                - 0.2 * x[1] ** 2
-            )
-            / 9
-        )
-
-        f_of_t = exp(Constant(self.mesh, -0.1) * self.current_time)
-
-        self.add_mass_source(["c1"], [source_c1 * f_of_t], kappa, f_id)
-        self.add_mass_source(["c2"], [source_c2 * f_of_t], kappa, f_id)
-
-        boundary_source_c1 = Function(self.func_space_list[0])
-        boundary_source_c1.interpolate(lambda x: x[0] * (2.0 - x[0]))
-
-        boundary_source_c2 = Function(self.func_space_list[1])
-        boundary_source_c2.interpolate(lambda x: (x[0] - 1.0) ** 2)
-
-        zero = Constant(self.mesh, 0.0)
-
-        self.add_component_advection_bc(
-            "c1", (boundary_source_c1 * f_of_t, zero, zero), kappa, f_id
-        )
-
-        self.add_component_advection_bc(
-            "c2", (boundary_source_c2 * f_of_t, zero, zero), kappa, f_id
-        )
-
-        diff_expr_c1 = [boundary_source_c1 * f_of_t, zero, zero]
-
-        self.add_component_diffusion_bc("c1", self._D[0], diff_expr_c1, kappa, f_id)
-
-        diff_flux_left_right = Function(self.func_space_list[1])
-        diff_flux_left_right.interpolate(lambda x: x[1] ** 2 * 2 / 9)
-
-        diff_expr_c2 = [
-            (-2.0 / 3) * self._D[1] * boundary_source_c2 * f_of_t,
-            -self._D[1] * diff_flux_left_right * f_of_t,
-            -self._D[1] * diff_flux_left_right * f_of_t,
-        ]
-
-        self.add_component_flux_bc("c2", diff_expr_c2, kappa, f_id)
-
-        self.add_sources(
-            as_vector([-u[0] * u[1] * u[1], 2.0 * u[0] * u[1] * u[1]]), kappa, f_id
-        )
-
+        
     def generate_solution(self):
-        self.solution = Function(self.comp_func_spaces)
-        self.solution.sub(0).interpolate(self.solution_expr_c1(self.current_time.value))
-        self.solution.sub(1).interpolate(self.solution_expr_c2(self.current_time.value))
+        x_space = self.cell_coord.x.array
+        t, t0, Da_att, M = self.current_time.value, self.t0.value, self.Da_att.value, self.__M.value
+        self.solution = Function(self.comp_func_spaces)        
+        solution = np.zeros_like(self.solution.x.array)
+
+        solution[::2], solution[1::2] = self.irreversible_attachment(x_space, t, t0, Da_att, M)
+
+        self.solution.x.array[:] = solution
+        self.solution.x.scatter_forward()
 
     def get_solution(self):
         return self.solution
 
     def get_error_norm(self):
+        """
+        This benchmark problem only compares the retention profile, 
+        since the concentration profile is too diffusive to compare.
+        """
+        
         comm = self.mesh.comm
-        mass_error = self.fluid_components - self.solution
+        mass_error = self.fluid_components.sub(1) - self.solution.sub(1)
         mass_error_norm = assemble_scalar(form(mass_error**2 * self.dx))
 
         return comm.allreduce(mass_error_norm, op=MPI.SUM) ** 0.5

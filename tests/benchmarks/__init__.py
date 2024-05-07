@@ -9,4 +9,5 @@ from .rotating_cone import RotatingCone
 from .reacting_species import ReactingSpecies
 from .charge_balanced_diffusion import ChargeBalancedDiffusion
 from .tracer_breakthrough import TracerBreakthrough
+from .particle_attachment import ParticleAttachment
 from .stokesflow_benchmark import StokesFlowBenchmark
