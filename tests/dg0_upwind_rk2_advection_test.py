@@ -8,8 +8,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientRK2Solver
 from retropy.manager import XDMFManager
-
-from benchmarks import RotatingCone
+from retropy.benchmarks import RotatingCone
 
 from math import isclose
 

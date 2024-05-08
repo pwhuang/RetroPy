@@ -8,6 +8,6 @@ setup(
               'retropy.mesh', 'retropy.physics',
               'retropy.problem', 'retropy.problem',
               'retropy.solver', 'retropy.tools',
-              'retropy.manager'],
+              'retropy.manager', 'retropy.benchmarks'],
     package_dir={'': 'src'},
 )

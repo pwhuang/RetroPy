@@ -6,8 +6,9 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.problem import DarcyFlowUzawa
+from retropy.benchmarks import DarcyFlowBenchmark
+
 from utility_functions import convergence_rate
-from benchmarks import DarcyFlowBenchmark
 import numpy as np
 
 

@@ -9,10 +9,8 @@ from retropy.problem import TracerTransportProblemExp
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientNLSolver
 from retropy.manager import XDMFManager
+from retropy.benchmarks import RotatingCone
 
-from benchmarks import RotatingCone
-
-from dolfinx.fem import Constant
 import numpy as np
 
 

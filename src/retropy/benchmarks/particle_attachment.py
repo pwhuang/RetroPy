@@ -5,7 +5,6 @@ from retropy.mesh import MarkedLineMesh
 from retropy.problem import TracerTransportProblem
 
 from dolfinx.fem import Function, Constant, assemble_scalar, form
-# from ufl import exp, conditional, lt, as_vector
 from mpi4py import MPI
 import numpy as np
 
@@ -107,7 +106,7 @@ class ParticleAttachment(TracerTransportProblem):
         This benchmark problem only compares the retention profile, 
         since the concentration profile is too diffusive to compare.
         """
-        
+
         comm = self.mesh.comm
         mass_error = self.fluid_components.sub(1) - self.solution.sub(1)
         mass_error_norm = assemble_scalar(form(mass_error**2 * self.dx))

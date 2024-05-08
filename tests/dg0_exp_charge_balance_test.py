@@ -8,8 +8,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 from retropy.problem import TracerTransportProblemExp
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientNLSolver
-
-from benchmarks import ChargeBalancedDiffusion
+from retropy.benchmarks import ChargeBalancedDiffusion
 
 from dolfinx.fem import Constant
 import matplotlib.pyplot as plt

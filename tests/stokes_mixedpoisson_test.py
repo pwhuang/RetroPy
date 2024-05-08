@@ -6,8 +6,8 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.problem import StokesFlowMixedPoisson
+from retropy.benchmarks import StokesFlowBenchmark
 from utility_functions import convergence_rate
-from benchmarks import StokesFlowBenchmark
 
 from dolfinx import io
 from dolfinx.fem import Function

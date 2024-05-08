@@ -7,9 +7,9 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
 from retropy.solver import SteadyStateSolver
+from retropy.benchmarks import EllipticTransportBenchmark
 
 from utility_functions import convergence_rate
-from benchmarks import EllipticTransportBenchmark
 
 from math import isclose
 

@@ -8,8 +8,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientRK2Solver
 from retropy.manager import XDMFManager
-
-from benchmarks import ReactingSpecies
+from retropy.benchmarks import ReactingSpecies
 
 
 class DG0ReactiveTransportTest(

@@ -5,14 +5,13 @@ import os
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
-from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import StokesFlowUzawa
-from utility_functions import convergence_rate
-from benchmarks import StokesFlowBenchmark
+from retropy.benchmarks import StokesFlowBenchmark
 
-from ufl import FiniteElement, VectorElement, EnrichedElement
+from utility_functions import convergence_rate
+
 from dolfinx import io
-from dolfinx.fem import Function, FunctionSpace
+from dolfinx.fem import Function
 import numpy as np
 
 

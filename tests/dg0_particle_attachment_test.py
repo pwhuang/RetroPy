@@ -7,8 +7,8 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientSolver
+from retropy.benchmarks import ParticleAttachment
 
-from benchmarks import ParticleAttachment
 from utility_functions import convergence_rate
 
 from math import isclose

@@ -8,8 +8,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientSolver
 from retropy.manager import XDMFManager
-
-from benchmarks import RotatingCone
+from retropy.benchmarks import RotatingCone
 
 
 class DG0UpwindAdvectionTest(RotatingCone, DG0Kernel, TransientSolver, XDMFManager):

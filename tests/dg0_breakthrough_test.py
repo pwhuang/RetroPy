@@ -7,8 +7,8 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientSolver
+from retropy.benchmarks import TracerBreakthrough
 
-from benchmarks import TracerBreakthrough
 from utility_functions import convergence_rate
 
 from math import isclose

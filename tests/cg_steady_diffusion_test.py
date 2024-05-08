@@ -7,9 +7,9 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import CGKernel
 from retropy.solver import SteadyStateSolver
+from retropy.benchmarks import DiffusionBenchmark
 
 from utility_functions import convergence_rate
-from benchmarks import DiffusionBenchmark
 
 from math import isclose
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from retropy.problem import DOLFIN_EPS
-from benchmarks import EllipticTransportBenchmark
+from retropy.benchmarks import EllipticTransportBenchmark
 from dolfinx.fem import Function, assemble_scalar, form
 
 from mpi4py import MPI

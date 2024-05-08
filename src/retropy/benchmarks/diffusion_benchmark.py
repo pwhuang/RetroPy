@@ -4,7 +4,7 @@
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import TracerTransportProblem
 
-from dolfinx.fem import Function, Constant, assemble_scalar, form
+from dolfinx.fem import Function, assemble_scalar, form
 
 from mpi4py import MPI
 import numpy as np

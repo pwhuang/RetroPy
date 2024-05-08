@@ -9,8 +9,7 @@ from retropy.problem import TracerTransportProblemExp
 from retropy.physics import DG0Kernel
 from retropy.solver import TransientNLSolver
 from retropy.manager import XDMFManager
-
-from benchmarks import DiffusionBenchmark
+from retropy.benchmarks import DiffusionBenchmark
 
 from dolfinx.fem import Constant
 
