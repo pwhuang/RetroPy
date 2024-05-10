@@ -18,7 +18,7 @@ class ReactionManager:
         self.initialize_fluid_pH()
         self.rho_temp = zeros(num_dof)
         self.pH_temp = zeros(num_dof)
-        self.molar_density_temp = zeros([num_dof, self.num_component+1])
+        self.molar_density_temp = zeros([num_dof, self.chem_sys_dof])
 
         self.set_dof_idx()
 
@@ -39,21 +39,22 @@ class ReactionManager:
             self.molar_density_temp[i] = self._get_species_amounts()
 
     def _assign_chem_equi_results(self):
+        idx_diff = self.num_component - self.chem_sys_dof
         self.fluid_density.x.array[:] = self.rho_temp * 1e-6  #kg/m3 -> g/mm3
         self.fluid_pH.x.array[:] = self.pH_temp
-        self.fluid_components.x.array[:] = self.molar_density_temp[:, :-1].flatten()
-        self.solvent.x.array[:] = self.molar_density_temp[:, -1].flatten()
+        self.fluid_components.x.array[:] = self.molar_density_temp[:, :idx_diff].flatten()
+        self.solvent.x.array[:] = self.molar_density_temp[:, self.solvent_idx].flatten()
 
         self.fluid_density.x.scatter_forward()
         self.fluid_pH.x.scatter_forward()
         self.fluid_components.x.scatter_forward()
         self.solvent.x.scatter_forward()
 
-    def initialize_Reaktoro(self):
+    def initialize_Reaktoro(self, database="supcrt07"):
         """
         """
 
-        self.set_chem_system()
+        self.set_chem_system(database)
         self.set_activity_models()
 
         self.chem_equi_solver = rkt.EquilibriumSolver(self.chem_system)
@@ -64,12 +65,14 @@ class ReactionManager:
 
         self.one_over_ln10 = 1.0/log(10.0)
 
-    def set_chem_system(self):
-        db = rkt.SupcrtDatabase("supcrt07")
+    def set_chem_system(self, database):
+        db = rkt.SupcrtDatabase(database)
         aqueous_components = self.component_str + ' ' + self.solvent_name
 
         self.aqueous_phase = rkt.AqueousPhase(aqueous_components)
         self.chem_system = rkt.ChemicalSystem(db, self.aqueous_phase)
+        self.chem_sys_dof = self.chem_system.species().size()
+        self.solvent_idx = self.chem_system.species().index(self.solvent_name)
 
     def set_activity_models(self):
         self.aqueous_phase.set(rkt.ActivityModelHKF())
