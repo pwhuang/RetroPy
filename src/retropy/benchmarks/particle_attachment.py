@@ -53,7 +53,7 @@ class ParticleAttachment(TracerTransportProblem):
         Pe_inverse = Constant(self.mesh, 1.0 / Pe)
         self.Da_att = Constant(self.mesh, Da_att)
         self.Da_det = Constant(self.mesh, Da_det)
-        self.__M = Constant(self.mesh, M)
+        self._M = Constant(self.mesh, M)
         self.t0 = Constant(self.mesh, t0)
         
         zero = Constant(self.mesh, 0.0)
@@ -81,7 +81,7 @@ class ParticleAttachment(TracerTransportProblem):
         S, C = self.get_trial_function()[1], u[0]  # implicit in S, explicit in C
 
         self.add_mass_source(['C'], [-self.langmuir_kinetics(C, S)], kappa, f_id)
-        self.add_mass_source(['S'], [self.langmuir_kinetics(C, S) / self.__M], kappa, f_id)
+        self.add_mass_source(['S'], [self.langmuir_kinetics(C, S) / self._M], kappa, f_id)
 
         self.inlet_flux = Constant(self.mesh, -1.0)
         self.add_component_flux_bc("C", [self.inlet_flux])
@@ -89,7 +89,7 @@ class ParticleAttachment(TracerTransportProblem):
         
     def generate_solution(self):
         x_space = self.cell_coord.x.array
-        t, t0, Da_att, M = self.current_time.value, self.t0.value, self.Da_att.value, self.__M.value
+        t, t0, Da_att, M = self.current_time.value, self.t0.value, self.Da_att.value, self._M.value
         self.solution = Function(self.comp_func_spaces)        
         solution = np.zeros_like(self.solution.x.array)
 
