@@ -53,7 +53,6 @@ class TransientSolver:
         """"""
 
         self.dt.value = dt_val
-        self.save_to_file(time=self.current_time.value)
 
         for _ in range(timesteps):
             self.solve_one_step()
