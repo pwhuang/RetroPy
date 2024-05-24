@@ -50,7 +50,7 @@ class ParticleAttachment(TracerTransportProblem):
         self.set_flow_field()
         self.initialize_form()
 
-        Pe_inverse = Constant(self.mesh, 1.0 / Pe)
+        self.Pe_inverse = Constant(self.mesh, 1.0 / Pe)
         self.Da_att = Constant(self.mesh, Da_att)
         self.Da_det = Constant(self.mesh, Da_det)
         self._M = Constant(self.mesh, M)
@@ -58,7 +58,7 @@ class ParticleAttachment(TracerTransportProblem):
         
         zero = Constant(self.mesh, 0.0)
 
-        self.set_molecular_diffusivity([Pe_inverse, zero])
+        self.set_molecular_diffusivity([self.Pe_inverse, zero])
 
         self.set_component_ics("C", lambda x: 0.0 * x[0])
         self.set_component_ics("S", lambda x: 0.0 * x[0])
@@ -73,7 +73,7 @@ class ParticleAttachment(TracerTransportProblem):
 
     def langmuir_kinetics(self, C, S):
         one = Constant(self.mesh, 1.0)
-        return self.Da_att * (one - S) * C - self.Da_det * S
+        return self.Da_att * (one - S) * C - self.Da_det * self._M * S
 
     def add_physics_to_form(self, u, kappa=1.0, f_id=0):
         self.add_explicit_advection(u, kappa, marker=0, f_id=f_id)
@@ -84,7 +84,7 @@ class ParticleAttachment(TracerTransportProblem):
         self.add_mass_source(['S'], [self.langmuir_kinetics(C, S) / self._M], kappa, f_id)
 
         self.inlet_flux = Constant(self.mesh, -1.0)
-        self.add_component_flux_bc("C", [self.inlet_flux])
+        self.add_component_flux_bc("C", [self.inlet_flux], kappa, f_id)
         self.add_outflow_bc(f_id)
         
     def generate_solution(self):
