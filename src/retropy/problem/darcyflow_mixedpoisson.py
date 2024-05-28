@@ -38,8 +38,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
         self.mixed_form = (
             mu / k * inner(v, u) * dx
-            - inner(div(v), p) * dx
-            + r * inner(div(v), div(phi * rho * u)) * dx
+            - div(v) * p * dx
+            + r * div(v) * div(phi * rho * u) * dx
             - inner(v, rho * g) * dx
             + q * div(phi * rho * u) * dx
         )
@@ -52,7 +52,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         dx = self.dx
 
         for source in sources:
-            self.mixed_form -= q * source * dx + r * inner(div(v), source) * dx
+            self.mixed_form -= q * source * dx + r * div(v) * source * dx
 
     def add_momentum_source(self, sources: list):
         self.add_momentum_source_to_residual_form(sources)
@@ -67,7 +67,18 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
         for key, pressure_bc in self.pressure_bc.items():
             marker = self.marker_dict[key]
-            self.mixed_form += pressure_bc * inner(n, v) * ds(marker)
+            self.mixed_form += pressure_bc * dot(n, v) * ds(marker)
+
+    def add_weakly_enforced_pressure_bc(self):
+        v, n, ds = self.__v, self.n, self.ds
+        q, p = self.__q, self.__p
+        alpha = Constant(self.mesh, 1e3)
+
+        for key, pressure_bc in self.pressure_bc.items():
+            marker = self.marker_dict[key]
+            # TODO: Verify the implementation corresponds to weakly enforced boundary conditions.
+            self.mixed_form += alpha * (p - pressure_bc) * dot(n, v) * ds(marker)
+            self.mixed_form += alpha * (p - pressure_bc) * q * ds(marker)
 
     def set_velocity_bc(self, bc: dict):
         """"""
