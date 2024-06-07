@@ -27,7 +27,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         u0, p0 = self.__u0, self.__p0
 
-        mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
+        mu, k, rho, g = self._mu, self._k, self._rho, self._g
 
         self.__r = Constant(self.mesh, ScalarType(1.0))
         self.omega = Constant(self.mesh, ScalarType(1.0))
@@ -37,13 +37,13 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         self.form_update_velocity = (
             mu / k * inner(v, u) * dx
-            + r * inner(div(v), div(rho * phi * u)) * dx
+            + r * inner(div(v), div(rho * u)) * dx
             - inner(p0, div(v)) * dx
             - inner(v, rho * g) * dx
         )
 
         self.form_update_pressure = (
-            q * (p - p0) * dx + omega * q * (div(rho * phi * u0)) * dx
+            q * (p - p0) * dx + omega * q * (div(rho * u0)) * dx
         )
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
@@ -71,6 +71,22 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         for key, pressure_bc in self.pressure_bc.items():
             marker = self.marker_dict[key]
             self.form_update_velocity += pressure_bc * inner(n, v) * ds(marker)
+
+    def add_weak_pressure_bc(self, penalty_value = 0.0):
+        super().add_weak_pressure_bc(penalty_value)
+        v, n, ds = self.__v, self.n, self.ds
+        p, u = self.fluid_pressure, self.__u
+        alpha = Constant(self.mesh, penalty_value)
+        h = Circumradius(self.mesh)
+        mu, k, rho, g = self._mu, self._k, self.fluid_density, self._g
+        q = self.__q
+        
+        for key, pressure_bc in self.pressure_bc.items():
+            marker = self.marker_dict[key]
+            # TODO: Develop an augmented Langrangian Uzawa's method that utilizes
+            # Robin boundary conditions.
+            self.form_update_velocity += alpha * k / mu * ((pressure_bc - p) / h  - rho * dot(g, n)) * dot(n, v) * ds(marker)
+            self.form_update_velocity += alpha * dot(u, n) * dot(n, v) * ds(marker)
 
     def set_additional_parameters(self, r_val: float, omega_by_r: float):
         """For 0 < omega/r < 2, the augmented system converges."""

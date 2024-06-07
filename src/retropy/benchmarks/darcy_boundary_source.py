@@ -3,8 +3,8 @@
 
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import TransportProblemBase
-from dolfinx.fem import Function, assemble_scalar, form
-from petsc4py.PETSc import ScalarType
+from dolfinx.fem import Function, assemble_scalar, form, Constant
+
 from ufl import inner
 
 from mpi4py import MPI
@@ -44,10 +44,10 @@ class DarcyBoundarySource(TransportProblemBase):
         self.set_fluid_viscosity(1.0)
         self.set_gravity((0.0, -1.0))
 
-    def set_boundary_conditions(self):
+    def set_boundary_conditions(self, penalty_value):
         pressure_bc = self.fluid_density * self._g[1] * self.cell_coord[1]
         self.set_pressure_bc({"right": pressure_bc})
-        self.add_weakly_enforced_pressure_bc()
+        self.add_weak_pressure_bc(penalty_value)
 
         velocity_bc = Function(self.velocity_func_space)
         velocity_bc.interpolate(lambda x: (1.0 + 0.0*x[0], 0.0*x[1]))

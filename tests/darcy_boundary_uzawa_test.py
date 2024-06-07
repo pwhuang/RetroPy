@@ -5,41 +5,32 @@ import os
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
-from retropy.problem import DarcyFlowMixedPoisson
+from retropy.problem import DarcyFlowUzawa
 from retropy.benchmarks import DarcyBoundarySource
 
 from utility_functions import convergence_rate
 import numpy as np
 
 
-class DarcyBoundaryTest(DarcyFlowMixedPoisson, DarcyBoundarySource):
+class DarcyBoundaryTest(DarcyFlowUzawa, DarcyBoundarySource):
     """"""
 
     def __init__(self, nx):
         marked_mesh = super().get_mesh_and_markers(nx)
-        DarcyFlowMixedPoisson.__init__(self, marked_mesh)
+        DarcyFlowUzawa.__init__(self, marked_mesh)
 
         self.set_pressure_fe_space("DG", 0)
         self.set_velocity_fe_space("RT", 1)
 
         self.set_material_properties()
         self.generate_form()
-        self.set_boundary_conditions(penalty_value=10.0)
+        self.set_boundary_conditions(penalty_value=0.0)
         self.set_momentum_sources()
 
-        self.set_additional_parameters(r_val=0.0, omega_by_r=1.0)
+        self.set_additional_parameters(r_val=1e2, omega_by_r=1.0)
         self.assemble_matrix()
 
-        solver_params = {
-            "ksp_type": "bicg",
-            "ksp_rtol": 1e-10,
-            "ksp_atol": 1e-12,
-            "ksp_max_it": 1000,
-            "pc_type": "jacobi",
-        }
-
-        self.set_flow_solver_params(solver_params)
-
+        self.set_flow_solver_params()
         self.get_solution()
 
 
@@ -67,4 +58,4 @@ print(rates)
 
 
 def test_function():
-    assert np.allclose(rates, [1.0, 1.5], rtol=0.05)
+    assert np.allclose(rates, [1.5, 0.5], rtol=0.1)

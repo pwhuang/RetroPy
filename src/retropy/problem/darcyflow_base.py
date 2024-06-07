@@ -28,6 +28,20 @@ class DarcyFlowBase(FluidProperty):
             marker = self.marker_dict[key]
             self.residual_momentum_form += pressure_bc * inner(n, v) * ds(marker)
 
+    def add_weak_pressure_bc(self, penalty_value):
+        """Sets up the boundary condition of pressure."""
+        v, n, ds = self.__v, self.n, self.ds
+        alpha = Constant(self.mesh, penalty_value)
+        h = Circumradius(self.mesh)
+        mu, k = self._mu, self._k
+        u, p = self.fluid_velocity, self.fluid_pressure
+        mu, k, rho, g = self._mu, self._k, self.fluid_density, self._g
+
+        for key, pressure_bc in self.pressure_bc.items():
+            marker = self.marker_dict[key]
+            self.residual_momentum_form += alpha * k / mu * ((pressure_bc - p) / h  - rho * dot(g, n) ) * dot(n, v) * ds(marker)
+            self.residual_momentum_form += alpha * dot(u, n) * dot(n, v) * ds(marker)
+
     def set_velocity_bc(self, bc: dict):
         """Sets up the boundary condition of velocity."""
 
@@ -64,7 +78,7 @@ class DarcyFlowBase(FluidProperty):
         self.residual_momentum_form = (
             mu / k * inner(v, u0) * dx - inner(div(v), p0) * dx - inner(v, rho * g) * dx
         )
-        self.residual_mass_form = q * div(phi * rho * u0) * dx
+        self.residual_mass_form = q * div(rho * u0) * dx
 
     def add_mass_source_to_residual_form(self, sources: list):
         q = self.__q

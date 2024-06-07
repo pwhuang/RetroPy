@@ -38,6 +38,7 @@ from ufl import (
     FacetNormal,
     FacetArea,
     CellVolume,
+    Circumradius,
     VectorElement,
     FiniteElement,
     MixedElement,
