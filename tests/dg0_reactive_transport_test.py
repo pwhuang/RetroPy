@@ -6,13 +6,13 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
-from retropy.solver import TransientRK2Solver
+from retropy.solver import TransientSolver
 from retropy.manager import XDMFManager
 from retropy.benchmarks import ReactingSpecies
 
 
 class DG0ReactiveTransportTest(
-    ReactingSpecies, DG0Kernel, TransientRK2Solver, XDMFManager
+    ReactingSpecies, DG0Kernel, TransientSolver, XDMFManager
 ):
     def __init__(self, nx, is_output):
         marked_mesh = self.get_mesh_and_markers(nx, "triangle")
@@ -20,7 +20,6 @@ class DG0ReactiveTransportTest(
 
         self.set_flow_field()
         self.define_problem()
-        self.set_solver_forms()
         self.generate_solver()
         self.set_solver_parameters(linear_solver="gmres", preconditioner="jacobi")
 
@@ -35,7 +34,6 @@ err_norms = []
 
 for i, dt in enumerate(list_of_dt):
     problem = DG0ReactiveTransportTest(nx, is_output=False)
-    problem.set_kappa(1.0)
     problem.solve_transport(dt_val=dt, timesteps=timesteps[i])
     problem.generate_solution()
 

@@ -7,6 +7,8 @@ from retropy.problem import TracerTransportProblem
 from dolfinx.fem import Function, Constant, assemble_scalar, form
 from ufl import exp, as_vector
 from mpi4py import MPI
+import matplotlib.pyplot as plt
+from matplotlib.tri import Triangulation
 
 
 class ReactingSpecies(TracerTransportProblem):
@@ -153,3 +155,20 @@ class ReactingSpecies(TracerTransportProblem):
         mass_error_norm = assemble_scalar(form(mass_error**2 * self.dx))
 
         return comm.allreduce(mass_error_norm, op=MPI.SUM) ** 0.5
+
+    def mpl_output(self):
+        x_mesh, y_mesh, _ = self.mesh.geometry.x.T
+        cell_map = self.mesh.geometry.dofmap
+        triang = Triangulation(x_mesh, y_mesh, cell_map)
+
+        sol_c1, sol_c2 = self.solution.x.array.reshape(-1, 2).T
+        num_c1, num_c2 = self.fluid_components.x.array.reshape(-1, 2).T
+
+        _, ax = plt.subplots(2, 2, figsize=(8, 8))
+        ax[0, 0].tripcolor(triang, sol_c1)
+        ax[1, 0].tripcolor(triang, sol_c2)
+        ax[0, 1].tripcolor(triang, num_c1)
+        ax[1, 1].tripcolor(triang, num_c2)
+        
+        plt.tight_layout()
+        plt.show()
