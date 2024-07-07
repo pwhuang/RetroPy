@@ -41,6 +41,16 @@ class MassBalanceBase:
         self.solvent.name = self.solvent_name
         self._M_fraction = self._M/self.M_solvent
 
+    def set_mineral(self, mineral):
+        """Minerals are not included in transport calculations."""
+
+        self.mineral_name = mineral
+
+    def set_mineral_ic(self, init_expr):
+        self.mineral = Function(self.DG0_space)
+        self.mineral.interpolate(init_expr)
+        self.mineral.name = self.mineral_name
+
     def initiaize_ln_activity(self):
         self.ln_activity = Function(self.comp_func_spaces)
         self.ln_activity_dict = {}
