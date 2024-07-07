@@ -111,6 +111,9 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
         markers = self.__boundary_dict[component_name]
 
         for value, marker in zip(values, markers):
+            if type(value) == float:
+                value = Constant(self.mesh, value)
+
             self.tracer_forms[f_id] += kappa * self.advection_flux_bc(
                 self.__w[idx], value, marker
             )
