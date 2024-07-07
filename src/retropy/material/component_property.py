@@ -23,9 +23,6 @@ class ComponentProperty:
         Sets the molecular diffusivity in the unit of length squared over time.
         """
 
-        if len(molecular_diffusivity)!=self.num_component:
-            raise Exception("length of list != num_components")
-
         self.molecular_diffusivity = molecular_diffusivity
         self._D = array(molecular_diffusivity)
 
