@@ -32,7 +32,7 @@ class DarcyFlowBase(FluidProperty):
         """Sets up the boundary condition of pressure."""
         v, n, ds = self.__v, self.n, self.ds
         alpha = Constant(self.mesh, penalty_value)
-        h = Circumradius(self.mesh)
+        h = Constant(self.mesh, 0.5) * CellDiameter(self.mesh)
         mu, k = self._mu, self._k
         u, p = self.fluid_velocity, self.fluid_pressure
         mu, k, rho, g = self._mu, self._k, self.fluid_density, self._g

@@ -39,6 +39,7 @@ from ufl import (
     FacetArea,
     CellVolume,
     Circumradius,
+    CellDiameter,
     VectorElement,
     FiniteElement,
     MixedElement,

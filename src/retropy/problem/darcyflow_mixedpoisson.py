@@ -74,7 +74,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         v, n, ds = self.__v, self.n, self.ds
         p, u = self.__p, self.__u
         alpha = Constant(self.mesh, penalty_value)
-        h = Circumradius(self.mesh)
+        h = Constant(self.mesh, 0.5) * CellDiameter(self.mesh)
         mu, k, rho, g = self._mu, self._k, self.fluid_density, self._g
         
         for key, pressure_bc in self.pressure_bc.items():
