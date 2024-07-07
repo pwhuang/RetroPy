@@ -149,8 +149,8 @@ class DG0Kernel:
     def advection_flux_bc(self, w, value, marker: int):
         """"""
 
-        # TODO: Update this function to conform to other methods.
-        adv = dot(self.fluid_velocity, self.n)
+        # Assuming all advection velocity are the same
+        adv = dot(self.advection_velocity[0], self.n)
 
         return inner(w, adv*value)*self.ds(marker)
 
