@@ -91,8 +91,12 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
         return self.__w
 
     def set_advection_velocity(self):
+        zero = Constant(self.mesh, 0.0)
         self.advection_velocity = as_vector(
-            [self.fluid_velocity for _ in range(self.num_component)]
+            [
+                self.fluid_velocity if is_mobile else zero * self.fluid_velocity
+                for is_mobile in self.component_mobility_idx
+            ]
         )
 
     def set_component_ics(self, name, expressions):
