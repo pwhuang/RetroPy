@@ -53,6 +53,18 @@ class TransientNLSolver(TransientSolver):
 
     def get_solver(self):
         return self.__solver
+    
+    def solve_transport(self, dt_val=1.0, timesteps=1):
+        """"""
+
+        self.dt.value = dt_val
+
+        for _ in range(timesteps):
+            self.solve_one_step()
+            self.assign_u1_to_u0()
+
+            self.current_time.value += dt_val
+            self.save_to_file(time=self.current_time.value)
 
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
         ksp = self.__solver.krylov_solver

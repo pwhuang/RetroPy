@@ -23,13 +23,13 @@ class TransientSolver:
 
         a, L = lhs(self.__form), rhs(self.__form)
 
-        self.__problem = LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1)
+        self._problem = LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1)
 
     def get_solver(self):
-        return self.__problem.solver
+        return self._problem.solver
 
     def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
-        prm = self.__problem.solver
+        prm = self._problem.solver
         prm.setType(linear_solver)
         prm.getPC().setType(preconditioner)
 
@@ -38,7 +38,7 @@ class TransientSolver:
         return prm
 
     def solve_one_step(self):
-        return self.__problem.solve()
+        return self._problem.solve()
 
     def get_solver_u1(self):
         return self.__u1
@@ -53,6 +53,7 @@ class TransientSolver:
         """"""
 
         self.dt.value = dt_val
+        self._problem.assemble_A()
 
         for _ in range(timesteps):
             self.solve_one_step()
@@ -60,3 +61,29 @@ class TransientSolver:
 
             self.current_time.value += dt_val
             self.save_to_file(time=self.current_time.value)
+
+
+class LinearProblem(LinearProblem):
+    def assemble_A(self):
+        # Assemble lhs
+        self._A.zeroEntries()
+        assemble_matrix_mat(self._A, self._a, bcs=self.bcs)
+        self._A.assemble()
+
+    def solve_without_matrix_assembly(self):
+        """Solve the problem."""
+        # Assemble rhs
+        with self._b.localForm() as b_loc:
+            b_loc.set(0)
+        assemble_vector(self._b, self._L)
+
+        # Apply boundary conditions to the rhs
+        apply_lifting(self._b, [self._a], bcs=[self.bcs])
+        self._b.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
+        set_bc(self._b, self.bcs)
+
+        # Solve linear system and update ghost values in the solution
+        self._solver.solve(self._b, self._x)
+        self.u.x.scatter_forward()
+
+        return self.u

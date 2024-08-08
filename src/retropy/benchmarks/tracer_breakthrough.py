@@ -89,7 +89,7 @@ class TracerBreakthrough(TracerTransportProblem):
         self.add_implicit_diffusion("C", kappa=one, marker=0)
 
         self.add_component_flux_bc("C", [self.inlet_flux], kappa=one)
-        self.add_outflow_bc()
+        self.add_outflow_bc(u)
 
     def get_solution(self, t_end):
         expr = self.solution_expr(t_end, L=1.0, R=1.0, v=1.0, D=1.0 / self.Pe)

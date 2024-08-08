@@ -168,14 +168,19 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
             bc = dirichletbc(value, dof, self.comp_func_spaces.sub(idx))
             self.__dirichlet_bcs.append(bc)
 
-    def add_outflow_bc(self, f_id=0):
+    def add_outflow_bc(self, u, f_id=0):
         """"""
-
-        for marker in self.__boundary_dict["outlet"]:
+        
+        for marker in self.__boundary_dict.get("outlet", []):
             self.tracer_forms[f_id] += self.advection_outflow_bc(
                 self.__w, self.__u, marker
             )
-
+        
+        for marker in self.__boundary_dict.get("explicit_outlet", []):
+            self.tracer_forms[f_id] += self.advection_outflow_bc(
+                self.__w, u, marker
+            )
+        
     def add_time_derivatives(self, u, kappa: Any = 1, f_id=0):
         self.tracer_forms[f_id] += kappa * self.d_dt(self.__w, self.__u, u)
 

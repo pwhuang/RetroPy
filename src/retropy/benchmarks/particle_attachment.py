@@ -171,7 +171,7 @@ class ParticleAttachment(TracerTransportProblem):
 
         self.inlet_flux = Constant(self.mesh, -1.0)
         self.add_component_flux_bc("C", [self.inlet_flux], kappa, f_id)
-        self.add_outflow_bc(f_id)
+        self.add_outflow_bc(u, f_id)
 
     def generate_solution(self):
         x_space = self.cell_coord.x.array
