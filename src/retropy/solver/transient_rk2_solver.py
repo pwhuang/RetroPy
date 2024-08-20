@@ -15,16 +15,17 @@ class TransientRK2Solver:
         self.__u1 = Function(self.__func_space)
         self.kappa = Constant(self.mesh, 0.5)
 
-        one = Constant(self.mesh, 1.0)
-        half = Constant(self.mesh, 0.5)
+        one, two = Constant(self.mesh, 1.0), Constant(self.mesh, 2.0)
 
-        self.add_physics_to_form(self.__u0, kappa=one, f_id=0)
         self.add_time_derivatives(self.__u0, kappa=one, f_id=0)
+        self.add_physics_to_form(self.__u0, kappa=one, f_id=0)
 
-        self.add_physics_to_form(self.__u1, kappa=half/self.kappa, f_id=1)
-        self.add_sources((self.__u1 - self.__u0)/self.dt,
-                         (one - half/self.kappa)/self.kappa, f_id=1)
-        self.add_time_derivatives(self.__u0, f_id=1)
+        self.add_time_derivatives(self.__u1, kappa=two, f_id=1)
+        self.add_corrector_to_form(self.__u0, self.__u1, f_id=1)
+
+    def add_corrector_to_form(self, u0, u1, f_id):
+        one = Constant(self.mesh, 1.0)
+        self.add_physics_to_form(u0, kappa=one, f_id=f_id)
 
     def generate_solver(self):
         self.__forms = self.get_forms()
@@ -53,21 +54,14 @@ class TransientRK2Solver:
 
         set_default_solver_parameters(prm)
 
-    def set_kappa(self, kappa):
-        """
-        When kappa=0.5, the RK2 method results in the midpoint scheme.
-        When kappa=1.0, the RK2 method results in Heun's method. If both steps
-        are TVD (Total Variation Diminishing), such Heun's method is also known
-        as SSP (Strong Stability Preserving) methods.
-        """
-
-        self.kappa.value = kappa
-
     def solve_first_step(self):
         self.__problem1.solve()
 
     def solve_second_step(self):
         self.__problem2.solve()
+
+    def assign_u1_to_u0(self):
+        self.fluid_components.x.array[:] = self.__u1.x.array
 
     def solve_transport(self, dt_val=1.0, timesteps=1):
         """"""

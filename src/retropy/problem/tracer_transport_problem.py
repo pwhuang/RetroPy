@@ -95,7 +95,7 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
         self.advection_velocity = as_vector(
             [
                 self.fluid_velocity if is_mobile else zero * self.fluid_velocity
-                for is_mobile in self.component_mobility_idx
+                for is_mobile in self.component_mobility
             ]
         )
 
@@ -191,6 +191,12 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
 
     def add_explicit_downwind_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa * self.downwind_advection(self.__w, u, marker)
+
+    def add_explicit_advection_by_func(self, u, func, kappa: Any = 1, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa * self.advection_by_func(self.__w, u, func, marker)
+
+    def add_explicit_downwind_advection_by_func(self, u, func, kappa: Any = 1, marker=0, f_id=0):
+        self.tracer_forms[f_id] += kappa * self.downwind_advection_by_func(self.__w, u, func, marker)
 
     def add_explicit_centered_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa * self.centered_advection(self.__w, u, marker)

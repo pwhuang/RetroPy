@@ -10,14 +10,12 @@ from retropy.solver import TransientRK2Solver
 from retropy.manager import XDMFManager
 from retropy.benchmarks import RotatingCone
 
-from math import isclose
-
 
 class DG0UpwindRK2AdvectionTest(
     RotatingCone, DG0Kernel, TransientRK2Solver, XDMFManager
 ):
     def __init__(self, nx, is_output):
-        marked_mesh = self.get_mesh_and_markers(nx, "quadrilateral")
+        marked_mesh = self.get_mesh_and_markers(nx, "triangle")
         super().__init__(marked_mesh)
 
         self.set_flow_field()
@@ -30,14 +28,14 @@ class DG0UpwindRK2AdvectionTest(
             self.generate_output_instance("rotating_cone_rk2")
 
 
-nx = 50
+nx = 25
 list_of_dt = [1e-2]
 timesteps = [100]
 err_norms = []
 
 for i, dt in enumerate(list_of_dt):
     problem = DG0UpwindRK2AdvectionTest(nx, is_output=False)
-    problem.set_kappa(1.0)
+    
     initial_mass = problem.get_total_mass()
     initial_center_x, initial_center_y = problem.get_center_of_mass()
     problem.solve_transport(dt_val=dt, timesteps=timesteps[i])

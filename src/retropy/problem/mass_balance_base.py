@@ -25,7 +25,7 @@ class MassBalanceBase:
         self.num_component = len(self.component_dict)
 
         # All components are mobile by default
-        self.component_mobility_idx = [True] * self.num_component
+        self.component_mobility = [True] * self.num_component
 
     def set_solvent(self, solvent='H2O(l)'):
         """The solvent is not included in transport calculations."""

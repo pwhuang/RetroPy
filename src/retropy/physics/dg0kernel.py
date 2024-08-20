@@ -29,17 +29,17 @@ class DG0Kernel:
         return D*inner(jump(w), jump(u))/self.delta_h*self.dS(marker)
 
     def advection_by_func(self, w, u, func, marker):
-        adv_np = self.__get_advection_tensor(func, sign=1.0)
+        adv_np = self._get_advection_tensor(func, sign=1.0)
 
         return inner(jump(w), jump(adv_np*u))*self.dS(marker)
 
     def downwind_advection_by_func(self, w, u, func, marker):
-        adv_nm = self.__get_advection_tensor(func, sign=-1.0)
+        adv_nm = self._get_advection_tensor(func, sign=-1.0)
 
         return inner(jump(w), jump(adv_nm*u))*self.dS(marker)
 
     def centered_advection_by_func(self, w, u, func, marker):
-        adv_nc = self.__get_advection_tensor(func, sign=0.0)
+        adv_nc = self._get_advection_tensor(func, sign=0.0)
 
         return inner(jump(w), jump(adv_nc*u))*self.dS(marker)
 
@@ -81,11 +81,11 @@ class DG0Kernel:
 
         eps = Constant(self.mesh, 1e-13)
 
-        adv_np = self.__get_advection_tensor(self.advection_velocity, sign=1.0)
-        adv_nm = self.__get_advection_tensor(self.advection_velocity, sign=-1.0)
+        adv_np = self._get_advection_tensor(self.advection_velocity, sign=1.0)
+        adv_nm = self._get_advection_tensor(self.advection_velocity, sign=-1.0)
 
-        np = self.__get_sign_tensor(self.advection_velocity, _sign=1.0)
-        nm = self.__get_sign_tensor(self.advection_velocity, _sign=-1.0)
+        np = self._getsign_tensor(self.advection_velocity, sign=1.0)
+        nm = self._getsign_tensor(self.advection_velocity, sign=-1.0)
 
         grad_down = jump(adv_nm*u) - jump(adv_np*u)
         grad_up = jump(adv_np*u) - jump(adv_np*u_up)
@@ -110,11 +110,11 @@ class DG0Kernel:
 
         eps = Constant(self.mesh, 1e-13)
 
-        adv_np = self.__get_advection_tensor(self.advection_velocity, sign=1.0)
-        adv_nm = self.__get_advection_tensor(self.advection_velocity, sign=-1.0)
+        adv_np = self._get_advection_tensor(self.advection_velocity, sign=1.0)
+        adv_nm = self._get_advection_tensor(self.advection_velocity, sign=-1.0)
 
-        np = self.__get_sign_tensor(self.advection_velocity, _sign=1.0)
-        nm = self.__get_sign_tensor(self.advection_velocity, _sign=-1.0)
+        np = self._getsign_tensor(self.advection_velocity, sign=1.0)
+        nm = self._getsign_tensor(self.advection_velocity, sign=-1.0)
 
         grad_down = jump(adv_nm*u) - jump(adv_np*u0)
 
@@ -157,7 +157,7 @@ class DG0Kernel:
     def advection_outflow_bc(self, w, u, marker: int):
         """"""
 
-        adv = self.__get_advection_tensor(self.advection_velocity, sign=1.0)
+        adv = self._get_advection_tensor(self.advection_velocity, sign=1.0)
 
         return inner(w, adv*u)*self.ds(marker)
 
@@ -189,7 +189,7 @@ class DG0Kernel:
 
         return -dot(jump(w), D_tensor*jump(u))/self.delta_h*self.dS(marker)
 
-    def __get_advection_tensor(self, advection_velocity, sign: float):
+    def _get_advection_tensor(self, advection_velocity, sign: float):
         adv_mat = []
 
         sign = Constant(self.mesh, sign)
@@ -198,7 +198,7 @@ class DG0Kernel:
         for i in range(self.num_component):
             adv_mat.append([])
             for j in range(self.num_component):
-                if i==j and self.component_mobility_idx[i]==True:
+                if i==j and self.component_mobility[i]==True:
                     adv_mat[i].append((dot(advection_velocity[i], self.n)\
                                       + sign * Abs(dot(advection_velocity[i], self.n))) / 2.0 )
                 else:
@@ -206,17 +206,17 @@ class DG0Kernel:
 
         return as_matrix(adv_mat)
 
-    def __get_sign_tensor(self, advection_velocity, _sign: float):
+    def _get_sign_tensor(self, advection_velocity, sign: float):
         adv_mat = []
 
-        _sign = Constant(self.mesh, _sign)
+        sign = Constant(self.mesh, sign)
 
         for i in range(self.num_component):
             adv_mat.append([])
             for j in range(self.num_component):
                 if i==j:
                     adv_mat[i].append(sign((dot(advection_velocity[i], self.n)\
-                                      + _sign*Abs(dot(advection_velocity[i], self.n)))/2.0))
+                                      + sign*Abs(dot(advection_velocity[i], self.n)))/2.0))
                 else:
                     adv_mat[i].append(Constant(self.mesh, 0.0))
 

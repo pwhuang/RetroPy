@@ -3,11 +3,14 @@
 
 from retropy.problem import DOLFIN_EPS
 from retropy.benchmarks import EllipticTransportBenchmark
-from dolfinx.fem import Function, assemble_scalar, form
+from dolfinx.fem import Function, FunctionSpace, Constant, assemble_scalar, form
+from dolfinx.fem.petsc import assemble_vector
 
 from mpi4py import MPI
 import numpy as np
 import ufl
+from ufl import dot, avg, jump
+from ufl.operators import elem_div
 
 
 class RotatingCone(EllipticTransportBenchmark):
@@ -32,15 +35,26 @@ class RotatingCone(EllipticTransportBenchmark):
             -np.sin(np.pi * x[1]) * np.sin(np.pi * x[1]) * np.sin(2 * np.pi * x[0]),
         )
 
-        self.fluid_velocity = Function(self.Vec_CG1_space)
+        self.velocity_func_space = FunctionSpace(self.mesh, ('RT', 1))
+
+        self.fluid_velocity = Function(self.velocity_func_space)
         self.fluid_velocity.interpolate(expr)
-        self.fluid_velocity *= ufl.cos(ufl.pi * self.current_time)
 
         self.fluid_pressure = Function(self.DG0_space)
+
+    def set_advection_velocity(self):
+        zero = Constant(self.mesh, 0.0)
+        self.advection_velocity = ufl.as_vector(
+            [
+                ufl.cos(ufl.pi * self.current_time) * self.fluid_velocity if is_mobile else zero * self.fluid_velocity
+                for is_mobile in self.component_mobility
+            ]
+        )
 
     def define_problem(self):
         self.set_components("solute")
         self.set_component_fe_space()
+        self.set_component_mobility([True])
         self.set_advection_velocity()
 
         self.initialize_form()
@@ -50,6 +64,44 @@ class RotatingCone(EllipticTransportBenchmark):
 
     def add_physics_to_form(self, u, kappa, f_id):
         self.add_explicit_advection(u, kappa=kappa, marker=0, f_id=f_id)
+
+    @staticmethod
+    def flux_limiter(r):
+        return np.maximum(0.0, np.minimum(1.5, r))
+
+    def add_corrector_to_form(self, u0, u1, f_id):
+        psi_list = []
+        CR_space = FunctionSpace(self.mesh, ('CR', 1))
+        
+        for i in range(self.num_component):          
+            psi_list.append(Function(CR_space))
+            psi_list[i].x.array[:] = 1.0
+            
+        self._psi = ufl.as_vector(psi_list)
+        
+        one = Constant(self.mesh, 1.0)
+
+        corrected_velocity = ufl.as_vector([self._psi[0] * ufl.cos(ufl.pi * self.current_time) * self.fluid_velocity])
+        
+        self.add_explicit_advection_by_func(u0, corrected_velocity, kappa=-one, marker=0, f_id=f_id)
+        self.add_explicit_downwind_advection_by_func(u1, corrected_velocity, kappa=one, marker=0, f_id=f_id)
+
+        w = ufl.TestFunction(CR_space)
+
+        self.delta_u = u1 - u0
+        _np = self._get_sign_tensor(self.advection_velocity, sign=1.0)
+        _nm = self._get_sign_tensor(self.advection_velocity, sign=-1.0)
+
+        self.smoothness_form = form(dot(avg(w), elem_div(jump(_np * self.delta_u), jump(_nm * self.delta_u))[0]) * self.dS)
+        
+    def solve_second_step(self):
+        for i in self.component_mobility_idx:
+            i = i.item()
+            r = np.nan_to_num(assemble_vector(self.smoothness_form).array_w, 1.0)
+            self._psi[i].vector.array_w = self.flux_limiter(r)
+            self._psi[i].x.scatter_forward()
+
+        super().solve_second_step()
 
     def get_solution(self):
         self.solution = Function(self.func_space_list[0])

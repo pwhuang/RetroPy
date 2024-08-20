@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from numpy import array
+import numpy as np
 
 class ComponentProperty:
     """This class defines the physical properties of fluid components.
@@ -16,7 +16,8 @@ class ComponentProperty:
         where True stands for mobile and False stands for immobile.
         """
 
-        self.component_mobility_idx = idx
+        self.component_mobility = np.array(idx)
+        self.component_mobility_idx = np.argwhere(self.component_mobility==True)[0]
 
     def set_molecular_diffusivity(self, molecular_diffusivity):
         """
@@ -24,18 +25,18 @@ class ComponentProperty:
         """
 
         self.molecular_diffusivity = molecular_diffusivity
-        self._D = array(molecular_diffusivity)
+        self._D = np.array(molecular_diffusivity)
 
     def set_molar_mass(self, molar_mass):
         if len(molar_mass)!=self.num_component:
             raise Exception("length of list != num_components")
 
         self.molar_mass = molar_mass
-        self._M = array(molar_mass)
+        self._M = np.array(molar_mass)
 
     def set_charge(self, charge):
         if len(charge)!=self.num_component:
             raise Exception("length of list != num_components")
 
         self.charge = charge
-        self._Z = array(charge)
+        self._Z = np.array(charge)
