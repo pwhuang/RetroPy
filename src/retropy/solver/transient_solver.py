@@ -87,3 +87,14 @@ class LinearProblem(LinearProblem):
         self.u.x.scatter_forward()
 
         return self.u
+    
+    def solve_single_threaded(self):
+        """Solve the problem."""
+        # Assemble rhs
+        with self._b.localForm() as b_loc:
+            b_loc.set(0)
+
+        assemble_vector(self._b, self._L)
+        self._solver.solve(self._b, self._x)
+
+        return self.u
