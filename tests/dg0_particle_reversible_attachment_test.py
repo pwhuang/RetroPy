@@ -57,30 +57,30 @@ class DG0ParticleReversibleAttachmentTest(
         plt.show()
 
 
-Pe, Da_att, Da_det, M, t0 = np.inf, 5.5, 1.3, 2.2, 1.0
+if __name__ == "__main__":
+    Pe, Da_att, Da_det, M, t0 = np.inf, 5.5, 1.3, 2.2, 1.0
 
-nx_list = [33, 66]
-dt_list = [2.0e-2, 1.0e-2]
-timesteps = [50, 100]
-err_norms = []
+    nx_list = [33, 66]
+    dt_list = [2.0e-2, 1.0e-2]
+    timesteps = [50, 100]
+    err_norms = []
 
-for nx, dt, timestep in zip(nx_list, dt_list, timesteps):
-    problem = DG0ParticleReversibleAttachmentTest(nx, Pe, Da_att, Da_det, M, t0)
-    problem.solve_transport(dt_val=dt, timesteps=timestep)
-    problem.inlet_flux.value = 0.0
-    problem.solve_transport(dt_val=dt, timesteps=int(0.5 * timestep))
+    for nx, dt, timestep in zip(nx_list, dt_list, timesteps):
+        problem = DG0ParticleReversibleAttachmentTest(nx, Pe, Da_att, Da_det, M, t0)
+        problem.solve_transport(dt_val=dt, timesteps=timestep)
+        problem.inlet_flux.value = 0.0
+        problem.solve_transport(dt_val=dt, timesteps=int(0.5 * timestep))
 
-    problem.generate_solution()
-    error_norm = problem.get_error_norm()
-    err_norms.append(error_norm)
+        problem.generate_solution()
+        error_norm = problem.get_error_norm()
+        err_norms.append(error_norm)
 
-    # problem.mpl_output()
+        # problem.mpl_output()
 
-print(err_norms)
+    print(err_norms)
 
-convergence_rate_m = convergence_rate(err_norms, dt_list)
-print(convergence_rate_m)
+    convergence_rate_m = convergence_rate(err_norms, dt_list)
+    print(convergence_rate_m)
 
-
-def test_function():
-    assert isclose(convergence_rate_m[0], 1, rel_tol=0.2)
+    def test_function():
+        assert isclose(convergence_rate_m[0], 1, rel_tol=0.2)
