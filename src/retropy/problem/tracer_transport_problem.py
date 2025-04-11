@@ -33,13 +33,16 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
         self.__boundary_dict = boundary_dict
 
     def set_component_fe_space(self):
-        self.FiniteElement = FiniteElement(
-            super().fe_space, self.mesh.ufl_cell(), super().fe_degree
+        self.element = element(
+            super().fe_space,
+            self.mesh.ufl_cell().cellname(),
+            super().fe_degree,
+            dtype=default_real_type,
         )
 
-        element_list = [self.FiniteElement for _ in range(self.num_component)]
+        element_list = [self.element for _ in range(self.num_component)]
 
-        self.comp_func_spaces = FunctionSpace(self.mesh, MixedElement(element_list))
+        self.comp_func_spaces = functionspace(self.mesh, mixed_element(element_list))
 
         self.fluid_components = Function(self.comp_func_spaces)
 

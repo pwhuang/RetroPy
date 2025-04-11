@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from retropy.mesh import MarkedLineMesh
-from retropy.problem import TracerTransportProblem, DOLFIN_EPS
+from retropy.problem import TracerTransportProblem
 
-from dolfinx.fem import FunctionSpace, Function, Constant, assemble_scalar, form
-from ufl.algebra import Abs
+from dolfinx.fem import functionspace, Function, Constant, assemble_scalar, form
 
 import numpy as np
 from scipy.special import erfc
@@ -76,8 +75,7 @@ class TracerBreakthrough(TracerTransportProblem):
         self.set_molecular_diffusivity([1.0 / Peclet_number])
 
         self.mark_component_boundary(
-            {"C": [self.marker_dict["left"]], 
-             "outlet": [self.marker_dict["right"]]}
+            {"C": [self.marker_dict["left"]], "outlet": [self.marker_dict["right"]]}
         )
 
         self.set_component_ics("C", self.initial_expr())
@@ -94,7 +92,7 @@ class TracerBreakthrough(TracerTransportProblem):
         self.add_outflow_bc(u)
 
     def get_solution(self, t_end):
-        self.interpolation_space = FunctionSpace(self.mesh, ('CG', 2)) 
+        self.interpolation_space = functionspace(self.mesh, ("CG", 2))
         expr = self.solution_expr(t_end, L=1.0, R=1.0, v=1.0, D=1.0 / self.Pe)
 
         self.u_solution = Function(self.interpolation_space)

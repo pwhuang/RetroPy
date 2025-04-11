@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2022 Po-Wei Huang geopwhuang@gmail.com
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
+from dolfinx import default_real_type
 from dolfinx.fem import (
     Function,
-    FunctionSpace,
-    VectorFunctionSpace,
+    functionspace,
     dirichletbc,
     locate_dofs_topological,
     locate_dofs_geometrical,
@@ -40,9 +40,6 @@ from ufl import (
     CellVolume,
     Circumradius,
     CellDiameter,
-    VectorElement,
-    FiniteElement,
-    MixedElement,
     TestFunction,
     TestFunctions,
     TrialFunction,
@@ -61,6 +58,7 @@ from ufl import (
     ds,
     dS,
 )
+from basix.ufl import element, mixed_element
 
 from petsc4py.PETSc import ScalarType
 from petsc4py import PETSc

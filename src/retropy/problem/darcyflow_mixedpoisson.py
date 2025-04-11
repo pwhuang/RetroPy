@@ -18,8 +18,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
             self.pressure_finite_element,
         ]
 
-        self.mixed_func_space = FunctionSpace(
-            self.mesh, MixedElement(self.func_space_list)
+        self.mixed_func_space = functionspace(
+            self.mesh, mixed_element(self.func_space_list)
         )
 
         W = self.mixed_func_space
@@ -30,7 +30,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
 
-        mu, k, rho, g, phi = self._mu, self._k, self._rho, self._g, self._phi
+        mu, k, rho, g = self._mu, self._k, self._rho, self._g
         dx = self.dx
 
         self.__r = Constant(self.mesh, 0.0)
@@ -69,18 +69,25 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
             marker = self.marker_dict[key]
             self.mixed_form += pressure_bc * dot(n, v) * ds(marker)
 
-    def add_weak_pressure_bc(self, penalty_value = 1e1):
+    def add_weak_pressure_bc(self, penalty_value=1e1):
         super().add_weak_pressure_bc(penalty_value)
         v, n, ds = self.__v, self.n, self.ds
         p, u = self.__p, self.__u
         alpha = Constant(self.mesh, penalty_value)
         h = Constant(self.mesh, 0.5) * CellDiameter(self.mesh)
         mu, k, rho, g = self._mu, self._k, self.fluid_density, self._g
-        
+
         for key, pressure_bc in self.pressure_bc.items():
             marker = self.marker_dict[key]
             # TODO: Verify the implementation corresponds to weakly enforced boundary conditions.
-            self.mixed_form += alpha * k / mu * ((pressure_bc - p) / h  - rho * dot(g, n)) * dot(n, v) * ds(marker)
+            self.mixed_form += (
+                alpha
+                * k
+                / mu
+                * ((pressure_bc - p) / h - rho * dot(g, n))
+                * dot(n, v)
+                * ds(marker)
+            )
             self.mixed_form += alpha * dot(u, n) * dot(n, v) * ds(marker)
 
     def set_velocity_bc(self, bc: dict):

@@ -129,11 +129,11 @@ class StokesFlowUzawa(TransportProblemBase, StokesFlowBase):
             )
             set_bc(self.b_v, self.velocity_bc)
 
-            self.solver_v.solve(self.b_v, self.__u0.vector)
+            self.solver_v.solve(self.b_v, self.__u0.x.petsc_vec)
             self.__u0.x.scatter_forward()
 
             self.b_p = assemble_vector(self.L_p)
-            self.solver_p.solve(self.b_p, self.__p0.vector)
+            self.solver_p.solve(self.b_p, self.__p0.x.petsc_vec)
 
             steps += 1
             residual = self.get_flow_residual()

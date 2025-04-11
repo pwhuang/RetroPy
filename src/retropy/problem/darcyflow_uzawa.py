@@ -42,9 +42,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             - inner(v, rho * g) * dx
         )
 
-        self.form_update_pressure = (
-            q * (p - p0) * dx + omega * q * (div(rho * u0)) * dx
-        )
+        self.form_update_pressure = q * (p - p0) * dx + omega * q * (div(rho * u0)) * dx
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
 
@@ -72,7 +70,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             marker = self.marker_dict[key]
             self.form_update_velocity += pressure_bc * inner(n, v) * ds(marker)
 
-    def add_weak_pressure_bc(self, penalty_value = 0.0):
+    def add_weak_pressure_bc(self, penalty_value=0.0):
         super().add_weak_pressure_bc(penalty_value)
         v, n, ds = self.__v, self.n, self.ds
         p, u = self.fluid_pressure, self.__u
@@ -80,12 +78,19 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
         h = Circumradius(self.mesh)
         mu, k, rho, g = self._mu, self._k, self.fluid_density, self._g
         q = self.__q
-        
+
         for key, pressure_bc in self.pressure_bc.items():
             marker = self.marker_dict[key]
             # TODO: Develop an augmented Langrangian Uzawa's method that utilizes
             # Robin boundary conditions.
-            self.form_update_velocity += alpha * k / mu * ((pressure_bc - p) / h  - rho * dot(g, n)) * dot(n, v) * ds(marker)
+            self.form_update_velocity += (
+                alpha
+                * k
+                / mu
+                * ((pressure_bc - p) / h - rho * dot(g, n))
+                * dot(n, v)
+                * ds(marker)
+            )
             self.form_update_velocity += alpha * dot(u, n) * dot(n, v) * ds(marker)
 
     def set_additional_parameters(self, r_val: float, omega_by_r: float):
@@ -143,12 +148,12 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             if MPI.COMM_WORLD.rank == 0:
                 print(f"Darcy flow residual = {str(residual)}")
 
-            self.solver_v.solve(self.b_v, self.__u0.vector)
+            self.solver_v.solve(self.b_v, self.__u0.x.petsc_vec)
             # TODO: figure out why scattering of p0 is not necessary here.
             self.__u0.x.scatter_forward()
-            
+
             self.b_p = assemble_vector(self.L_p)
-            self.solver_p.solve(self.b_p, self.__p0.vector)
+            self.solver_p.solve(self.b_p, self.__p0.x.petsc_vec)
 
             self.b_v = assemble_vector(self.L_v)
             apply_lifting(self.b_v, [self.a_v], bcs=[self.velocity_bc])

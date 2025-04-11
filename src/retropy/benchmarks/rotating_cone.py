@@ -3,14 +3,11 @@
 
 from retropy.problem import DOLFIN_EPS
 from retropy.benchmarks import EllipticTransportBenchmark
-from dolfinx.fem import Function, FunctionSpace, Constant, assemble_scalar, form
-from dolfinx.fem.petsc import assemble_vector
+from dolfinx.fem import Function, functionspace, Constant, assemble_scalar, form
 
 from mpi4py import MPI
 import numpy as np
 import ufl
-from ufl import dot, avg, jump
-from ufl.operators import elem_div
 
 
 class RotatingCone(EllipticTransportBenchmark):
@@ -35,7 +32,7 @@ class RotatingCone(EllipticTransportBenchmark):
             -np.sin(np.pi * x[1]) * np.sin(np.pi * x[1]) * np.sin(2 * np.pi * x[0]),
         )
 
-        self.velocity_func_space = FunctionSpace(self.mesh, ('RT', 1))
+        self.velocity_func_space = functionspace(self.mesh, ("RT", 1))
 
         self.fluid_velocity = Function(self.velocity_func_space)
         self.fluid_velocity.interpolate(expr)
@@ -46,7 +43,11 @@ class RotatingCone(EllipticTransportBenchmark):
         zero = Constant(self.mesh, 0.0)
         self.advection_velocity = ufl.as_vector(
             [
-                ufl.cos(ufl.pi * self.current_time) * self.fluid_velocity if is_mobile else zero * self.fluid_velocity
+                (
+                    ufl.cos(ufl.pi * self.current_time) * self.fluid_velocity
+                    if is_mobile
+                    else zero * self.fluid_velocity
+                )
                 for is_mobile in self.component_mobility
             ]
         )
@@ -69,11 +70,11 @@ class RotatingCone(EllipticTransportBenchmark):
     @staticmethod
     def flux_limiter(r):
         return np.maximum(0.0, np.minimum(1.5, r))
-        
+
     def add_corrector_to_form(self, u1, f_id):
         # TODO: Implement and test flux-limited advection in 2D.
         pass
-        
+
     def solve_limiter_function(self):
         # TODO: Implement and test flux-limited advection in 2D.
         pass

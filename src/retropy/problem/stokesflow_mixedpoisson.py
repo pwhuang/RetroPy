@@ -15,7 +15,7 @@ class StokesFlowMixedPoisson(TransportProblemBase, StokesFlowBase):
 
         func_space_list = [self.velocity_finite_element, self.pressure_finite_element]
 
-        self.mixed_func_space = FunctionSpace(self.mesh, MixedElement(func_space_list))
+        self.mixed_func_space = functionspace(self.mesh, mixed_element(func_space_list))
         W = self.mixed_func_space
 
         (self.__u, self.__p) = TrialFunctions(W)
