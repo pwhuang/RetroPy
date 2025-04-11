@@ -1,10 +1,10 @@
 # RetroPy
 [![DOI](https://zenodo.org/badge/196580566.svg)](https://zenodo.org/badge/latestdoi/196580566)
 ## Environment
-RetroPy uses FEniCS 2019.1.0 and Reaktoro v1. The environment can be installed using conda:
+RetroPy uses FEniCS-dolfinx 0.9.0 and Reaktoro v2. The environment can be installed using conda:
 ```
-conda create -n fenics39 -c conda-forge fenics numpy scipy h5py matplotlib jupyter reaktoro=1.2.3 python=3.9
-conda activate fenics39
+conda create -n fenics311 -c conda-forge fenics-dolfinx=0.9 numpy scipy h5py matplotlib jupyter reaktoro=2.12 python=3.11
+conda activate fenics311
 ```
 ## Installation
 For development purposes, please follow the procedure in the project directory:
