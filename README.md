@@ -3,8 +3,8 @@
 ## Environment
 RetroPy uses FEniCS-dolfinx 0.9.0 and Reaktoro v2. The environment can be installed using conda:
 ```
-conda create -n fenics311 -c conda-forge fenics-dolfinx=0.9 numpy scipy h5py matplotlib jupyter reaktoro=2.12 python=3.11
-conda activate fenics311
+conda create -n fenicsx-env -c conda-forge fenics-dolfinx=0.9 numpy scipy h5py matplotlib jupyter pytensor reaktoro=2.13 python=3.12
+conda activate fenicsx-env
 ```
 ## Installation
 For development purposes, please follow the procedure in the project directory:
