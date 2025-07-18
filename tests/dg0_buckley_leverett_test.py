@@ -39,9 +39,9 @@ class DG0BuckleyLeverettTest(BuckleyLeverett, DG0Kernel, PETScSolver):
         plt.show()
 
 
-nx_list = [20, 40]
-dt_list = [2.0e-2, 1.0e-2]
-timesteps = [25, 50]
+nx_list = [23, 46]
+dt_list = [2.2e-2, 1.1e-2]
+timesteps = [40, 80]
 err_norms = []
 
 for nx, dt, timestep in zip(nx_list, dt_list, timesteps):
@@ -53,13 +53,10 @@ for nx, dt, timestep in zip(nx_list, dt_list, timesteps):
     error_norm = problem.get_error_norm()
     err_norms.append(error_norm)
 
-    problem.mpl_output()
-
 print(err_norms)
 
 convergence_rate_m = convergence_rate(err_norms, dt_list)
 print(convergence_rate_m)
 
-# TODO: Implement better tests for discontinuous solutions.
 def test_function():
     assert isclose(convergence_rate_m[0], 1.0, rel_tol=0.2)
