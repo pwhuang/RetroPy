@@ -23,7 +23,7 @@ class StokesUzawaTest(StokesFlowUzawa, StokesFlowBenchmark):
         StokesFlowUzawa.__init__(self, marked_mesh)
 
         self.set_pressure_fe_space("DG", 0)
-        self.set_velocity_vector_fe_space("CG", 2)
+        self.set_velocity_vector_fe_space('P', 2)
 
         self.set_pressure_ic(0.0)
         self.get_solution()

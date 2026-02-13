@@ -12,7 +12,7 @@ class CGKernel:
     u : dolfin TrialFunction or Function
     """
 
-    fe_space = 'CG'
+    fe_space = 'P'
     fe_degree = 1
 
     def diffusion(self, w, u, D, marker: int):

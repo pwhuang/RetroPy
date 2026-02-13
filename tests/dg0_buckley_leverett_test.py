@@ -26,7 +26,7 @@ class DG0BuckleyLeverettTest(BuckleyLeverett, DG0Kernel, PETScSolver):
         self.set_solver_parameters(linear_solver="gmres", preconditioner="jacobi")
 
     def solve_one_step(self):
-        return self._problems[0].solve_without_matrix_assembly()
+        return self._problems[0].solve()
 
     def mpl_output(self):
         x_space = self.cell_coord.x.array

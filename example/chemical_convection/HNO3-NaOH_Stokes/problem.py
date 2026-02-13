@@ -241,7 +241,7 @@ class Problem(ReactiveTransportManager, FlowManager, MeshFactory, OutputManager,
 
     def set_flow_fe_space(self):
         self.set_pressure_fe_space('DG', 1)
-        self.set_velocity_vector_fe_space('CG', 2)
+        self.set_velocity_vector_fe_space(, 2)
 
     def save_fluid_velocity(self, time_step):
         #self.fluid_vel_to_save = interpolate(self.fluid_velocity, self.Vec_DG0_space)

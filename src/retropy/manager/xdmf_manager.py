@@ -26,4 +26,4 @@ class XDMFManager:
         self.outputter.write_function(function, t=time_step)
 
     def flush_output(self):
-        pass
+        self.outputter.flush()

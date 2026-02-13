@@ -106,7 +106,7 @@ class AnimateDG0Function:
         self.cells_CG2 = mesh.cells()
         self.triang_CG2 = Triangulation(self.x_CG2, self.y_CG2, self.cells_CG2)
 
-        CG2 = VectorFunctionSpace(mesh, 'CG', 2)
+        CG2 = VectorFunctionSpace(mesh, 'P', 2)
         velocity = Function(CG2)
 
         self.vector_x, self.vector_y = [], []
@@ -123,7 +123,7 @@ class AnimateDG0Function:
         return self.vector_x, self.vector_y
 
     def interpolate_over_space(self, scalar_list, origin='DG', origin_order=0
-                                                , target='CG', target_order=1):
+                                                , target='P', target_order=1):
 
         origin_space = FunctionSpace(self.mesh, origin, origin_order)
         target_space = FunctionSpace(self.mesh, target, target_order)

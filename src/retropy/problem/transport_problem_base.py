@@ -26,10 +26,10 @@ class TransportProblemBase:
         cell_vertex_num = self.mesh.ufl_cell().num_vertices()
 
         self.DG0_space = functionspace(self.mesh, ("DG", 0))
-        self.CG1_space = functionspace(self.mesh, ("CG", 1))
+        self.CG1_space = functionspace(self.mesh, ("P", 1))
 
         self.Vec_DG0_space = functionspace(self.mesh, ("DG", 0, (mesh_dim,)))
-        self.Vec_CG1_space = functionspace(self.mesh, ("CG", 1, (mesh_dim,)))
+        self.Vec_CG1_space = functionspace(self.mesh, ("P", 1, (mesh_dim,)))
 
         # The implementation of boundary_vertex_coord potentially leads to a
         # erroneous boundary diffusion flux approximation for triangular meshes.

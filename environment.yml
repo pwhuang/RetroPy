@@ -1,0 +1,46 @@
+channels:
+- conda-forge
+dependencies:
+- autodiff >=1.1.1
+- catch2 =2
+- ccache
+- clangxx_osx-arm64 =19
+- cmake
+- cpp-tabulate
+- eigen
+- fire
+- git
+- ipykernel
+- make
+- matplotlib-base
+- nbformat
+- ninja
+- nlohmann_json
+- numpy
+- openlibm
+- optima =0.6.0
+- pandas
+- phreeqc4rkt
+- pip
+- pybind11 >=2.10.0
+- pybind11-abi
+- pybind11-stubgen =2.0.2
+- pytest
+- pytest-regressions
+- pytest-xdist
+- python =3.12
+- reaktplot >=0.4.1
+- thermofun =0.5.2
+- spdlog
+- tsl_ordered_map
+- yaml-cpp =0.8.0
+- fenics-dolfinx =0.10
+- scipy
+- h5py
+- pytensor
+- openmpi
+- "blas=*=accelerate"
+- pip:
+  - oyaml
+environment: {}
+name: fenicsx-env

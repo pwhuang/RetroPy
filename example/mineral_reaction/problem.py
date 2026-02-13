@@ -302,8 +302,8 @@ class Problem(TransportManager, FlowManager, OutputManager):
         self.add_mass_source(["CO3-2"], [-self.kinetics(C1, C2)], kappa, f_id)
         self.add_mass_source(["Calcite"], [self.kinetics(C1, C2)], kappa, f_id)
 
-        source = Constant(self.mesh, 0.05)
-        self.add_mass_source(["CO3-2"], [source], kappa, f_id)
+        self.source = Constant(self.mesh, 0.05)
+        self.add_mass_source(["CO3-2"], [self.source], kappa, f_id)
 
         inlet_conc = [self.injected_amount]  # micro mol/mm^3 # mol/L
 
@@ -352,6 +352,7 @@ class Problem(TransportManager, FlowManager, OutputManager):
 
             if (i+1) * self.dt.value > 3.0:
                 self.injected_amount.value = 0.0
+                self.source.value = 0.0
 
             self.save_to_file(time=(i+1)*self.dt.value, is_saving_pv=False)
             saved_times.append((i+1)*self.dt.value)

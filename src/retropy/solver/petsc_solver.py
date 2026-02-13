@@ -26,7 +26,8 @@ class PETScSolver:
 
         for form in self.get_forms():
             a, L = lhs(form), rhs(form)
-            self._problems.append(LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1))
+            self._problems.append(LinearProblem(a, L, petsc_options_prefix="basic_linear_problem", 
+                                                bcs=self.get_dirichlet_bcs(), u=self.__u1))
 
     def get_solver(self):
         return self._problems[0].solver
@@ -56,9 +57,6 @@ class PETScSolver:
         """"""
 
         self.dt.value = dt_val
-        
-        for problem in self._problems:
-            problem.assemble_A()
 
         for _ in range(timesteps):
             self.solve_one_step()
@@ -66,40 +64,3 @@ class PETScSolver:
 
             self.current_time.value += dt_val
             self.save_to_file(time=self.current_time.value)
-
-
-class LinearProblem(LinearProblem):
-    def assemble_A(self):
-        # Assemble lhs
-        self._A.zeroEntries()
-        assemble_matrix_mat(self._A, self._a, bcs=self.bcs)
-        self._A.assemble()
-
-    def solve_without_matrix_assembly(self):
-        """Solve the problem."""
-        # Assemble rhs
-        with self._b.localForm() as b_loc:
-            b_loc.set(0)
-        assemble_vector(self._b, self._L)
-
-        # Apply boundary conditions to the rhs
-        apply_lifting(self._b, [self._a], bcs=[self.bcs])
-        self._b.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
-        set_bc(self._b, self.bcs)
-
-        # Solve linear system and update ghost values in the solution
-        self._solver.solve(self._b, self._x)
-        self.u.x.scatter_forward()
-
-        return self.u
-    
-    def solve_single_threaded(self):
-        """Solve the problem."""
-        # Assemble rhs
-        with self._b.localForm() as b_loc:
-            b_loc.set(0)
-
-        assemble_vector(self._b, self._L)
-        self._solver.solve(self._b, self._x)
-
-        return self.u

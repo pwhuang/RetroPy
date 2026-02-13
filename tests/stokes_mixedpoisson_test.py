@@ -21,8 +21,8 @@ class StokesMixedPoissonTest(StokesFlowMixedPoisson, StokesFlowBenchmark):
         marked_mesh = StokesFlowBenchmark.get_mesh_and_markers(self, nx)
         StokesFlowMixedPoisson.__init__(self, marked_mesh)
 
-        self.set_pressure_fe_space("CG", 1)
-        self.set_velocity_vector_fe_space("CG", 2)
+        self.set_pressure_fe_space('P', 1)
+        self.set_velocity_vector_fe_space('P', 2)
 
         self.set_pressure_ic(0.0)
         self.get_solution()

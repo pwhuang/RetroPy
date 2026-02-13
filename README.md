@@ -1,11 +1,18 @@
 # RetroPy
 [![DOI](https://zenodo.org/badge/196580566.svg)](https://zenodo.org/badge/latestdoi/196580566)
 ## Environment
-RetroPy uses FEniCS-dolfinx 0.9.0 and Reaktoro v2. The environment can be installed using conda:
+RetroPy uses FEniCS-dolfinx 0.10.0 and Reaktoro v2. Navigate to the RetroPy folder. The environment can be installed using conda:
 ```
-conda create -n fenicsx-env -c conda-forge fenics-dolfinx=0.9 numpy scipy h5py matplotlib jupyter pytensor reaktoro=2.13 python=3.12
+conda create -f environment.yml
 conda activate fenicsx-env
 ```
+We proceed with installing [Reaktoro](https://reaktoro.org/installation/installation-using-cmake.html)
+```
+git clone https://github.com/reaktoro/reaktoro.git
+cd reaktoro
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX
+cmake --build build --parallel 4 --target install
+``` 
 ## Installation
 For development purposes, please follow the procedure in the project directory:
 ```
@@ -15,8 +22,7 @@ pip install -e .
 ## Testing
 After installation, we can check whether it is correctly installed using pytest:
 ```
-pip install pytest
-cd $RetroPy/tests
+cd tests
 pytest
 ```
 ## Example Usage

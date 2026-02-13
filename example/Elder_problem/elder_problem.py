@@ -161,5 +161,5 @@ class ElderProblem(TransportManager, FlowManager, OutputManager):
             np.save(self.output_file_name + '_time', np.array(saved_times), allow_pickle=False)
 
 
-problem = ElderProblem(nx=80, ny=20, mesh_type="quadrilateral", mesh_shape="crossed")
-problem.solve(dt_val=2e-4, timesteps=50)
+problem = ElderProblem(nx=640, ny=160, mesh_type="quadrilateral", mesh_shape="crossed")
+problem.solve(dt_val=5e-5, timesteps=200)

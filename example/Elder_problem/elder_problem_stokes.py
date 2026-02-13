@@ -68,7 +68,7 @@ class FlowManager(StokesFlowUzawa):
 
     def setup_flow_solver(self):
         self.set_pressure_fe_space('DG', 1)
-        self.set_velocity_vector_fe_space('CG', 2)
+        self.set_velocity_vector_fe_space('P', 2)
 
         self.set_fluid_properties()
         self.set_advection_velocity()

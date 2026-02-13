@@ -11,9 +11,9 @@ from dolfinx.fem import (
 from dolfinx.mesh import exterior_facet_indices
 from dolfinx.fem.petsc import (
     NonlinearProblem,
+    NewtonSolverNonlinearProblem,
     assemble_vector,
     assemble_matrix,
-    assemble_matrix_mat,
     create_vector,
     apply_lifting,
     set_bc,

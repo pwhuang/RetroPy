@@ -113,7 +113,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
     def set_flow_solver_params(self, petsc_options):
         self.problem = LinearProblem(
-            self.__a, self.__L, self.mixed_velocity_bc, petsc_options=petsc_options
+            self.__a, self.__L, petsc_options_prefix="basic_linear_problem", bcs=self.mixed_velocity_bc, petsc_options=petsc_options
         )
 
     def solve_flow(self, **kwargs):

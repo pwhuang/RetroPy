@@ -49,11 +49,11 @@ class Problem(ReactiveTransportManager, FlowManager, OutputManager,
 
         for i, comp in enumerate(self.component_dict.keys()):
             ic_expr = Expression(conditional(lt(x[1], 45.0), NaOH_amounts[i], HNO3_amounts[i]),
-                                 self.comp_func_spaces.sub(i).element.interpolation_points())
+                                 self.comp_func_spaces.sub(i).element.interpolation_points)
             self.set_component_ics(comp, ic_expr)
 
         ic_expr = Expression(conditional(lt(x[1], 45.0), NaOH_amounts[-1], HNO3_amounts[-1]),
-                             self.DG0_space.element.interpolation_points())
+                             self.DG0_space.element.interpolation_points)
         self.set_solvent_ic(ic_expr)
 
     def set_fluid_properties(self):

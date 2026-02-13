@@ -92,7 +92,7 @@ class TracerBreakthrough(TracerTransportProblem):
         self.add_outflow_bc(u)
 
     def get_solution(self, t_end):
-        self.interpolation_space = functionspace(self.mesh, ("CG", 2))
+        self.interpolation_space = functionspace(self.mesh, ('P', 2))
         expr = self.solution_expr(t_end, L=1.0, R=1.0, v=1.0, D=1.0 / self.Pe)
 
         self.u_solution = Function(self.interpolation_space)

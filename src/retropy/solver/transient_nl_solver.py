@@ -35,7 +35,7 @@ class TransientNLSolver(PETScSolver):
 
         bcs = self.get_dirichlet_bcs()
 
-        problem = NonlinearProblem(self.__form, self.__u1, bcs, J)
+        problem = NewtonSolverNonlinearProblem(self.__form, self.__u1, bcs=bcs, J=J)
         self.__solver = NewtonSolver(MPI.COMM_WORLD, problem)
 
     def evaluate_jacobian(self, form):
