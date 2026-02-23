@@ -24,8 +24,8 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
         W = self.mixed_func_space
 
-        (self.__u, self.__p) = TrialFunctions(W)
-        (self.__v, self.__q) = TestFunctions(W)
+        self.__u, self.__p = TrialFunctions(W)
+        self.__v, self.__q = TestFunctions(W)
 
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
@@ -111,9 +111,13 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
     def assemble_matrix(self):
         self.__a, self.__L = lhs(self.mixed_form), rhs(self.mixed_form)
 
-    def set_flow_solver_params(self, petsc_options):
+    def set_flow_solver_params(self, petsc_options, *args, **kwargs):
         self.problem = LinearProblem(
-            self.__a, self.__L, petsc_options_prefix="basic_linear_problem", bcs=self.mixed_velocity_bc, petsc_options=petsc_options
+            self.__a,
+            self.__L,
+            petsc_options_prefix="flow_linear_problem",
+            bcs=self.mixed_velocity_bc,
+            petsc_options=petsc_options,
         )
 
     def solve_flow(self, **kwargs):
@@ -126,3 +130,6 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
 
         self.fluid_velocity.x.scatter_forward()
         self.fluid_pressure.x.scatter_forward()
+
+    def get_flow_residual(self):
+        return self.problem.solver.getResidualNorm()

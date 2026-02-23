@@ -27,7 +27,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         u0, p0 = self.__u0, self.__p0
 
-        mu, k, rho, g = self._mu, self._k, self._rho, self._g
+        mu, k, rho, phi, g = self._mu, self._k, self._rho, self._phi, self._g
 
         self.__r = Constant(self.mesh, ScalarType(1.0))
         self.omega = Constant(self.mesh, ScalarType(1.0))
@@ -37,12 +37,14 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         self.form_update_velocity = (
             mu / k * inner(v, u) * dx
-            + r * inner(div(v), div(rho * u)) * dx
+            + r * inner(div(v), div(phi * rho * u)) * dx
             - inner(p0, div(v)) * dx
             - inner(v, rho * g) * dx
         )
 
-        self.form_update_pressure = q * (p - p0) * dx + omega * q * (div(rho * u0)) * dx
+        self.form_update_pressure = (
+            q * (p - p0) * dx + omega * q * (div(phi * rho * u0)) * dx
+        )
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
 
@@ -93,54 +95,43 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             )
             self.form_update_velocity += alpha * dot(u, n) * dot(n, v) * ds(marker)
 
-    def set_additional_parameters(self, r_val: float, omega_by_r: float):
+    def set_additional_parameters(
+        self, r_val: float, omega_by_r: float, *args, **kwargs
+    ):
         """For 0 < omega/r < 2, the augmented system converges."""
 
         self.__r.value = r_val
         self.omega.value = r_val * omega_by_r
 
     def assemble_matrix(self):
+        self.assemble_residual_vector()
+
         F_velocity = self.form_update_velocity
         F_pressure = self.form_update_pressure
 
-        self.a_v, self.L_v = form(lhs(F_velocity)), form(rhs(F_velocity))
-        a_p, self.L_p = form(lhs(F_pressure)), form(rhs(F_pressure))
+        self.__a_v, self.__L_v = lhs(F_velocity), rhs(F_velocity)
+        self.__a_p, self.__L_p = lhs(F_pressure), rhs(F_pressure)
 
-        self.A_v = assemble_matrix(self.a_v, bcs=self.velocity_bc)
-        self.b_v = assemble_vector(self.L_v)
-        self.A_v.assemble()
-        apply_lifting(self.b_v, [self.a_v], bcs=[self.velocity_bc])
-        self.b_v.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
-        set_bc(self.b_v, self.velocity_bc)
+    def set_flow_solver_params(self, petsc_options_v, petsc_options_p, *args, **kwargs):
+        self.problem_v = LinearProblem(
+            self.__a_v,
+            self.__L_v,
+            u=self.__u0,
+            petsc_options_prefix="update_velocity",
+            bcs=self.velocity_bc,
+            petsc_options=petsc_options_v,
+        )
 
-        self.A_p = assemble_matrix(a_p, bcs=[])
-        self.A_p.assemble()
-        self.b_p = assemble_vector(self.L_p)
-
-    def set_flow_solver_params(self, **kwargs):
-        # Users can override this method.
-        # Or, TODO: make this method more user friendly.
-
-        self.solver_v = PETSc.KSP().create(self.mesh.comm)
-        self.solver_v.setOperators(self.A_v)
-        self.solver_v.setType("preonly")
-        self.solver_v.setTolerances(rtol=1e-12, atol=1e-14)
-
-        pc = self.solver_v.getPC()
-        pc.setType("lu")
-        pc.setFactorSolverType("superlu_dist")
-        pc.setFactorSetUpSolverType()
-
-        self.solver_p = PETSc.KSP().create(self.mesh.comm)
-        self.solver_p.setOperators(self.A_p)
-        self.solver_p.setType("gmres")
-        self.solver_p.setTolerances(rtol=1e-12, atol=1e-14)
-
-        pc = self.solver_p.getPC()
-        pc.setType("none")
+        self.problem_p = LinearProblem(
+            self.__a_p,
+            self.__L_p,
+            u=self.__p0,
+            petsc_options_prefix="update_pressure",
+            bcs=[],
+            petsc_options=petsc_options_p,
+        )
 
     def solve_flow(self, target_residual: float, max_steps: int):
-        # TODO: Tidy up the logic of this section.
         steps = 0
 
         residual = self.get_flow_residual()
@@ -148,19 +139,8 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
             if MPI.COMM_WORLD.rank == 0:
                 print(f"Darcy flow residual = {str(residual)}")
 
-            self.solver_v.solve(self.b_v, self.__u0.x.petsc_vec)
-            # TODO: figure out why scattering of p0 is not necessary here.
-            self.__u0.x.scatter_forward()
-
-            self.b_p = assemble_vector(self.L_p)
-            self.solver_p.solve(self.b_p, self.__p0.x.petsc_vec)
-
-            self.b_v = assemble_vector(self.L_v)
-            apply_lifting(self.b_v, [self.a_v], bcs=[self.velocity_bc])
-            self.b_v.ghostUpdate(
-                addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE
-            )
-            set_bc(self.b_v, self.velocity_bc)
+            self.problem_v.solve()
+            self.problem_p.solve()
 
             steps += 1
             residual = self.get_flow_residual()

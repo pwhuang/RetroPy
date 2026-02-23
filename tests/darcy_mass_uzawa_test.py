@@ -29,7 +29,24 @@ class DarcyMassUzawaTest(DarcyFlowUzawa, DarcyMassSourceBenchmark):
 
         self.set_additional_parameters(r_val=5e1, omega_by_r=1.0)
         self.assemble_matrix()
-        self.set_flow_solver_params()
+
+        petsc_options_v = {
+            "ksp_type": "preonly",
+            "pc_type": "lu",
+            "pc_factor_mat_solver_type": "mumps",
+            "ksp_error_if_not_converged": True,
+            "ksp_monitor": None,
+        }
+
+        petsc_options_p = {
+            "ksp_type": "gmres",
+            "ksp_rtol": 1e-10,
+            "ksp_atol": 1e-12,
+            "ksp_max_it": 1000,
+            "pc_type": "jacobi",
+        }
+
+        self.set_flow_solver_params(petsc_options_v, petsc_options_p)
         self.get_solution()
 
 

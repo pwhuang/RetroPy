@@ -39,7 +39,14 @@ class DarcyFlowBase(FluidProperty):
 
         for key, pressure_bc in self.pressure_bc.items():
             marker = self.marker_dict[key]
-            self.residual_momentum_form += alpha * k / mu * ((pressure_bc - p) / h  - rho * dot(g, n) ) * dot(n, v) * ds(marker)
+            self.residual_momentum_form += (
+                alpha
+                * k
+                / mu
+                * ((pressure_bc - p) / h - rho * dot(g, n))
+                * dot(n, v)
+                * ds(marker)
+            )
             self.residual_momentum_form += alpha * dot(u, n) * dot(n, v) * ds(marker)
 
     def set_velocity_bc(self, bc: dict):
@@ -78,7 +85,7 @@ class DarcyFlowBase(FluidProperty):
         self.residual_momentum_form = (
             mu / k * inner(v, u0) * dx - inner(div(v), p0) * dx - inner(v, rho * g) * dx
         )
-        self.residual_mass_form = q * div(rho * u0) * dx
+        self.residual_mass_form = q * div(phi * rho * u0) * dx
 
     def add_mass_source_to_residual_form(self, sources: list):
         q = self.__q
@@ -92,20 +99,34 @@ class DarcyFlowBase(FluidProperty):
         for source in sources:
             self.residual_momentum_form -= inner(v, source) * self.dx
 
+    def assemble_residual_vector(self):
+        self.L_mass = form(self.residual_mass_form)
+        self.L_momentum = form(self.residual_momentum_form)
+
+        self.r_momentum = assemble_vector(self.L_momentum)
+        self.r_mass = assemble_vector(self.L_mass)
+
     def get_flow_residual(self):
         """"""
 
-        residual_momentum = assemble_vector(form(self.residual_momentum_form))
-        residual_momentum.ghostUpdate(
+        with self.r_momentum.localForm() as momentum_local:
+            momentum_local.set(0.0)
+
+        assemble_vector(self.r_momentum, self.L_momentum)
+        self.r_momentum.ghostUpdate(
             addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE
         )
-        set_bc(residual_momentum, bcs=self.zero_bc)
-        residual_momentum.ghostUpdate(
+        set_bc(self.r_momentum, bcs=self.zero_bc)
+
+        self.r_momentum.ghostUpdate(
             addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD
         )
 
-        residual_mass = assemble_vector(form(self.residual_mass_form))
+        with self.r_mass.localForm() as mass_local:
+            mass_local.set(0.0)
 
-        residual = residual_momentum.norm() + residual_mass.norm()
+        assemble_vector(self.r_mass, self.L_mass)
+
+        residual = self.r_momentum.norm() + self.r_mass.norm()
 
         return residual
