@@ -29,6 +29,7 @@ class TransportProblemBase:
         self.CG1_space = functionspace(self.mesh, ("P", 1))
 
         self.Vec_DG0_space = functionspace(self.mesh, ("DG", 0, (mesh_dim,)))
+        self.Vec_DG1_space = functionspace(self.mesh, ("DG", 1, (mesh_dim,)))
         self.Vec_CG1_space = functionspace(self.mesh, ("P", 1, (mesh_dim,)))
 
         # The implementation of boundary_vertex_coord potentially leads to a
@@ -108,6 +109,9 @@ class TransportProblemBase:
         self.fluid_velocity = Function(self.velocity_func_space)
         self.fluid_velocity.name = "velocity"
 
+        self.fluid_velocity_interpolated = Function(self.Vec_DG0_space)
+        self.fluid_velocity_interpolated.name = "velocity_interpolated"
+
     def set_pressure_fe_space(self, fe_space, fe_degree):
         cellname = self.mesh.ufl_cell().cellname()
         self.pressure_finite_element = element(
@@ -138,7 +142,8 @@ class TransportProblemBase:
         self.write_function(self.fluid_pressure, time_step)
 
     def save_fluid_velocity(self, time_step):
-        self.write_function(self.fluid_velocity, time_step)
+        self.fluid_velocity_interpolated.interpolate(self.fluid_velocity)
+        self.write_function(self.fluid_velocity_interpolated, time_step)
 
     @staticmethod
     def set_default_solver_parameters(prm):

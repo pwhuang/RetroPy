@@ -11,8 +11,7 @@ from retropy.physics import DG0Kernel
 from retropy.manager import XDMFManager as OutputManager
 from retropy.solver import PETScSolver
 
-from dolfinx.fem import Constant, form, Function
-from dolfinx.fem.petsc import assemble_vector
+from dolfinx.fem import Constant, Function
 from ufl import as_vector
 
 import reaktoro as rkt
@@ -27,7 +26,6 @@ class FlowManager(DarcyFlowMixedPoisson):
         self.generate_residual_form()
         self.set_flow_ibc()
 
-        # self.set_additional_parameters(r_val=0.0, omega_by_r=1.0)
         self.assemble_matrix()
 
         solver_params = {
@@ -42,7 +40,7 @@ class FlowManager(DarcyFlowMixedPoisson):
         self.set_pressure_fe_space('DG', 0)
 
         if self.mesh.topology.cell_name() == 'triangle':
-            self.set_velocity_fe_space('BDM', 1)
+            self.set_velocity_fe_space('RT', 1)
         elif self.mesh.topology.cell_name() == 'quadrilateral':
             self.set_velocity_fe_space('RTCF', 1)
 
@@ -53,14 +51,10 @@ class FlowManager(DarcyFlowMixedPoisson):
         self.set_pressure_bc({'top': Constant(self.mesh, 101325. + 100.),
                               'bottom': Constant(self.mesh, 101325.),})
         
-        # self.set_pressure_bc({'bottom': Constant(self.mesh, 101325.),})
         self.add_weak_pressure_bc(penalty_value=20.0)
 
         velocity_bc = Function(self.velocity_func_space)
         velocity_bc.interpolate(lambda x: (0.0*x[0], 0.0*x[1]))
-
-        velocity_top = Function(self.velocity_func_space)
-        velocity_top.interpolate(lambda x: (0.0*x[0], -1.0 + 0.0*x[1]))
 
         self.set_velocity_bc({'left': velocity_bc,
                               'right': velocity_bc,})
@@ -157,7 +151,6 @@ class ReactiveTransportManager(ReactiveTransportManager):
         time_stamp_idx = 0
         time_stamp = time_stamps[time_stamp_idx]
 
-        # self.solve_initial_condition()
         self.save_to_file(time=current_time)
 
         saved_times.append(current_time)
@@ -238,10 +231,10 @@ class TransportManager(TracerTransportProblem, DG0Kernel, PETScSolver):
         self.assign_u1_to_u0()
 
 class Problem(TransportManager, FlowManager, OutputManager):
-    """This class solves the CO2 convection problem."""
+    """This class solves a hypothetical mineral reaction problem within a fracture."""
 
     def __init__(self, nx, ny, const_diff):
-        super().__init__(MeshFactory(nx, ny, mesh_type='triangle'))
+        super().__init__(MeshFactory(nx, ny, mesh_type='quadrilateral'))
         self.is_same_diffusivity = const_diff
         # self.set_flow_residual(5e-10)
 
@@ -282,7 +275,7 @@ class Problem(TransportManager, FlowManager, OutputManager):
 
     def kinetics(self, C1, C2):
         kd = Constant(self.mesh, 0.0)
-        kp = Constant(self.mesh, 2e-3)
+        kp = Constant(self.mesh, 2e-2)
 
         return -kd + kp*C1*C2
 
@@ -313,7 +306,6 @@ class Problem(TransportManager, FlowManager, OutputManager):
         self.add_outflow_bc(f_id)
 
     def set_fluid_properties(self):
-        self.set_porosity(1.0)
         self.set_fluid_density(1e-3) # Initialization # g/mm^3
         self.set_fluid_viscosity(0.893e-3)  # Pa sec
         self.set_gravity([0.0, 0.0]) # mm/sec^2
@@ -323,21 +315,31 @@ class Problem(TransportManager, FlowManager, OutputManager):
         self.aperture_width.name = 'aperture'
         
         self.aperture_width.interpolate(lambda x: self.hmax.value - 4e-4 * x[0])
+        
+        # TODO: These "set" methods is used as "initializations". Change the naming.
+        self.set_porosity(1.0)
+        self._phi.x.array[:] = self.aperture_width.x.array[:] / self.hmax.value
+        self._phi.x.scatter_forward()
+
         self.set_permeability(0.0) # mm^2
         self._k.x.array[:] = self.aperture_width.x.array[:]**2 / 12.
         self._k.x.scatter_forward()
-
-    def update_permeability(self):
+       
+    def update_aperture(self):
         # TODO: define permeability based on local cubic law or Kozeny-Carman equation
         self.aperture_width.x.array[:] -= self.hmax.value * self.Mv_calcite * self.delta_S
+        self.aperture_width.x.scatter_forward()
 
         # self.aperture_width.x.array[self.aperture_width.x.array < 0.0] = 1e-15
         
         self._k.x.array[:] = self.aperture_width.x.array[:]**2 / 12.
         self._k.x.scatter_forward()
 
-    def save_to_file(self, time, is_saving_pv=False):
-        super().save_to_file(time, is_saving_pv=False)
+        self._phi.x.array[:] = self.aperture_width.x.array[:] / self.hmax.value
+        self._phi.x.scatter_forward()
+
+    def save_to_file(self, time, is_saving_pv=True):
+        super().save_to_file(time, is_saving_pv)
         self.write_function(self.fluid_pressure, time)
         self.write_function(self.aperture_width, time)
     
@@ -348,7 +350,7 @@ class Problem(TransportManager, FlowManager, OutputManager):
         for i in range(timesteps):
             self.solve_flow(target_residual=5e-9, max_steps=50)
             self.solve_transport()
-            self.update_permeability()
+            self.update_aperture()
 
             if (i+1) * self.dt.value > 3.0:
                 self.injected_amount.value = 0.0

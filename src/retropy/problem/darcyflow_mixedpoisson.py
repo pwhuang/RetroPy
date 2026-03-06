@@ -30,7 +30,7 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         u, p = self.__u, self.__p
         v, q = self.__v, self.__q
 
-        mu, k, rho, g = self._mu, self._k, self._rho, self._g
+        mu, k, rho, phi, g = self._mu, self._k, self._rho, self._phi, self._g
         dx = self.dx
 
         self.__r = Constant(self.mesh, 0.0)
@@ -39,9 +39,9 @@ class DarcyFlowMixedPoisson(TransportProblemBase, DarcyFlowBase):
         self.mixed_form = (
             mu / k * inner(v, u) * dx
             - div(v) * p * dx
-            + r * div(v) * div(rho * u) * dx
+            + r * div(v) * div(phi * rho * u) * dx
             - inner(v, rho * g) * dx
-            + q * div(rho * u) * dx
+            + q * div(phi * rho * u) * dx
         )
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
