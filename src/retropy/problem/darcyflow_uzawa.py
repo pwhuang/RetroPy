@@ -27,7 +27,7 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         u0, p0 = self.__u0, self.__p0
 
-        mu, k, rho, phi, g = self._mu, self._k, self._rho, self._phi, self._g
+        mu, k, rho, g = self._mu, self._k, self._rho, self._g
 
         self.__r = Constant(self.mesh, ScalarType(1.0))
         self.omega = Constant(self.mesh, ScalarType(1.0))
@@ -37,13 +37,13 @@ class DarcyFlowUzawa(TransportProblemBase, DarcyFlowBase):
 
         self.form_update_velocity = (
             mu / k * inner(v, u) * dx
-            + r * inner(div(v), div(phi * rho * u)) * dx
+            + r * inner(div(v), div(rho * u)) * dx
             - inner(p0, div(v)) * dx
             - inner(v, rho * g) * dx
         )
 
         self.form_update_pressure = (
-            q * (p - p0) * dx + omega * q * (div(phi * rho * u0)) * dx
+            q * (p - p0) * dx + omega * q * (div(rho * u0)) * dx
         )
 
         self.functions_to_save = [self.fluid_pressure, self.fluid_velocity]
