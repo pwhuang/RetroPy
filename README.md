@@ -3,7 +3,7 @@
 ## Environment
 RetroPy uses FEniCS-dolfinx 0.10.0 and Reaktoro v2. Navigate to the RetroPy folder. The environment can be installed using conda:
 ```
-conda create -f environment.yml
+conda env create -f environment.yml
 conda activate fenicsx-env
 ```
 We proceed with installing [Reaktoro](https://reaktoro.org/installation/installation-using-cmake.html)
