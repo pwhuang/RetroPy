@@ -39,7 +39,7 @@ dependencies:
 - h5py
 - pytensor
 - openmpi
-- "blas=*=accelerate"
+- blas
 - pip:
   - oyaml
 environment: {}
