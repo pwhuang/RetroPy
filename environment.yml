@@ -4,7 +4,7 @@ dependencies:
 - autodiff >=1.1.1
 - catch2 =2
 - ccache
-- clangxx_osx-arm64 =19
+- clangxx =19
 - cmake
 - cpp-tabulate
 - eigen
