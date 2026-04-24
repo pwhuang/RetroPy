@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 import numpy as np
+from ufl import as_vector
 
 class ComponentProperty:
     """This class defines the physical properties of fluid components.
@@ -19,13 +20,13 @@ class ComponentProperty:
         self.component_mobility = np.array(idx)
         self.component_mobility_idx = np.argwhere(self.component_mobility==True)[0]
 
-    def set_molecular_diffusivity(self, molecular_diffusivity):
+    def set_molecular_diffusivity(self, diffusivity):
         """
         Sets the molecular diffusivity in the unit of length squared over time.
         """
-
-        self.molecular_diffusivity = molecular_diffusivity
-        self._D = np.array(molecular_diffusivity)
+        
+        self._D = as_vector(diffusivity)
+        self.diffusivity = diffusivity
 
     def set_molar_mass(self, molar_mass):
         if len(molar_mass)!=self.num_component:

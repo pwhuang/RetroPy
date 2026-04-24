@@ -26,7 +26,10 @@ class DG0Kernel:
             The length between two cells.
         """
 
-        return D*inner(jump(w), jump(u))/self.delta_h*self.dS(marker)
+        if type(D)==Constant or type(D)==float:
+            return D * inner(jump(w), jump(u))/self.delta_h*self.dS(marker)
+        else:
+            return D('+') * D('-') / avg(D) * inner(jump(w), jump(u))/self.delta_h*self.dS(marker)
 
     def advection_by_func(self, w, u, func, marker):
         adv_np = self._get_advection_tensor(func, sign=1.0)
@@ -143,7 +146,7 @@ class DG0Kernel:
         # Note, this is only a (not good enough) approximation of the flux.
         dh = sqrt(dot(self.boundary_cell_coord - self.cell_coord,
                       self.boundary_cell_coord - self.cell_coord))
-
+     
         return self.general_flux_bc(w, D*(u - value)/dh, marker)
 
     def advection_flux_bc(self, w, value, marker: int):
@@ -173,7 +176,7 @@ class DG0Kernel:
         """
 
         Z = self.charge
-        D = self.molecular_diffusivity
+        D = self.diffusivity
 
         charge_by_diff = []
         charge_by_diff_by_concenctration = []

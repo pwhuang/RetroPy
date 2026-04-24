@@ -6,6 +6,7 @@ from .darcy_mass_source_benchmark import DarcyMassSourceBenchmark
 from .darcy_boundary_source import DarcyBoundarySource
 from .elliptic_transport_benchmark import EllipticTransportBenchmark
 from .diffusion_benchmark import DiffusionBenchmark
+from .heterogeneous_diffusion import HeterogeneousDiffusion
 from .rotating_cone import RotatingCone
 from .reacting_species import ReactingSpecies
 from .charge_balanced_diffusion import ChargeBalancedDiffusion

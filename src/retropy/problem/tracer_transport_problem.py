@@ -272,7 +272,7 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
     ):
         """Adds explicit diffusion physics to the variational form."""
 
-        D = self.molecular_diffusivity
+        D = self._D
         idx = self.component_dict[component_name]
 
         self.tracer_forms[f_id] += kappa * self.diffusion(
@@ -282,7 +282,7 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
     def add_implicit_diffusion(self, component_name, kappa: Any = 1, marker=0, f_id=0):
         """Adds implicit diffusion physics to the variational form."""
 
-        D = self.molecular_diffusivity
+        D = self._D
         idx = self.component_dict[component_name]
 
         self.tracer_forms[f_id] += kappa * self.diffusion(
