@@ -32,3 +32,4 @@ def set_default_solver_parameters(prm):
 from .petsc_solver import PETScSolver, LinearProblem
 from .transient_nl_solver import TransientNLSolver
 from .custom_nl_solver import CustomNLSolver
+from .custom_solver import CustomSolver
